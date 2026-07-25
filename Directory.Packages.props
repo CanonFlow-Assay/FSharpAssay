@@ -8,6 +8,7 @@
     <PackageVersion Include="FSharp.Compiler.Service" Version="43.12.201" />
     <PackageVersion Include="FSharp.Analyzers.SDK" Version="0.37.2" />
     <PackageVersion Include="Expecto" Version="11.1.0" />
+    <PackageVersion Include="FSharpLint.Core" Version="0.27.0" />
     <PackageVersion Include="Ionide.ProjInfo.FCS" Version="0.74.2" />
     <PackageVersion Include="Bolero" Version="0.24.36" />
     <PackageVersion Include="Bolero.Build" Version="0.24.36" />

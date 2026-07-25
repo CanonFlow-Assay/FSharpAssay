@@ -23,6 +23,7 @@ type Arguments =
     | [<AltCommandLine("-f")>] Fix
     | [<AltCommandLine("-mcp")>] Mcp
     | [<AltCommandLine("-docs")>] Docs of dir:string
+    | [<CustomCommandLine("--plugin")>] Plugin of paths:string
     with
         interface IArgParserTemplate with
             member s.Usage =
@@ -43,6 +44,7 @@ type Arguments =
                 | Fix -> "Automatically apply recommended fixes to source files."
                 | Mcp -> "Start Model Context Protocol (MCP) JSON-RPC server on stdio."
                 | Docs _ -> "Generate markdown documentation for all rules to specified directory."
+                | Plugin _ -> "Path to a compiled assembly (.dll) containing custom F# analyzers."
 
 [<EntryPoint>]
 let main argv =
@@ -71,6 +73,15 @@ let main argv =
     let config = { rawConfig with profile = activeProfile }
 
     printfn "🧪 FsAssay Engine v0.1.0 — Scanning target: %s [Profile: %s]" path config.profile
+    
+    let pluginPaths =
+        match results.TryGetResult(Plugin) with
+        | Some p -> p.Split(',') |> Array.map (fun s -> s.Trim()) |> Array.toList
+        | None -> []
+
+    let (cliPlugins, editorPlugins) = PluginLoader.loadPlugins pluginPaths
+    if not (List.isEmpty pluginPaths) then
+        printfn "🔌 Loaded %d CLI plugins and %d Editor plugins." cliPlugins.Length editorPlugins.Length
     
     let typedProfile =
         match config.profile.ToLowerInvariant() with
@@ -141,8 +152,8 @@ let main argv =
                     totalFiles <- totalFiles + 1
                     let verdict =
                         match optsOpt with
-                        | Some opts -> Orchestrator.evaluateFileWithProfile opts file typedProfile |> Async.RunSynchronously
-                        | None -> Orchestrator.evaluateSingleFileWithProfile file typedProfile |> Async.RunSynchronously
+                        | Some opts -> Orchestrator.evaluateFileWithProfile opts file typedProfile cliPlugins |> Async.RunSynchronously
+                        | None -> Orchestrator.evaluateSingleFileWithProfile file typedProfile cliPlugins |> Async.RunSynchronously
 
                     match verdict with
                     | Completed (violations, treeOpt, sourceText) ->

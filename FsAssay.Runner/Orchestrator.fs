@@ -14,7 +14,7 @@ module Orchestrator =
     
     let checker = FSharpChecker.Create(keepAssemblyContents = true)
     
-    let evaluateFileWithProfile (options: FSharpProjectOptions) (file: string) (profile: Profile) = async {
+    let evaluateFileWithProfile (options: FSharpProjectOptions) (file: string) (profile: Profile) (plugins: Analyzer<CliContext> list) = async {
         if not (File.Exists(file)) then return Skipped UnrelatedFile
         else
             let source = File.ReadAllText(file)
@@ -43,19 +43,39 @@ module Orchestrator =
                     }
                     
                     try
-                        let! violations = Library.coreAnalyzer context.TypedTree context.FileName context.SourceText context.CheckFileResults.Diagnostics profile
-                        return Completed (violations, context.TypedTree, context.SourceText)
+                        let parseTree = Some context.ParseFileResults.ParseTree
+                        let! violations = Library.coreAnalyzer parseTree context.TypedTree context.FileName context.SourceText context.CheckFileResults.Diagnostics profile
+                        
+                        let mutable pluginViolations = []
+                        for plugin in plugins do
+                            let! messages = plugin context
+                            let mapped = 
+                                messages |> List.map (fun m ->
+                                    let severity = match m.Severity with | FSharp.Analyzers.SDK.Severity.Error -> Major | _ -> Minor
+                                    { Code = m.Code
+                                      Message = m.Message
+                                      Explanation = "Violation reported by external F# Analyzer SDK plugin."
+                                      Range = m.Range
+                                      Severity = severity
+                                      RelatedRules = []
+                                      Fixes = m.Fixes
+                                      DocLink = None
+                                      CodeSnippet = None }
+                                )
+                            pluginViolations <- pluginViolations @ mapped
+                            
+                        return Completed (violations @ pluginViolations, context.TypedTree, context.SourceText)
                     with e ->
                         return Failed (AnalyzerException e.Message)
                 else
                     return Skipped CompilerErrors
     }
 
-    let evaluateFile options file = evaluateFileWithProfile options file Core
+    let evaluateFile options file = evaluateFileWithProfile options file Core []
 
     [<SuppressMessage("FsAssay", "FSA2017")>]
     [<SuppressMessage("FsAssay", "FSA-C01")>]
-    let evaluateSingleFileWithProfile (file: string) (profile: Profile) = async {
+    let evaluateSingleFileWithProfile (file: string) (profile: Profile) (plugins: Analyzer<CliContext> list) = async {
         if not (File.Exists(file)) then return Skipped UnrelatedFile
         else
             let source = File.ReadAllText(file)
@@ -89,13 +109,33 @@ module Orchestrator =
                         AnalyzerIgnoreRanges = Map.empty
                     }
                     try
-                        let! violations = Library.coreAnalyzer context.TypedTree context.FileName context.SourceText context.CheckFileResults.Diagnostics profile
-                        return Completed (violations, context.TypedTree, context.SourceText)
+                        let parseTree = Some context.ParseFileResults.ParseTree
+                        let! violations = Library.coreAnalyzer parseTree context.TypedTree context.FileName context.SourceText context.CheckFileResults.Diagnostics profile
+                        
+                        let mutable pluginViolations = []
+                        for plugin in plugins do
+                            let! messages = plugin context
+                            let mapped = 
+                                messages |> List.map (fun m ->
+                                    let severity = match m.Severity with | FSharp.Analyzers.SDK.Severity.Error -> Major | _ -> Minor
+                                    { Code = m.Code
+                                      Message = m.Message
+                                      Explanation = "Violation reported by external F# Analyzer SDK plugin."
+                                      Range = m.Range
+                                      Severity = severity
+                                      RelatedRules = []
+                                      Fixes = m.Fixes
+                                      DocLink = None
+                                      CodeSnippet = None }
+                                )
+                            pluginViolations <- pluginViolations @ mapped
+                            
+                        return Completed (violations @ pluginViolations, context.TypedTree, context.SourceText)
                     with e ->
                         return Failed (AnalyzerException e.Message)
     }
 
-    let evaluateSingleFile file = evaluateSingleFileWithProfile file Core
+    let evaluateSingleFile file = evaluateSingleFileWithProfile file Core []
 
     let analyzeProject path = async {
         let optionsList =
@@ -116,7 +156,7 @@ module Orchestrator =
         let mutable results = []
         for (f, o) in files do
             if f.EndsWith(".fs") && not (f.Contains("AssemblyAttributes.fs") || f.Contains("AssemblyInfo.fs")) then
-                let! verdict = match o with Some opt -> evaluateFileWithProfile opt f Core | None -> evaluateSingleFileWithProfile f Core
+                let! verdict = match o with Some opt -> evaluateFileWithProfile opt f Core [] | None -> evaluateSingleFileWithProfile f Core []
                 match verdict with
                 | Completed (v, _, _) -> results <- results @ v
                 | _ -> ()

@@ -42,6 +42,8 @@ type Rule =
     | FSA2016 | FSA2017 | FSAARCH01 | FSAARCH02
     | FSATDD01 | FSATDD02 | FSATDD03 | FSATDD04
     | FSAP01 | FSAP02 | FSAP03 | FSAP04 | FSAP05
+    | FSALINT01 | FSALINT02 | FSALINT03 | FSALINT04 | FSALINT05 | FSALINT06 | FSALINT07 | FSALINT08 | FSALINT09 | FSALINT10
+    | FSALINT11 | FSALINT12 | FSALINT13 | FSALINT14 | FSALINT15 | FSALINT16 | FSALINT17 | FSALINT18 | FSALINT19 | FSALINT20
     with
         member this.Code = 
             match this with
@@ -118,6 +120,26 @@ type Rule =
             | FSAP03 -> "FSA-P03"
             | FSAP04 -> "FSA-P04"
             | FSAP05 -> "FSA-P05"
+            | FSALINT01 -> "FSA-LINT01"
+            | FSALINT02 -> "FSA-LINT02"
+            | FSALINT03 -> "FSA-LINT03"
+            | FSALINT04 -> "FSA-LINT04"
+            | FSALINT05 -> "FSA-LINT05"
+            | FSALINT06 -> "FSA-LINT06"
+            | FSALINT07 -> "FSA-LINT07"
+            | FSALINT08 -> "FSA-LINT08"
+            | FSALINT09 -> "FSA-LINT09"
+            | FSALINT10 -> "FSA-LINT10"
+            | FSALINT11 -> "FSA-LINT11"
+            | FSALINT12 -> "FSA-LINT12"
+            | FSALINT13 -> "FSA-LINT13"
+            | FSALINT14 -> "FSA-LINT14"
+            | FSALINT15 -> "FSA-LINT15"
+            | FSALINT16 -> "FSA-LINT16"
+            | FSALINT17 -> "FSA-LINT17"
+            | FSALINT18 -> "FSA-LINT18"
+            | FSALINT19 -> "FSA-LINT19"
+            | FSALINT20 -> "FSA-LINT20"
             
         member this.Message =
             match this with
@@ -194,6 +216,8 @@ type Rule =
             | FSAP03 -> "Avoid unnecessary Seq materialization (e.g., Seq.toList followed by List.toSeq)."
             | FSAP04 -> "Avoid string concatenation (+) in loops. Use StringBuilder."
             | FSAP05 -> "Struct definition is too large (> 4 fields). Consider a reference type or record."
+            | FSALINT01 | FSALINT02 | FSALINT03 | FSALINT04 | FSALINT05 | FSALINT06 | FSALINT07 | FSALINT08 | FSALINT09 | FSALINT10
+            | FSALINT11 | FSALINT12 | FSALINT13 | FSALINT14 | FSALINT15 | FSALINT16 | FSALINT17 | FSALINT18 | FSALINT19 | FSALINT20 -> "FSharpLint delegated rule."
 
         member this.Status =
             match this with

@@ -33,7 +33,7 @@ open FsAssay.Analyzers.Visitor
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-S05")>]
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-C14")>]
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-1301")>]
-let coreAnalyzer (ctxTypedTree: FSharpImplementationFileContents option) (ctxFileName: string) (ctxSourceText: ISourceText) (ctxDiagnostics: FSharp.Compiler.Diagnostics.FSharpDiagnostic[]) (profile: Profile) =
+let coreAnalyzer (ctxParseTree: FSharp.Compiler.Syntax.ParsedInput option) (ctxTypedTree: FSharpImplementationFileContents option) (ctxFileName: string) (ctxSourceText: ISourceText) (ctxDiagnostics: FSharp.Compiler.Diagnostics.FSharpDiagnostic[]) (profile: Profile) =
     async {
         let diagFindings =
             ctxDiagnostics
@@ -60,7 +60,13 @@ let coreAnalyzer (ctxTypedTree: FSharpImplementationFileContents option) (ctxFil
                 if f.IsSome then additionalFindings <- f.Value :: additionalFindings
             
             let allFindings = (astFindings |> Set.toList) @ diagFindings @ additionalFindings
-            return allFindings |> List.choose (toViolation ctxSourceText)
+            
+            let! lintFindings =
+                match ctxParseTree with
+                | Some pt -> FsAssay.Analyzers.LintDelegation.lintAnalyzer pt ctxFileName ctxSourceText profile
+                | None -> async.Return []
+                
+            return (allFindings @ lintFindings) |> List.choose (toViolation ctxSourceText)
         | None -> return diagFindings |> List.choose (toViolation ctxSourceText)
     }
 
@@ -106,7 +112,8 @@ let toSDKMessage (v: Violation) : Message =
 let antiPatternAnalyzer : Analyzer<CliContext> =
     fun ctx -> 
         async {
-            let! violations = coreAnalyzer ctx.TypedTree ctx.FileName ctx.SourceText ctx.CheckFileResults.Diagnostics Core
+            let parseTree = Some ctx.ParseFileResults.ParseTree
+            let! violations = coreAnalyzer parseTree ctx.TypedTree ctx.FileName ctx.SourceText ctx.CheckFileResults.Diagnostics Core
             return violations |> List.map toSDKMessage
         }
 
@@ -115,6 +122,7 @@ let antiPatternEditorAnalyzer : Analyzer<EditorContext> =
     fun ctx -> 
         async {
             let diagnostics = match ctx.CheckFileResults with Some res -> res.Diagnostics | None -> [||]
-            let! violations = coreAnalyzer ctx.TypedTree ctx.FileName ctx.SourceText diagnostics Core
+            let parseTree = Some ctx.ParseFileResults.ParseTree 
+            let! violations = coreAnalyzer parseTree ctx.TypedTree ctx.FileName ctx.SourceText diagnostics Core
             return violations |> List.map toSDKMessage
         }

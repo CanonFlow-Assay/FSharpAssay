@@ -32,7 +32,8 @@ let runFsAssay (source: string) =
             ProjectOptions = Unchecked.defaultof<_>
             AnalyzerIgnoreRanges = Map.empty
         }
-        Library.coreAnalyzer context.TypedTree context.FileName context.SourceText context.CheckFileResults.Diagnostics Domain.Profile.Core |> Async.RunSynchronously
+        let parseTree = Some context.ParseFileResults.ParseTree
+        Library.coreAnalyzer parseTree context.TypedTree context.FileName context.SourceText context.CheckFileResults.Diagnostics Domain.Profile.Core |> Async.RunSynchronously
     | FSharpCheckFileAnswer.Aborted -> 
         failwith "Failed to parse and check: Aborted"
 

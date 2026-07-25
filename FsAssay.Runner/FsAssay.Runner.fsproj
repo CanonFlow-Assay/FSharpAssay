@@ -15,6 +15,7 @@
     <Compile Include="Domain.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="ProjectSystem.fs" />
+    <Compile Include="PluginLoader.fs" />
     <Compile Include="Orchestrator.fs" />
     <Compile Include="Output.fs" />
     <Compile Include="Server.fs" />
