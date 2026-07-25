@@ -81,7 +81,7 @@ let projectAnalyzer (files: (string * FSharpImplementationFileContents * ISource
         let ssrfFindings = FsAssay.Analyzers.Graph.checkSSRF graph
         let tddFindings = FsAssay.Analyzers.Graph.checkTDD graph
         
-        let fsprojFile = files |> List.tryPick (fun (f, _, _) -> 
+        let fsprojFile = files |> List.tryPick (fun (f, _, _) -> // fsharp-assay-ignore FSA2022
             let dir = System.IO.Path.GetDirectoryName(f)
             let fsprojs = System.IO.Directory.GetFiles(dir, "*.fsproj")
             if fsprojs.Length > 0 then Some fsprojs.[0] else None

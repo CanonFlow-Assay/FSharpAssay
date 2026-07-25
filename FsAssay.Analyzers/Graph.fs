@@ -171,6 +171,9 @@ let extractDependencies (decl: FSharpImplementationFileDeclaration) : Set<string
     let deps = visit decl
     (deps, hasHttpCall)
 
+let tryGetFullName (e: FSharp.Compiler.Symbols.FSharpEntity) =
+    try Some e.FullName with | _ -> None
+
 let buildGraph (files: (string * FSharpImplementationFileContents) list) : ModuleGraph =
     let mutable nodes = Map.empty
     
@@ -180,7 +183,9 @@ let buildGraph (files: (string * FSharpImplementationFileContents) list) : Modul
             for d in decls do
                 match d with
                 | FSharpImplementationFileDeclaration.Entity(e, childDecls) ->
-                    allInternalModules.Add(e.FullName) |> ignore
+                    match tryGetFullName e with
+                    | Some name -> allInternalModules.Add(name) |> ignore
+                    | None -> ()
                     registerEntities childDecls
                 | _ -> ()
         registerEntities tree.Declarations
@@ -190,20 +195,23 @@ let buildGraph (files: (string * FSharpImplementationFileContents) list) : Modul
             for d in decls do
                 match d with
                 | FSharpImplementationFileDeclaration.Entity(e, childDecls) ->
-                    let (deps, makesHttp) = extractDependencies d
-                    let internalDeps = 
-                        deps 
-                        |> Set.filter (fun dep -> allInternalModules.Contains(dep) && not (dep.StartsWith(e.FullName)))
-                    
-                    let node = {
-                        Name = e.FullName
-                        File = file
-                        Layer = parseLayer e.FullName
-                        Opens = []
-                        References = Set.toList internalDeps
-                        MakesHttpCall = makesHttp
-                    }
-                    nodes <- nodes.Add(e.FullName, node)
+                    match tryGetFullName e with
+                    | Some name ->
+                        let (deps, makesHttp) = extractDependencies d
+                        let internalDeps = 
+                            deps 
+                            |> Set.filter (fun dep -> allInternalModules.Contains(dep) && not (dep.StartsWith(name)))
+                        
+                        let node = {
+                            Name = name
+                            File = file
+                            Layer = parseLayer name
+                            Opens = []
+                            References = Set.toList internalDeps
+                            MakesHttpCall = makesHttp
+                        }
+                        nodes <- nodes.Add(name, node)
+                    | None -> ()
                     
                     traverseEntities childDecls
                 | _ -> ()
