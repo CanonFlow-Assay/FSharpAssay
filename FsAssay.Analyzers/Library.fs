@@ -26,6 +26,7 @@ open FsAssay.Analyzers.Visitor
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-C03")>]
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-C06")>]
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-C08")>]
+
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-S03")>]
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-C09")>]
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-C10")>]
@@ -53,17 +54,54 @@ let coreAnalyzer (ctxTypedTree: FSharpImplementationFileContents option) (ctxFil
                 |> Set.unionMany
             
             let allFindings = (astFindings |> Set.toList) @ diagFindings
-            return allFindings |> List.choose toMessage
-        | None -> return diagFindings |> List.choose toMessage
+            return allFindings |> List.choose (toViolation ctxSourceText)
+        | None -> return diagFindings |> List.choose (toViolation ctxSourceText)
+    }
+
+let projectAnalyzer (files: (string * FSharpImplementationFileContents * ISourceText) list) =
+    async {
+        let trees = files |> List.map (fun (f, tree, _) -> (f, tree))
+        let graph = FsAssay.Analyzers.Graph.buildGraph trees
+        
+        let cycleFindings = FsAssay.Analyzers.Graph.detectCycles graph
+        let depthFindings = FsAssay.Analyzers.Graph.calculateDepth graph
+        let layerFindings = FsAssay.Analyzers.Graph.checkLayerViolations graph
+        
+        // Convert to violations. We attach these to the first file conceptually, or we can return them as global violations.
+        // For simplicity, we just map them using the first file's sourceText if possible, or dummy.
+        let allFindings = cycleFindings @ depthFindings @ layerFindings
+        
+        // Since architectural violations don't have a specific file snippet easily, we just use a dummy source text or the first file's text
+        let dummyText = match files with | (_, _, t) :: _ -> t | [] -> FSharp.Compiler.Text.SourceText.ofString ""
+        return allFindings |> List.choose (toViolation dummyText)
+    }
+
+let toSDKMessage (v: Violation) : Message =
+    {
+        Type = v.Code
+        Message = v.Message
+        Code = v.Code
+        Severity = 
+            match v.Severity with
+            | Critical | Major -> FSharp.Analyzers.SDK.Severity.Error
+            | Minor -> FSharp.Analyzers.SDK.Severity.Warning
+        Range = v.Range
+        Fixes = v.Fixes
     }
 
 [<CliAnalyzer "FSA_All">]
 let antiPatternAnalyzer : Analyzer<CliContext> =
     fun ctx -> 
-        coreAnalyzer ctx.TypedTree ctx.FileName ctx.SourceText ctx.CheckFileResults.Diagnostics Core
+        async {
+            let! violations = coreAnalyzer ctx.TypedTree ctx.FileName ctx.SourceText ctx.CheckFileResults.Diagnostics Core
+            return violations |> List.map toSDKMessage
+        }
 
 [<EditorAnalyzer "FSA_All_Editor">]
 let antiPatternEditorAnalyzer : Analyzer<EditorContext> =
     fun ctx -> 
-        let diagnostics = match ctx.CheckFileResults with Some res -> res.Diagnostics | None -> [||]
-        coreAnalyzer ctx.TypedTree ctx.FileName ctx.SourceText diagnostics Core
+        async {
+            let diagnostics = match ctx.CheckFileResults with Some res -> res.Diagnostics | None -> [||]
+            let! violations = coreAnalyzer ctx.TypedTree ctx.FileName ctx.SourceText diagnostics Core
+            return violations |> List.map toSDKMessage
+        }

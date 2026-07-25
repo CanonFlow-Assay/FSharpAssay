@@ -6,11 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Catalogue.fs" />
     <Compile Include="AstContext.fs" />
     <Compile Include="Domain.fs" />
+    <Compile Include="Catalogue.fs" />
     <Compile Include="Suppression.fs" />
     <Compile Include="AstUtils.fs" />
+    <Compile Include="Graph.fs" />
     <Compile Include="Visitor.fs" />
     <Compile Include="Library.fs" />
   </ItemGroup>

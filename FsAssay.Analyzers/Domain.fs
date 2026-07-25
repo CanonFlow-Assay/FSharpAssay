@@ -15,6 +15,11 @@ open System
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-C14")>]
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-1301")>]
 
+type RuleSeverity =
+    | Critical
+    | Major
+    | Minor
+
 type RuleStatus =
     | Proposed
     | Dummy
@@ -30,7 +35,10 @@ type Rule =
     | FSAF01 | FSAF02 | FSAF03 | FSAF04 | FSAF05 | FSAF06 | FSAF07 | FSAF08
     | FSAE01 | FSAE02 | FSAE03 | FSAE04
     | FSAM01 | FSAM03 | FSAM04
-    | FSAAI10 | FSAAI07 | FSAAI11
+    | FSAAI10 | FSAAI07 | FSAAI11 | FSAAI01
+    | FSASEC08 | FSASEC09 | FSASEC10 | FSASEC11 | FSASEC12 | FSASEC13
+    | FSA2022
+    | FSA2016 | FSA2017 | FSAARCH01 | FSAARCH02
     with
         member this.Code = 
             match this with
@@ -78,6 +86,18 @@ type Rule =
             | FSAAI10 -> "FSA-AI10"
             | FSAAI07 -> "FSA-AI07"
             | FSAAI11 -> "FSA-AI11"
+            | FSAAI01 -> "FSA-AI01"
+            | FSASEC08 -> "FSA-SEC08"
+            | FSASEC09 -> "FSA-SEC09"
+            | FSASEC10 -> "FSA-SEC10"
+            | FSASEC11 -> "FSA-SEC11"
+            | FSASEC12 -> "FSA-SEC12"
+            | FSASEC13 -> "FSA-SEC13"
+            | FSA2022 -> "FSA2022"
+            | FSA2016 -> "FSA2016"
+            | FSA2017 -> "FSA2017"
+            | FSAARCH01 -> "FSA-ARCH01"
+            | FSAARCH02 -> "FSA-ARCH02"
             
         member this.Message =
             match this with
@@ -125,10 +145,23 @@ type Rule =
             | FSAAI10 -> "Magic numbers: numeric literals > 1 in non-test code"
             | FSAAI07 -> "Overly Generic: more than 5 generic parameters in a function/method"
             | FSAAI11 -> "Missing [<RequireQualifiedAccess>] attribute on Discriminated Union or Enum"
+            | FSAAI01 -> "Unvalidated AI output. No smart constructor on AI result."
+            | FSASEC08 -> "No admin logic in domain"
+            | FSASEC09 -> "No known-vulnerable NuGet components"
+            | FSASEC10 -> "No hard-coded credentials"
+            | FSASEC11 -> "No unsigned ONDC messages"
+            | FSASEC12 -> "No PII in logs"
+            | FSASEC13 -> "No user-controlled URLs (SSRF)"
+            | FSA2022 -> "No System.IO or HttpClient in Domain"
+            | FSA2016 -> "Module dependency chain is too deep"
+            | FSA2017 -> "Circular dependency detected"
+            | FSAARCH01 -> "Domain layer should not depend on Infrastructure"
+            | FSAARCH02 -> "Dependencies must flow downwards"
 
         member this.Status =
             match this with
-            | FSAC02 | FSAC05 -> Implemented
+            | FSA2022 | FSAAI01 -> Implemented
+            | FSA2016 | FSA2017 | FSAARCH01 | FSAARCH02 -> Implemented
             | FSAC07 | FSAC11 | FSAC12 | FSAC13
             | FSAS04
             | FSAML01 | FSAML02
@@ -138,6 +171,42 @@ type Rule =
             | FSAM01 | FSAM03 | FSAM04 -> Dummy
             | FSAC04 -> Delegated "DisposedBeforeAsyncRunAnalyzer"
             | _ -> Prototype
+
+        member this.Severity =
+            match this with
+            | FSASEC08 | FSASEC09 | FSASEC10 | FSASEC11 | FSASEC12 | FSASEC13 -> Critical
+            | FSAC02 | FSAC03 | FSAC06 | FSAC10 | FSAS01 | FSAS02 | FSAS03 | FSAS04 | FSAS05 -> Critical
+            | FSA2017 | FSAARCH01 -> Critical
+            | FSA2022 | FSAAI01 | FSAAI10 | FSAAI07 | FSAAI11 | FSAC05 -> Major
+            | FSA2016 | FSAARCH02 -> Major
+            | _ -> Minor
+
+        member this.Explanation =
+            match this with
+            | FSAC02 -> "Option.get bypasses type safety and can cause runtime NullReferenceExceptions. Use pattern matching or Option.bind."
+            | FSAC05 -> "Incomplete pattern match means runtime exceptions if an unhandled case occurs. Exhaustive matching is required."
+            | FSA2022 -> "The Domain layer must be pure (Functional Core, Imperative Shell). I/O operations like System.IO or HttpClient violate this."
+            | FSA2016 -> "Deep dependency chains make code hard to understand and maintain."
+            | FSA2017 -> "Circular dependencies cause tight coupling and prevent modularity."
+            | FSAARCH01 -> "Domain logic should be pure and independent of external concerns."
+            | FSAARCH02 -> "Lower layers should not depend on higher layers (e.g. Infrastructure depending on API)."
+            | FSAAI01 -> "AI outputs (e.g., from OpenAI, Anthropic) are untrusted. They must be validated through a smart constructor before entering the domain."
+            | FSAS01 -> "Hard-coded credentials are a major security vulnerability."
+            | _ -> "Violates established elite F# coding standards."
+
+        member this.DocLink =
+            Some (sprintf "docs/rules/%s.md" this.Code)
+
+        member this.RelatedRules =
+            match this with
+            | FSAC02 -> ["FSA-C09"]
+            | FSAC05 -> ["FSA-F02"]
+            | FSA2022 -> ["FSA-C15"]
+            | FSAARCH01 -> ["FSA-ARCH02"]
+            | FSAARCH02 -> ["FSA-ARCH01"]
+            | FSAAI01 -> ["FSA-AI07"]
+            | _ -> []
+
 
 
 [<CustomEquality; CustomComparison>]
@@ -190,6 +259,45 @@ let toMessage (loc: Located<Rule>) : Message option =
             Severity = severity
             Range = loc.Range
             Fixes = fixes
+        }
+    
+type Violation = {
+    Code: string
+    Message: string
+    Severity: RuleSeverity
+    Range: range
+    CodeSnippet: string option
+    Fixes: Fix list
+    Explanation: string
+    DocLink: string option
+    RelatedRules: string list
+}
+
+let toViolation (sourceText: ISourceText) (loc: Located<Rule>) : Violation option =
+    match loc.Finding.Status with
+    | Dummy | Proposed -> None
+    | _ ->
+        let snippet =
+            try
+                let text = sourceText.GetSubTextFromRange(loc.Range).ToString()
+                Some text
+            with _ -> None
+
+        let fixes =
+            match loc.Finding.Code with
+            | "FSA-C09" -> [ { FromRange = loc.Range; FromText = "isNull"; ToText = "Option.isNone" } ]
+            | _ -> []
+
+        Some {
+            Code = loc.Finding.Code
+            Message = loc.Finding.Message
+            Severity = loc.Finding.Severity
+            Range = loc.Range
+            CodeSnippet = snippet
+            Fixes = fixes
+            Explanation = loc.Finding.Explanation
+            DocLink = loc.Finding.DocLink
+            RelatedRules = loc.Finding.RelatedRules
         }
     
 

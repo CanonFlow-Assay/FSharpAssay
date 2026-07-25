@@ -13,9 +13,12 @@ type SkipReason =
 type RuleFailure =
     | AnalyzerException of string
 
+open FSharp.Compiler.Symbols
+open FSharp.Compiler.Text
+
 [<SuppressMessage("FsAssay", "FSA1001")>]
 type RuleEvaluation =
-    | Completed of Message list
+    | Completed of FsAssay.Analyzers.Domain.Violation list * FSharpImplementationFileContents option * ISourceText
     | Skipped of SkipReason
     | Failed of RuleFailure
 

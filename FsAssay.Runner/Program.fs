@@ -3,6 +3,7 @@ open System.IO
 open System.Text.RegularExpressions
 open FsAssay.Runner
 open FSharp.Analyzers.SDK
+open FsAssay.Analyzers.Domain
 open Argu
 
 type Arguments =
@@ -117,7 +118,8 @@ let main argv =
             let mutable totalFiles = 0
             let mutable failedFiles = 0
             let mutable skippedFiles = 0
-            let allResults = ResizeArray<string * Message list>()
+            let allResults = ResizeArray<string * Violation list>()
+            let allTrees = ResizeArray<string * FSharp.Compiler.Symbols.FSharpImplementationFileContents * FSharp.Compiler.Text.ISourceText>()
 
             for (file, optsOpt) in filesToScan do
                 let isExcluded = config.exclude |> Array.exists (fun pat -> file.Contains(pat.Replace("*", "")))
@@ -129,14 +131,36 @@ let main argv =
                         | None -> Orchestrator.evaluateSingleFileWithProfile file typedProfile |> Async.RunSynchronously
 
                     match verdict with
-                    | Completed violations ->
+                    | Completed (violations, treeOpt, sourceText) ->
+                        match treeOpt with
+                        | Some t -> allTrees.Add((file, t, sourceText))
+                        | None -> ()
+                        
                         totalViolations <- totalViolations + violations.Length
                         allResults.Add(file, violations)
                         if not (List.isEmpty violations) then
                             if not (results.Contains(Adjudicate)) then
-                                printfn "\n❌ %s" file
+                                printfn "\n❌ %s:%d:%d" file violations.[0].Range.StartLine violations.[0].Range.StartColumn
                                 for v in violations do
-                                    printfn "   └── [%s] %s (Line: %d, Col: %d)" v.Code v.Message v.Range.StartLine v.Range.StartColumn
+                                    let severityIcon = 
+                                        match v.Severity with
+                                        | Critical -> "🔴"
+                                        | Major -> "🟠"
+                                        | Minor -> "🟡"
+                                    printfn "   └── [%s] %s: %s" v.Code severityIcon v.Message
+                                    v.CodeSnippet |> Option.iter (fun s ->
+                                        printfn "       │"
+                                        printfn "       │  %d │ %s" v.Range.StartLine (s.TrimEnd())
+                                        printfn "       │     │ %s" (String.replicate (max 1 (v.Range.EndColumn - v.Range.StartColumn)) "^")
+                                    )
+                                    if not (List.isEmpty v.Fixes) then
+                                        printfn "       │"
+                                        printfn "       ├── Fix: %s" v.Fixes.[0].ToText
+                                    printfn "       │"
+                                    printfn "       ├── Why: %s" v.Explanation
+                                    if not (List.isEmpty v.RelatedRules) then
+                                        printfn "       │"
+                                        printfn "       └── Related: %s" (String.concat ", " v.RelatedRules)
                             
                             
                             if results.Contains(Fix) then
@@ -145,7 +169,23 @@ let main argv =
                         skippedFiles <- skippedFiles + 1
                     | Failed fail ->
                         failedFiles <- failedFiles + 1
-                        printfn "\n💥 Exception in %s: %A" file fail
+                        printfn "\n❌ %s (Failed to analyze: %A)" file fail
+
+            // Project level analysis
+            if allTrees.Count > 0 then
+                let projViolations = FsAssay.Analyzers.Library.projectAnalyzer (allTrees |> Seq.toList) |> Async.RunSynchronously
+                if not (List.isEmpty projViolations) then
+                    totalViolations <- totalViolations + projViolations.Length
+                    allResults.Add("Architecture", projViolations)
+                    if not (results.Contains(Adjudicate)) then
+                        printfn "\n❌ Architecture Violations"
+                        for v in projViolations do
+                            let severityIcon = 
+                                match v.Severity with
+                                | Critical -> "🔴"
+                                | Major -> "🟠"
+                                | Minor -> "🟡"
+                            printfn "   └── [%s] %s: %s" v.Code severityIcon v.Message
 
             (totalFiles, skippedFiles, failedFiles, totalViolations, List.ofSeq allResults, filesToScan |> List.map fst)
 

@@ -1,8 +1,10 @@
 open Expecto
 open FSharp.Compiler.CodeAnalysis
+open FSharp.Compiler.Symbols
 open FSharp.Compiler.Text
 open FSharp.Analyzers.SDK
 open FsAssay.Analyzers
+open FsAssay.Analyzers.Domain
 open System.IO
 open System
 
@@ -34,11 +36,40 @@ let runFsAssay (source: string) =
     | FSharpCheckFileAnswer.Aborted -> 
         failwith "Failed to parse and check: Aborted"
 
-let expectViolation code (messages: Message list) =
+let runFsAssayMulti (sources: (string * string) list) =
+    let tmpDir = Path.Combine(Path.GetTempPath(), "FsAssayTest_" + Guid.NewGuid().ToString())
+    Directory.CreateDirectory(tmpDir) |> ignore
+    let filePaths = sources |> List.map (fun (name, src) ->
+        let file = Path.Combine(tmpDir, name)
+        File.WriteAllText(file, src)
+        file, src
+    )
+    
+    let allTrees = ResizeArray<string * FSharpImplementationFileContents * ISourceText>()
+    
+    for (file, src) in filePaths do
+        let sourceText = SourceText.ofString src
+        let optionsUnresolved, _ = checker.GetProjectOptionsFromScript(file, sourceText) |> Async.RunSynchronously
+        let fsCore = typeof<option<int>>.Assembly.Location
+        let sysLib = typeof<System.Object>.Assembly.Location
+        let sysRuntime = typeof<System.Action>.Assembly.Location
+        let options = { optionsUnresolved with OtherOptions = Array.append optionsUnresolved.OtherOptions [| "-r:" + fsCore; "-r:" + sysLib; "-r:" + sysRuntime |] }
+        let parseResults, checkAnswer = checker.ParseAndCheckFileInProject(file, 0, sourceText, options) |> Async.RunSynchronously
+        match checkAnswer with
+        | FSharpCheckFileAnswer.Succeeded(checkResults) ->
+            if checkResults.ImplementationFile.IsSome then
+                allTrees.Add((file, checkResults.ImplementationFile.Value, sourceText))
+        | _ -> ()
+
+    let violations = Library.projectAnalyzer (allTrees |> Seq.toList) |> Async.RunSynchronously
+    Directory.Delete(tmpDir, true)
+    violations
+
+let expectViolation code (messages: Violation list) =
     let hasViolation = messages |> List.exists (fun m -> m.Code = code)
     Expect.isTrue hasViolation (sprintf "Expected %s to be triggered. Actual messages: %A" code (messages |> List.map (fun m -> m.Code)))
 
-let expectNoViolation code (messages: Message list) =
+let expectNoViolation code (messages: Violation list) =
     let hasViolation = messages |> List.exists (fun m -> m.Code = code)
     Expect.isFalse hasViolation (sprintf "Expected %s to NOT be triggered." code)
 
@@ -176,6 +207,41 @@ let doSomething (x: int option) =
 """
             let results = runFsAssay sourceCode
             expectViolation "FSA-C05" results
+
+        testCase "FSA2022: System.IO usage triggers FSA2022" <| fun _ ->
+            let sourceCode = """
+module BadCode
+let doSomething () =
+    System.IO.File.ReadAllText("test.txt")
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA2022" results
+
+        testCase "FSA-AI01: Unvalidated AI output triggers FSA-AI01" <| fun _ ->
+            let sourceCode = """
+module BadCode
+module OpenAI =
+    let GenerateText () = "AI Output"
+let doSomething () =
+    OpenAI.GenerateText()
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-AI01" results
+            
+        testCase "FSA2017: Circular Dependency triggers FSA2017" <| fun _ ->
+            let sources = [
+                "A.fs", """
+module rec Circular
+
+module ModuleA =
+    let doA () = ModuleB.doB ()
+
+module ModuleB =
+    let doB () = ModuleA.doA ()
+"""
+            ]
+            let results = runFsAssayMulti sources
+            expectViolation "FSA2017" results
     ]
 
 let runE2E (projectCode: string) (sourceCode: string) =

@@ -4,9 +4,10 @@ open System
 open System.IO
 open System.Net
 open FSharp.Analyzers.SDK
+open FsAssay.Analyzers.Domain
 
 module Server =
-    let startLiveServer (results: (string * Message list) list) (totalFiles: int) (port: int) =
+    let startLiveServer (results: (string * Violation list) list) (totalFiles: int) (port: int) =
         let listener = new HttpListener()
         let url = sprintf "http://localhost:%d/" port
         listener.Prefixes.Add(url)

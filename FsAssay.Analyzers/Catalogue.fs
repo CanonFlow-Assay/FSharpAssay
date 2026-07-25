@@ -1,7 +1,9 @@
 namespace FsAssay.Analyzers
 
 module Catalogue =
+    open FsAssay.Analyzers.Domain
     // A versioned catalogue to avoid heuristic guesses on unfamiliar libraries.
+    // Architectural Rules are defined in Domain.fs
     // Instead of guessing if a method is effectful or mutable, we define known sources and sinks.
     
     let EffectfulMethods = 

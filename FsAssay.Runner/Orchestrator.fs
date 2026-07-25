@@ -44,7 +44,7 @@ module Orchestrator =
                     
                     try
                         let! violations = Library.coreAnalyzer context.TypedTree context.FileName context.SourceText context.CheckFileResults.Diagnostics profile
-                        return Completed violations
+                        return Completed (violations, context.TypedTree, context.SourceText)
                     with e ->
                         return Failed (AnalyzerException e.Message)
                 else
@@ -90,7 +90,7 @@ module Orchestrator =
                     }
                     try
                         let! violations = Library.coreAnalyzer context.TypedTree context.FileName context.SourceText context.CheckFileResults.Diagnostics profile
-                        return Completed violations
+                        return Completed (violations, context.TypedTree, context.SourceText)
                     with e ->
                         return Failed (AnalyzerException e.Message)
     }

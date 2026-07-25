@@ -4,6 +4,7 @@ open System
 open System.IO
 open System.Text.Json
 open FSharp.Analyzers.SDK
+open FsAssay.Analyzers.Domain
 
 module Output =
     type JsonViolation = {
@@ -19,8 +20,8 @@ module Output =
         file: string
         violations: JsonViolation[]
     }
-    
-    let writeCanonicalJson (results: (string * Message list) list) (outPath: string) =
+
+    let writeCanonicalJson (results: (string * Violation list) list) (outPath: string) =
         let jsonResults =
             results
             |> List.map (fun (file, violations) ->
@@ -45,7 +46,7 @@ module Output =
         File.WriteAllText(outPath, jsonStr)
 
     // Minimal SARIF generation using anonymous records
-    let writeSarif (results: (string * Message list) list) (outPath: string) =
+    let writeSarif (results: (string * Violation list) list) (outPath: string) =
         let sarifResults =
             results
             |> List.collect (fun (file, violations) ->
@@ -101,7 +102,7 @@ module Output =
         let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
         File.WriteAllText(outPath, JsonSerializer.Serialize(record, options))
 
-    let writeRateCard (results: (string * Message list) list) (outPath: string) =
+    let writeRateCard (results: (string * Violation list) list) (outPath: string) =
         let totalViolations = results |> List.sumBy (fun (_, msgs) -> msgs.Length)
         let totalFiles = results.Length
         let score = max 0 (100 - (totalViolations * 5))
@@ -134,7 +135,7 @@ module Output =
 
         File.WriteAllText(outPath, md)
 
-    let writeMaterialDashboard (results: (string * Message list) list) (outPath: string) =
+    let writeMaterialDashboard (results: (string * Violation list) list) (outPath: string) =
         let totalViolations = results |> List.sumBy (fun (_, msgs) -> msgs.Length)
         let totalFiles = results.Length
         let score = max 0 (100 - (totalViolations * 5))

@@ -44,6 +44,12 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
                     if text.Contains("is" + "Null") || text.Contains("null") then
                         if not (isSuppressed currentSups "FSA-C09") then f <- f @ (mkLocated FSAC09 expr.Range |> Option.toList)
                 
+                if declaringEntity.StartsWith("System.IO") || declaringEntity.StartsWith("System.Net.Http") || logicalName.Contains("HttpClient") || declaringEntity.Contains("HttpClient") then
+                    if not (isSuppressed currentSups "FSA2022") then f <- f @ (mkLocated FSA2022 expr.Range |> Option.toList)
+
+                if fullCallName.Contains("OpenAI") || fullCallName.Contains("Anthropic") || fullCallName.Contains("Gemini") then
+                    if not (isSuppressed currentSups "FSA-AI01") then f <- f @ (mkLocated FSAAI01 expr.Range |> Option.toList)
+
                 printfn "DEBUG Call: name='%s' logicalName='%s' declaringEntity='%s' fullCallName='%s'" name logicalName declaringEntity fullCallName
                 
                 if Catalogue.isEffectful fullCallName || Catalogue.isEffectful name || Catalogue.isEffectful logicalName then
@@ -143,6 +149,10 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
             
             if Catalogue.isMutableCollection typeName || Catalogue.isMutableCollection (typeName.Split('`').[0]) || Catalogue.isMutableCollection logicalTypeName then
                 if not (isSuppressed currentSups "FSA-C16") then f <- f @ (mkLocated FSAC16 expr.Range |> Option.toList)
+            
+            if typeName.StartsWith("System.IO") || typeName.StartsWith("System.Net.Http") || typeName.Contains("HttpClient") then
+                if not (isSuppressed currentSups "FSA2022") then f <- f @ (mkLocated FSA2022 expr.Range |> Option.toList)
+
             f @ List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral) args
         | FSharpExprPatterns.NewRecord(_, args) ->
             List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral) args
