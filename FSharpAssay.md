@@ -303,7 +303,7 @@ Join:
   call range ∈ smallest relevant AST context range
 ```
 
-For `FSA1101`, the AST establishes that the call lies inside an async/task
+For `OBSOLETE_FSA`, the AST establishes that the call lies inside an async/task
 computation expression; TAST establishes that the member is the actual blocking
 `Result`/`Wait` or `Async.RunSynchronously` symbol. Neither text matching nor
 TAST alone is enough.
@@ -445,9 +445,9 @@ Examples:
 
 | Rule | `.fs` | `.fsi` | Reason |
 | --- | --- | --- | --- |
-| `FSA1001` null literal | Yes | No for expression form | A signature has no implementation expression containing a null literal; separate public-API nullability rules require typed metadata. |
-| `FSA1002` partial access | Yes | No | Calls occur in implementation expressions. |
-| `FSA1003` exception control flow | Yes | No for implementation form | Signatures can be checked by a separate API/exception-contract rule, not by searching for `raise`. |
+| `OBSOLETE_FSA` null literal | Yes | No for expression form | A signature has no implementation expression containing a null literal; separate public-API nullability rules require typed metadata. |
+| `OBSOLETE_FSA` partial access | Yes | No | Calls occur in implementation expressions. |
+| `OBSOLETE_FSA` exception control flow | Yes | No for implementation form | Signatures can be checked by a separate API/exception-contract rule, not by searching for `raise`. |
 | `FSA1201` forbidden core dependencies | Yes | Yes | Signatures can expose forbidden infrastructure types. |
 | `FSA1402` `ParseResults` leakage | Yes | Yes | Public signatures are a primary place to enforce the boundary. |
 | naming/public API conventions | Yes | Yes | `.fsi` is authoritative for exposed API where present. |
@@ -463,11 +463,11 @@ signature rule.
 The SDK recognizes line comments using forms such as:
 
 ```text
-fsharpanalyzer: ignore-line FSA1002
-fsharpanalyzer: ignore-line-next FSA1002
-fsharpanalyzer: ignore-region-start FSA1002
+fsharpanalyzer: ignore-line OBSOLETE_FSA
+fsharpanalyzer: ignore-line-next OBSOLETE_FSA
+fsharpanalyzer: ignore-region-start OBSOLETE_FSA
 fsharpanalyzer: ignore-region-end
-fsharpanalyzer: ignore-file FSA1002
+fsharpanalyzer: ignore-file OBSOLETE_FSA
 ```
 
 Its `Client` filters matching messages. Therefore `fs-assay` audits
@@ -678,8 +678,8 @@ mechanism, signature applicability, typed requirement, and independent fixtures.
 
 Implement in this order:
 
-1. `FSA1002` — `Option.get`/`.Value`: validates TAST and symbol identity;
-2. `FSA1001` — null literal: validates AST collection;
+1. `OBSOLETE_FSA` — `Option.get`/`.Value`: validates TAST and symbol identity;
+2. `OBSOLETE_FSA` — null literal: validates AST collection;
 3. `FSA1301` — EF Core in Oracle/core scope: validates project/profile symbols;
 4. `FSA1402` — Argu `ParseResults` leakage: validates cross-file public API.
 

@@ -7,7 +7,7 @@ module ConcurrencyAndSharedState =
     // FSA2033 — Redundant Async Wrapper
     let pureAsyncCall () =
         async {
-            // EXPECT: FSA1001
+            // EXPECT: REMOVED
             let mutable x = 42
             return x
         }

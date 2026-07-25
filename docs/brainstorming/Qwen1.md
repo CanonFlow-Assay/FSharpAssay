@@ -73,38 +73,38 @@ $$\forall c \in \text{Challenges}:\quad \text{Valid}(c) \iff \text{Compile}(c) =
 
 | Level | # | Challenge | F# Concept | FsAssay Rule Tested |
 |---|---|---|---|---|
-| **Beginner** | 1 | Create a `PhoneNumber` smart constructor | Private DU + `Result` | FSA1004 |
-| | 2 | Replace `string` status with DU | Discriminated Union | FSA1004 |
-| | 3 | Replace `null` with `Option` | Option type | FSA1003 |
-| | 4 | Replace `failwith` with `Result` | Result type | FSA1006 |
-| | 5 | Replace `mutable` with `fold` | Immutable accumulation | FSA1001 |
-| | 6 | Replace `for` loop with `Seq.map` | Functional iteration | FSA1007 |
-| | 7 | Replace `inherit` with composition | Module composition | FSA1008 |
+| **Beginner** | 1 | Create a `PhoneNumber` smart constructor | Private DU + `Result` | OBSOLETE_FSA |
+| | 2 | Replace `string` status with DU | Discriminated Union | OBSOLETE_FSA |
+| | 3 | Replace `null` with `Option` | Option type | OBSOLETE_FSA |
+| | 4 | Replace `failwith` with `Result` | Result type | OBSOLETE_FSA |
+| | 5 | Replace `mutable` with `fold` | Immutable accumulation | OBSOLETE_FSA |
+| | 6 | Replace `for` loop with `Seq.map` | Functional iteration | OBSOLETE_FSA |
+| | 7 | Replace `inherit` with composition | Module composition | OBSOLETE_FSA |
 | | 8 | Replace `printfn` with structured log | Shell separation | FSA2012 |
-| **Intermediate** | 9 | Build a state machine with `Result` transitions | State machine | FSA1006 |
-| | 10 | Build a parser combinator | Computation expression | FSA1007 |
-| | 11 | Build a validation pipeline | `Result` chaining | FSA1006 |
-| | 12 | Build a type-safe API client | Type provider | FSA1004 |
-| | 13 | Build a lens for nested records | Functional update | FSA1001 |
+| **Intermediate** | 9 | Build a state machine with `Result` transitions | State machine | OBSOLETE_FSA |
+| | 10 | Build a parser combinator | Computation expression | OBSOLETE_FSA |
+| | 11 | Build a validation pipeline | `Result` chaining | OBSOLETE_FSA |
+| | 12 | Build a type-safe API client | Type provider | OBSOLETE_FSA |
+| | 13 | Build a lens for nested records | Functional update | OBSOLETE_FSA |
 | | 14 | Build a type-safe SQL query | Compile-time SQL | FSA-SEC02 |
-| | 15 | Build a type-safe configuration reader | Type provider | FSA1004 |
-| | 16 | Build a type-safe event system | DU + pattern match | FSA1004 |
-| **Advanced** | 17 | Build a type-level state machine | Type-state pattern | FSA1006 |
-| | 18 | Build a heterogeneous list | DU wrapper | FSA1004 |
-| | 19 | Build a type-safe DSL | Computation expression | FSA1007 |
+| | 15 | Build a type-safe configuration reader | Type provider | OBSOLETE_FSA |
+| | 16 | Build a type-safe event system | DU + pattern match | OBSOLETE_FSA |
+| **Advanced** | 17 | Build a type-level state machine | Type-state pattern | OBSOLETE_FSA |
+| | 18 | Build a heterogeneous list | DU wrapper | OBSOLETE_FSA |
+| | 19 | Build a type-safe DSL | Computation expression | OBSOLETE_FSA |
 | | 20 | Build a type-safe ORM | Type provider + SQL | FSA-SEC02 |
-| | 21 | Build a type-safe routing table | Type-level strings | FSA1004 |
-| | 22 | Build a type-safe permission system | Phantom types | FSA1004 |
-| | 23 | Build a type-safe unit system | Units of measure | FSA1004 |
-| | 24 | Build a type-safe effect system | CE + Result | FSA1006 |
-| **Expert** | 25 | Build a type-level binary tree | Recursive types | FSA1004 |
-| | 26 | Build a type-level regex engine | Type-level strings | FSA1004 |
-| | 27 | Build a type-level JSON parser | Type provider | FSA1004 |
+| | 21 | Build a type-safe routing table | Type-level strings | OBSOLETE_FSA |
+| | 22 | Build a type-safe permission system | Phantom types | OBSOLETE_FSA |
+| | 23 | Build a type-safe unit system | Units of measure | OBSOLETE_FSA |
+| | 24 | Build a type-safe effect system | CE + Result | OBSOLETE_FSA |
+| **Expert** | 25 | Build a type-level binary tree | Recursive types | OBSOLETE_FSA |
+| | 26 | Build a type-level regex engine | Type-level strings | OBSOLETE_FSA |
+| | 27 | Build a type-level JSON parser | Type provider | OBSOLETE_FSA |
 | | 28 | Build a type-level SQL optimizer | Type-level queries | FSA-SEC02 |
-| | 29 | Build a type-level protocol validator | Beckn schema types | FSA1004 |
+| | 29 | Build a type-level protocol validator | Beckn schema types | OBSOLETE_FSA |
 | | 30 | Build a type-level dependency graph | Type-level modules | FSA2017 |
-| | 31 | Build a type-level permission calculus | Phantom types + constraints | FSA1004 |
-| | 32 | Build a type-level ONDC message validator | Beckn v1.1 types | FSA1004 |
+| | 31 | Build a type-level permission calculus | Phantom types + constraints | OBSOLETE_FSA |
+| | 32 | Build a type-level ONDC message validator | Beckn v1.1 types | OBSOLETE_FSA |
 
 ---
 
@@ -136,19 +136,19 @@ $$\forall \text{PR}:\quad \text{Merge}(\text{PR}) \iff \forall c_i \in \text{Che
 
 | # | Category | Check | FsAssay Rule | Severity |
 |---|---|---|---|---|
-| 1 | TypeSafety | No `string` where smart constructor exists | FSA1004 | **Block** |
-| 2 | TypeSafety | No `Option.get` / `.Value` | FSA1002 | **Block** |
-| 3 | TypeSafety | No `null` / `Unchecked.defaultof` | FSA1003 | **Block** |
-| 4 | TypeSafety | No `failwith` / `raise` in domain | FSA1006 | **Block** |
-| 5 | TypeSafety | No `mutable` in domain | FSA1001 | **Block** |
-| 6 | TypeSafety | No `obj` / `unbox` in domain | FSA1004 | **Block** |
+| 1 | TypeSafety | No `string` where smart constructor exists | OBSOLETE_FSA | **Block** |
+| 2 | TypeSafety | No `Option.get` / `.Value` | OBSOLETE_FSA | **Block** |
+| 3 | TypeSafety | No `null` / `Unchecked.defaultof` | OBSOLETE_FSA | **Block** |
+| 4 | TypeSafety | No `failwith` / `raise` in domain | OBSOLETE_FSA | **Block** |
+| 5 | TypeSafety | No `mutable` in domain | OBSOLETE_FSA | **Block** |
+| 6 | TypeSafety | No `obj` / `unbox` in domain | OBSOLETE_FSA | **Block** |
 | 7 | APIDesign | All public functions have XML doc | FSA-AI08 | Warn |
 | 8 | APIDesign | All public types have XML doc | FSA-AI08 | Warn |
 | 9 | APIDesign | No `printfn` in library code | FSA2012 | **Block** |
 | 10 | APIDesign | No `System.IO` in domain | FSA2022 | **Block** |
 | 11 | APIDesign | No `HttpClient` in domain | FSA2022 | **Block** |
-| 12 | CodeQuality | No `while` loops in domain | FSA1007 | Warn |
-| 13 | CodeQuality | No `inherit` (except `exn`) | FSA1008 | Warn |
+| 12 | CodeQuality | No `while` loops in domain | OBSOLETE_FSA | Warn |
+| 13 | CodeQuality | No `inherit` (except `exn`) | OBSOLETE_FSA | Warn |
 | 14 | CodeQuality | No dead code | FSA-AI01 | Warn |
 | 15 | CodeQuality | No duplicate code blocks > 6 lines | FSA-AI02 | Warn |
 | 16 | CodeQuality | No magic numbers | FSA-AI10 | Warn |
@@ -205,14 +205,14 @@ $$\forall v \in \text{Violations}:\quad v.\text{Severity} = \text{Minor} \implie
 | FSA-SEC02 (SQL injection) | Security | **Critical** |
 | FSA-SEC04 (weak crypto) | Security | **Critical** |
 | FSA-SEC05 (disabled SSL) | Security | **Critical** |
-| FSA1002 (Option.get) | Correctness | **Critical** |
-| FSA1003 (null/defaultof) | Correctness | **Critical** |
-| FSA1006 (exception flow) | Correctness | **Major** |
-| FSA1001 (mutable) | Maintainability | **Major** |
-| FSA1004 (primitive obsession) | Best Practices | **Major** |
+| OBSOLETE_FSA (Option.get) | Correctness | **Critical** |
+| OBSOLETE_FSA (null/defaultof) | Correctness | **Critical** |
+| OBSOLETE_FSA (exception flow) | Correctness | **Major** |
+| OBSOLETE_FSA (mutable) | Maintainability | **Major** |
+| OBSOLETE_FSA (primitive obsession) | Best Practices | **Major** |
 | FSA2022 (I/O in core) | Best Practices | **Major** |
-| FSA1007 (imperative loops) | Performance | **Minor** |
-| FSA1008 (inheritance) | Best Practices | **Minor** |
+| OBSOLETE_FSA (imperative loops) | Performance | **Minor** |
+| OBSOLETE_FSA (inheritance) | Best Practices | **Minor** |
 | FSA2012 (printfn) | Best Practices | **Minor** |
 | FSA-AI01 (dead code) | Maintainability | **Minor** |
 | FSA-AI10 (magic numbers) | Maintainability | **Minor** |
@@ -294,7 +294,7 @@ $$\text{STRIDE} \triangleq \left\{ \begin{array}{l} \text{S} : \text{Spoofing} \
 | A01: Broken Access Control | FSA-SEC08 (new) | No admin logic in domain |
 | A02: Cryptographic Failures | FSA-SEC04 | No MD5/SHA1/DES |
 | A03: Injection | FSA-SEC02 | No `sprintf` SQL |
-| A04: Insecure Design | FSA1006 | No exceptions for flow |
+| A04: Insecure Design | OBSOLETE_FSA | No exceptions for flow |
 | A05: Security Misconfiguration | FSA-SEC05 | No disabled SSL |
 | A06: Vulnerable Components | FSA-SEC09 (new) | No known-vulnerable NuGet |
 | A07: Auth Failures | FSA-SEC10 (new) | No hard-coded credentials |
@@ -335,12 +335,12 @@ $$\text{ReactBP}_{\text{TS}} \xrightarrow{\text{embrace}} \text{F\#BP} : \text{F
 | 1 | Avoid unnecessary re-renders | Avoid unnecessary allocations | FSA-P01 (new) |
 | 2 | Use `useMemo` for expensive computations | Use `lazy` for expensive computations | FSA-P02 (new) |
 | 3 | Avoid inline object creation | Avoid inline record creation in hot paths | FSA-P03 (new) |
-| 4 | Use `React.memo` for pure components | Use pure functions (no side effects) | FSA1001 |
+| 4 | Use `React.memo` for pure components | Use pure functions (no side effects) | OBSOLETE_FSA |
 | 5 | Avoid `useEffect` for data fetching | Avoid I/O in domain | FSA2022 |
 | 6 | Use `Suspense` for loading states | Use `Async` for loading states | FSA-P04 (new) |
-| 7 | Avoid prop drilling | Avoid deep parameter passing | FSA2020 |
-| 8 | Use composition over inheritance | Use modules over classes | FSA1008 |
-| 9 | Avoid large bundle sizes | Avoid large module sizes (> 200 lines) | FSA1009 |
+| 7 | Avoid prop drilling | Avoid deep parameter passing | OBSOLETE_FSA |
+| 8 | Use composition over inheritance | Use modules over classes | OBSOLETE_FSA |
+| 9 | Avoid large bundle sizes | Avoid large module sizes (> 200 lines) | OBSOLETE_FSA |
 | 10 | Use code splitting | Use module separation | FSA-P05 (new) |
 
 **Axiom 6.1 — Performance Budget:**
@@ -353,7 +353,7 @@ $$\forall f \in \mathcal{D}:\quad \text{Allocations}(f) \leq \text{Budget}(f)$$
 
 $$\forall m \in \text{Modules}:\quad \text{Lines}(m) \leq 200$$
 
-*No module exceeds 200 lines. FSA1009 enforces.*
+*No module exceeds 200 lines. OBSOLETE_FSA enforces.*
 
 ---
 
@@ -388,13 +388,13 @@ $$\text{Composition}_{\text{TS}} \xrightarrow{\text{embrace}} \text{Composition}
 
 | # | Anti-Pattern | FsAssay Detection |
 |---|---|---|
-| 1 | God component (> 200 lines) | FSA1009 |
-| 2 | Prop drilling (> 4 levels) | FSA2020 |
-| 3 | Inheritance for reuse | FSA1008 |
-| 4 | Mutable shared state | FSA1001 |
+| 1 | God component (> 200 lines) | OBSOLETE_FSA |
+| 2 | Prop drilling (> 4 levels) | OBSOLETE_FSA |
+| 3 | Inheritance for reuse | OBSOLETE_FSA |
+| 4 | Mutable shared state | OBSOLETE_FSA |
 | 5 | I/O in pure functions | FSA2022 |
-| 6 | Exception-driven flow | FSA1006 |
-| 7 | Primitive obsession | FSA1004 |
+| 6 | Exception-driven flow | OBSOLETE_FSA |
+| 7 | Primitive obsession | OBSOLETE_FSA |
 | 8 | Circular dependencies | FSA2017 |
 | 9 | Deep dependency chains (> 4) | FSA2016 |
 | 10 | Mixed error strategies | FSA-AI05 |
@@ -431,11 +431,11 @@ $$\text{AI}_{\text{TS}} \xrightarrow{\text{embrace}} \text{AI}_{\text{F\#}} : \t
 |---|---|---|---|
 | 1 | Unvalidated AI output | No smart constructor on AI result | FSA-AI01 |
 | 2 | Hard-coded prompts | String literals in domain | FSA-AI10 |
-| 3 | No error handling on AI call | `failwith` on AI failure | FSA1006 |
+| 3 | No error handling on AI call | `failwith` on AI failure | OBSOLETE_FSA |
 | 4 | Synchronous AI call in async context | `Async.RunSynchronously` | FSA2008 |
 | 5 | No timeout on AI call | Unbounded `Async` | FSA-AI18 (new) |
 | 6 | No rate limiting on AI call | Unbounded concurrency | FSA-AI19 (new) |
-| 7 | AI output stored without validation | No smart constructor | FSA1004 |
+| 7 | AI output stored without validation | No smart constructor | OBSOLETE_FSA |
 
 ---
 

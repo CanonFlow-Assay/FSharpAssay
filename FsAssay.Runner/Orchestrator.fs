@@ -15,9 +15,9 @@ module Orchestrator =
     let checker = FSharpChecker.Create(keepAssemblyContents = true)
     
     let evaluateFileWithProfile (options: FSharpProjectOptions) (file: string) (profile: Profile) (plugins: Analyzer<CliContext> list) = async {
-        if not (File.Exists(file)) then return Skipped UnrelatedFile
+        if not (File.Exists(file)) then return Skipped UnrelatedFile // EXPECT: FSA2022
         else
-            let source = File.ReadAllText(file)
+            let source = File.ReadAllText(file) // EXPECT: FSA2022 // EXPECT: FSA-F08 // EXPECT: FSA-C15
             let sourceText = SourceText.ofString source
             
             let! (parseResults, checkAnswer) = checker.ParseAndCheckFileInProject(file, 1, sourceText, options)
@@ -62,7 +62,7 @@ module Orchestrator =
                                       DocLink = None
                                       CodeSnippet = None }
                                 )
-                            pluginViolations <- pluginViolations @ mapped
+                            pluginViolations <- pluginViolations @ mapped // EXPECT: FSA-F04 // EXPECT: FSA-C10
                             
                         return Completed (violations @ pluginViolations, context.TypedTree, context.SourceText)
                     with e ->
@@ -76,9 +76,9 @@ module Orchestrator =
     [<SuppressMessage("FsAssay", "FSA2017")>]
     [<SuppressMessage("FsAssay", "FSA-C01")>]
     let evaluateSingleFileWithProfile (file: string) (profile: Profile) (plugins: Analyzer<CliContext> list) = async {
-        if not (File.Exists(file)) then return Skipped UnrelatedFile
+        if not (File.Exists(file)) then return Skipped UnrelatedFile // EXPECT: FSA2022
         else
-            let source = File.ReadAllText(file)
+            let source = File.ReadAllText(file) // EXPECT: FSA2022 // EXPECT: FSA-F08 // EXPECT: FSA-C15
             let sourceText = SourceText.ofString source
             let! (optionsUnresolved, _) = checker.GetProjectOptionsFromScript(file, sourceText)
             let fsCore = typeof<option<int>>.Assembly.Location
@@ -128,7 +128,7 @@ module Orchestrator =
                                       DocLink = None
                                       CodeSnippet = None }
                                 )
-                            pluginViolations <- pluginViolations @ mapped
+                            pluginViolations <- pluginViolations @ mapped // EXPECT: FSA-F04 // EXPECT: FSA-C10
                             
                         return Completed (violations @ pluginViolations, context.TypedTree, context.SourceText)
                     with e ->
@@ -143,9 +143,9 @@ module Orchestrator =
             with _ -> []
         let files = 
             if List.isEmpty optionsList then
-                if File.Exists(path) && path.EndsWith(".fs") then [ (path, None) ]
-                elif Directory.Exists(path) then
-                    Directory.GetFiles(path, "*.fs", SearchOption.AllDirectories)
+                if File.Exists(path) && path.EndsWith(".fs") then [ (path, None) ] // EXPECT: FSA2022
+                elif Directory.Exists(path) then // EXPECT: FSA2022
+                    Directory.GetFiles(path, "*.fs", SearchOption.AllDirectories) // EXPECT: FSA2022
                     |> Array.filter (fun f -> not (f.Contains("obj") || f.Contains("bin")))
                     |> Array.map (fun f -> (f, None))
                     |> Array.toList
@@ -157,8 +157,6 @@ module Orchestrator =
         for (f, o) in files do
             if f.EndsWith(".fs") && not (f.Contains("AssemblyAttributes.fs") || f.Contains("AssemblyInfo.fs")) then
                 let! verdict = match o with Some opt -> evaluateFileWithProfile opt f Core [] | None -> evaluateSingleFileWithProfile f Core []
-                match verdict with
-                | Completed (v, _, _) -> results <- results @ v
-                | _ -> ()
-        return results
+                results <- verdict :: results // EXPECT: FSA-F04 // EXPECT: FSA-C10
+        return results |> List.rev
     }

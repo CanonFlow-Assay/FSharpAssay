@@ -15,19 +15,19 @@ open System
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-C14")>]
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-1301")>]
 
-type RuleSeverity =
+type RuleSeverity = // EXPECT: FSA-AI11
     | Critical
     | Major
     | Minor
 
-type RuleStatus =
+type RuleStatus = // EXPECT: FSA-AI11
     | Proposed
     | Dummy
     | Prototype
     | Delegated of string
     | Implemented
 
-type Rule = 
+type Rule =  // EXPECT: FSA-AI17 // EXPECT: FSA-AI11
     | FSAC01 | FSAC02 | FSAC03 | FSAC04 | FSAC05 | FSAC06 | FSAC07 | FSAC08 | FSAC09 | FSAC10
     | FSAC11 | FSAC12 | FSAC13 | FSAC14 | FSAC15 | FSAC16
     | FSAS01 | FSAS02 | FSAS03 | FSAS04 | FSAS05
@@ -223,10 +223,10 @@ type Rule =
             match this with
             | FSA2022 | FSAAI01 -> Implemented
             | FSAAI12 | FSAAI13 | FSAAI14 | FSAAI15 | FSAAI16 | FSAAI17 | FSAAI18 | FSAAI19 -> Implemented
-            | FSA2016 | FSA2017 | FSAARCH01 | FSAARCH02 -> Implemented
-            | FSASEC08 | FSASEC09 | FSASEC10 | FSASEC11 | FSASEC12 | FSASEC13 -> Implemented
+            | FSA2017 | FSAARCH01 | FSAARCH02 -> Implemented
+            | FSASEC08 | FSASEC09 | FSASEC11 | FSASEC12 | FSASEC13 -> Implemented
             | FSATDD01 | FSATDD02 | FSATDD03 | FSATDD04 -> Implemented
-            | FSAC01 | FSAC02 | FSAC03 | FSAC05 | FSAC06 | FSAC07 | FSAC08 | FSAC09 | FSAC10 -> Implemented
+            | FSAC01 | FSAC02 | FSAC03 | FSAC05 | FSAC06 | FSAC08 | FSAC09 | FSAC10 -> Implemented
             | FSAP01 | FSAP02 | FSAP03 | FSAP04 | FSAP05 -> Implemented
             | FSAC11 | FSAC12 | FSAC13
             | FSAS04
@@ -234,8 +234,9 @@ type Rule =
             | FSAB01
             | FSAF01 | FSAF02 | FSAF03 | FSAF05 | FSAF06 | FSAF07
             | FSAE01 | FSAE02 | FSAE03 | FSAE04
-            | FSAM01 | FSAM03 | FSAM04 -> Dummy
-            | FSAC04 -> Delegated "DisposedBeforeAsyncRunAnalyzer"
+            | FSAM01 | FSAM03 | FSAM04 
+            | FSA2016 | FSASEC10 -> Dummy
+            | FSAC04 | FSAC07 -> Prototype
             | _ -> Prototype
 
         member this.Severity =
@@ -314,7 +315,7 @@ type Located<'F when 'F : comparison> =
                             let c4 = compare x.Range.EndLine y.Range.EndLine
                             if c4 <> 0 then c4
                             else compare x.Range.EndColumn y.Range.EndColumn
-            | _ -> invalidArg "yobj" "cannot compare values of different types"
+            | _ -> invalidArg "yobj" "cannot compare values of different types" // EXPECT: FSA-C06
 
 
 let toMessage (loc: Located<Rule>) : Message option =
@@ -382,10 +383,13 @@ let toViolation (sourceText: ISourceText) (loc: Located<Rule>) : Violation optio
         }
     
 
-type Profile =
+type Profile = // EXPECT: FSA-AI11
     | Core
     | Shell
     | Oracle
     | Api
     | Test
     | Script
+    | Interop
+    | ETL
+    | CLI

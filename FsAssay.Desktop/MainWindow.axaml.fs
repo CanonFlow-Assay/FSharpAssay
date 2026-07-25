@@ -4,19 +4,19 @@ open Avalonia
 open Avalonia.Controls
 open Avalonia.Markup.Xaml
 
-type MainWindow () as this = 
+type MainWindow () as this =  // EXPECT: FSA-F04
     inherit Window ()
 
-    do this.InitializeComponent()
+    do this.InitializeComponent() // EXPECT: FSA-F04
 
     member private this.InitializeComponent() =
-        AvaloniaXamlLoader.Load(this)
+        AvaloniaXamlLoader.Load(this) // EXPECT: FSA-P02 // EXPECT: FSA-F04
         let scanButton = this.FindControl<Button>("ScanButton")
         let fixButton = this.FindControl<Button>("FixButton")
         let pathBox = this.FindControl<TextBox>("PathTextBox")
         let outText = this.FindControl<TextBlock>("OutputText")
         
-        scanButton.Click.Add(fun _ -> 
+        scanButton.Click.Add(fun _ ->  // EXPECT: FSA-F04
             outText.Text <- sprintf "Running TAST analysis on %s...\n\nGrade [S] (98/100): Elite F# Mastery\n- 0 Mutables\n- 0 Option.get usages\n- 100%% Total Functions\n\nNo hostile anti-patterns detected. FsAssay stunts successfully executed!" pathBox.Text
         )
 

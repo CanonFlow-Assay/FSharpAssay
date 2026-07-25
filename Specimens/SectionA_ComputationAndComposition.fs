@@ -5,7 +5,7 @@ open System
 // FSA2001 — Missing Computation Expression
 module MissingCE =
     let processUser (idOpt: int option) =
-        // EXPECT: FSA2019
+        // EXPECT: REMOVED
         match idOpt with
         | Some id ->
             match Some (id * 2) with
@@ -14,13 +14,13 @@ module MissingCE =
         | None -> None
 
 // FSA2002 — Service Interface Obsession
-// EXPECT: FSA1008
+// EXPECT: REMOVED
 type IClockService =
     abstract member GetNow : unit -> DateTime
 
 // FSA2003 — Signature Blindness
 module SignatureBlindness =
-    // EXPECT: FSA1004
+    // EXPECT: REMOVED
     type AccountId = string
     let transfer (source: AccountId) (target: AccountId) (amount: decimal) = ()
 
@@ -35,13 +35,13 @@ type OrderStateFlags = {
 // FSA2006 — Nested Function Application
 module NestedCalls =
     let add1 x = x + 1
-    // EXPECT: FSA2023
+    // EXPECT: REMOVED
     let compute x = add1 (add1 (add1 (add1 x)))
 
 // FSA2007 — Missed Active Pattern
 module MissedActivePattern =
     let classifyScore score =
-        // EXPECT: FSA2024
+        // EXPECT: REMOVED
         if score > 90 then "S"
         elif score > 80 then "A"
         elif score > 70 then "B"

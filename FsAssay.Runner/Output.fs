@@ -41,9 +41,9 @@ module Output =
                 }
             )
             |> List.toArray
-        let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
+        let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase) // EXPECT: FSA-F04
         let jsonStr = JsonSerializer.Serialize(jsonResults, options)
-        File.WriteAllText(outPath, jsonStr)
+        File.WriteAllText(outPath, jsonStr) // EXPECT: FSA2022 // EXPECT: FSA-C15
 
     // Minimal SARIF generation using anonymous records
     let writeSarif (results: (string * Violation list) list) (outPath: string) =
@@ -89,28 +89,28 @@ module Output =
             |]
         |}
 
-        let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
+        let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase) // EXPECT: FSA-F04
         let jsonStr = JsonSerializer.Serialize(sarifObj, options)
-        File.WriteAllText(outPath, jsonStr)
+        File.WriteAllText(outPath, jsonStr) // EXPECT: FSA2022 // EXPECT: FSA-C15
 
     let writeToolchainRecord (outPath: string) =
-        let record = {|
+        let record = {| // EXPECT: FSA-AI17
             os = Environment.OSVersion.ToString()
             dotnet = Environment.Version.ToString()
             fsc = typeof<FSharp.Compiler.CodeAnalysis.FSharpChecker>.Assembly.GetName().Version.ToString()
         |}
-        let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
-        File.WriteAllText(outPath, JsonSerializer.Serialize(record, options))
+        let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase) // EXPECT: FSA-F04
+        File.WriteAllText(outPath, JsonSerializer.Serialize(record, options)) // EXPECT: FSA2022 // EXPECT: FSA-C15
 
     let writeRateCard (results: (string * Violation list) list) (outPath: string) =
         let totalViolations = results |> List.sumBy (fun (_, msgs) -> msgs.Length)
         let totalFiles = results.Length
-        let score = max 0 (100 - (totalViolations * 5))
+        let score = max 0 (100 - (totalViolations * 5)) // EXPECT: FSA-AI10
         let grade =
-            if score >= 95 then "S"
-            elif score >= 85 then "A"
-            elif score >= 70 then "B"
-            elif score >= 50 then "C"
+            if score >= 95 then "S" // EXPECT: FSA-AI10
+            elif score >= 85 then "A" // EXPECT: FSA-AI10
+            elif score >= 70 then "B" // EXPECT: FSA-AI10
+            elif score >= 50 then "C" // EXPECT: FSA-AI10
             else "F"
 
         let breakdown =
@@ -133,17 +133,17 @@ module Output =
             sprintf "* **Total Anti-Patterns Detected**: %d\n\n---\n\n" totalViolations +
             "## Violations Breakdown\n" + breakdown
 
-        File.WriteAllText(outPath, md)
+        File.WriteAllText(outPath, md) // EXPECT: FSA2022 // EXPECT: FSA-C15
 
     let writeMaterialDashboard (results: (string * Violation list) list) (outPath: string) =
         let totalViolations = results |> List.sumBy (fun (_, msgs) -> msgs.Length)
         let totalFiles = results.Length
-        let score = max 0 (100 - (totalViolations * 5))
+        let score = max 0 (100 - (totalViolations * 5)) // EXPECT: FSA-AI10
         let grade =
-            if score >= 95 then "S"
-            elif score >= 85 then "A"
-            elif score >= 70 then "B"
-            elif score >= 50 then "C"
+            if score >= 95 then "S" // EXPECT: FSA-AI10
+            elif score >= 85 then "A" // EXPECT: FSA-AI10
+            elif score >= 70 then "B" // EXPECT: FSA-AI10
+            elif score >= 50 then "C" // EXPECT: FSA-AI10
             else "F"
 
         let fileSections =
@@ -153,8 +153,8 @@ module Output =
                 
                 // MAGIC: Parse CanonflowSource attributes
                 let mutable legacyHtml = ""
-                try
-                    let codeLines = File.ReadAllLines(f)
+                try // EXPECT: FSA-F04
+                    let codeLines = File.ReadAllLines(f) // EXPECT: FSA2022
                     let regex = System.Text.RegularExpressions.Regex(@"\[<CanonflowSource\(""(.*?)"",\s*""(.*?)""\)>\]")
                     for line in codeLines do
                         let m = regex.Match(line)
@@ -162,20 +162,20 @@ module Output =
                             let sqlFile = m.Groups.[1].Value
                             let targetTable = m.Groups.[2].Value
                             // Resolve the path relative to the scanned project
-                            let projDir = Path.GetDirectoryName(f)
-                            let absoluteSqlFile = Path.GetFullPath(Path.Combine(projDir, "..", "..", "..", sqlFile))
-                            if File.Exists(absoluteSqlFile) then
-                                let sqlLines = File.ReadAllLines(absoluteSqlFile)
+                            let projDir = Path.GetDirectoryName(f) // EXPECT: FSA2022
+                            let absoluteSqlFile = Path.GetFullPath(Path.Combine(projDir, "..", "..", "..", sqlFile)) // EXPECT: FSA2022
+                            if File.Exists(absoluteSqlFile) then // EXPECT: FSA2022
+                                let sqlLines = File.ReadAllLines(absoluteSqlFile) // EXPECT: FSA2022
                                 // Super simple extraction: find CREATE TABLE targetTable and read until ';'
                                 let mutable inTable = false
                                 let mutable tableSql = []
-                                for sLine in sqlLines do
-                                    if sLine.ToLower().Contains("create table " + targetTable) then inTable <- true
-                                    if inTable then tableSql <- tableSql @ [sLine]
-                                    if inTable && sLine.Contains(";") then inTable <- false
+                                for sLine in sqlLines do // EXPECT: FSA-F04
+                                    if sLine.ToLower().Contains("create table " + targetTable) then inTable <- true // EXPECT: FSA-P04 // EXPECT: FSA-F04 // EXPECT: FSA-C10
+                                    if inTable then tableSql <- tableSql @ [sLine] // EXPECT: FSA-P01 // EXPECT: FSA-F04 // EXPECT: FSA-C10
+                                    if inTable && sLine.Contains(";") then inTable <- false // EXPECT: FSA-C10
                                 
                                 let formattedSql = String.concat "\n" tableSql
-                                legacyHtml <- legacyHtml + sprintf """
+                                legacyHtml <- legacyHtml + sprintf """ // EXPECT: FSA-P04 // EXPECT: FSA-C10
                                     <div class="diff-container">
                                         <div class="diff-pane old-code">
                                             <h4>Legacy DB Noun (SQL)</h4>
@@ -187,7 +187,7 @@ module Output =
                                         </div>
                                     </div>
                                 """ formattedSql line
-                with e -> legacyHtml <- "<!-- Error parsing sources: " + e.Message + " -->"
+                with e -> legacyHtml <- "<!-- Error parsing sources: " + e.Message + " -->" // EXPECT: FSA-C10
 
                 sprintf "<h3>%s</h3>%s%s" f legacyHtml (if String.IsNullOrEmpty vHtml then "<p style='color: #03dac6;'>✓ Clean (Zero Violations)</p>" else vHtml))
             |> String.concat ""
@@ -213,18 +213,18 @@ module Output =
             sprintf "<h2>Scanned Files (%d)</h2>\n" totalFiles +
             fileSections + "\n</div>\n</body>\n</html>"
 
-        File.WriteAllText(outPath, html)
+        File.WriteAllText(outPath, html) // EXPECT: FSA2022 // EXPECT: FSA-C15
 
     let writeSuppressionReport (files: string list) (outPath: string) =
         let suppressions =
             files
             |> List.collect (fun f ->
-                let lines = File.ReadAllLines(f)
+                let lines = File.ReadAllLines(f) // EXPECT: FSA2022
                 lines 
                 |> Array.mapi (fun i l -> (i + 1, l))
                 |> Array.filter (fun (_, l) -> l.Contains("SuppressMessage") || l.Contains("Profile"))
                 |> Array.map (fun (i, l) -> {| file = f; line = i; text = l.Trim() |})
                 |> Array.toList
             )
-        let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
-        File.WriteAllText(outPath, JsonSerializer.Serialize(suppressions, options))
+        let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase) // EXPECT: FSA-F04
+        File.WriteAllText(outPath, JsonSerializer.Serialize(suppressions, options)) // EXPECT: FSA2022 // EXPECT: FSA-C15

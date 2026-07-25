@@ -26,7 +26,7 @@ let findCustomer (id: int) : Customer =
     if id < 0 then null // explicit null literal
     else new Customer()
 ```
-**Why it fails `fs-assay`:** F# idiomatic code uses `Option<'T>`. Explicit `null` literals violate rule **FSA1001 (Forbidden Null Literal)**.
+**Why it fails `fs-assay`:** F# idiomatic code uses `Option<'T>`. Explicit `null` literals violate rule **OBSOLETE_FSA (Forbidden Null Literal)**.
 
 ### Anti-Pattern 3: Exceptions for Control Flow
 **The C# mindset:** Validate data; if it's invalid, `throw new ArgumentException()`.
@@ -37,7 +37,7 @@ let validateEmail (email: string) =
         raise (System.ArgumentException("Invalid email"))
     email
 ```
-**Why it fails `fs-assay`:** Exceptions break type safety for control flow. Idiomatic F# uses `Result<string, DomainError>`. This triggers **FSA1003 (Exception Control Flow)**.
+**Why it fails `fs-assay`:** Exceptions break type safety for control flow. Idiomatic F# uses `Result<string, DomainError>`. This triggers **OBSOLETE_FSA (Exception Control Flow)**.
 
 ### Anti-Pattern 4: Partial Unsafe Access (`Option.get`)
 **The C# mindset:** "I know this value is here, just give me the value." (Like `Nullable<T>.Value`).
@@ -47,7 +47,7 @@ let processCustomer (customerOpt: Customer option) =
     let customer = customerOpt.Value // or Option.get customerOpt
     printfn "%s" customer.Name
 ```
-**Why it fails `fs-assay`:** `.Value` and `Option.get` can throw runtime exceptions. `fs-assay` enforces total functions and triggers **FSA1002 (Partial Access)**.
+**Why it fails `fs-assay`:** `.Value` and `Option.get` can throw runtime exceptions. `fs-assay` enforces total functions and triggers **OBSOLETE_FSA (Partial Access)**.
 
 ### Anti-Pattern 5: Blocking on Async (`Task.Result`)
 **The C# mindset:** "I need this value now, I'll just call `.Result`."
@@ -58,7 +58,7 @@ let getCustomerData () =
     let data = task.Result // Blocking the thread!
     data
 ```
-**Why it fails `fs-assay`:** Calling `.Result` or `.Wait()` blocks threads and causes deadlocks. Idiomatic F# requires `let!` inside a `task` or `async` block. This violates **FSA1101 (Blocking Thread)**.
+**Why it fails `fs-assay`:** Calling `.Result` or `.Wait()` blocks threads and causes deadlocks. Idiomatic F# requires `let!` inside a `task` or `async` block. This violates **OBSOLETE_FSA (Blocking Thread)**.
 
 ---
 
@@ -69,7 +69,7 @@ To prove `fs-assay` works, we will write our analyzer tests using a strict TDD l
 ### Testing Framework Setup
 We will use `Expecto` to write our analyzer tests.
 
-### Test Example: Disproving `Option.get` (FSA1002)
+### Test Example: Disproving `Option.get` (OBSOLETE_FSA)
 ```fsharp
 testCase "fs-assay detects Option.get and fails the build" <| fun _ ->
     // 1. Arrange: The hostile C#-ish code
@@ -85,12 +85,12 @@ testCase "fs-assay detects Option.get and fails the build" <| fun _ ->
 
     // 3. Assert: fs-assay caught the exact violation
     let hasPartialAccessViolation = 
-        results |> List.exists (fun r -> r.RuleId = "FSA1002")
+        results |> List.exists (fun r -> r.RuleId = "OBSOLETE_FSA")
     
-    Expect.isTrue hasPartialAccessViolation "Expected FSA1002 (Partial Access) to be triggered by .Value"
+    Expect.isTrue hasPartialAccessViolation "Expected OBSOLETE_FSA (Partial Access) to be triggered by .Value"
 ```
 
-### Test Example: Disproving Exceptions (FSA1003)
+### Test Example: Disproving Exceptions (OBSOLETE_FSA)
 ```fsharp
 testCase "fs-assay detects raise/throw and demands Result instead" <| fun _ ->
     // 1. Arrange
@@ -106,9 +106,9 @@ testCase "fs-assay detects raise/throw and demands Result instead" <| fun _ ->
 
     // 3. Assert
     let hasExceptionViolation = 
-        results |> List.exists (fun r -> r.RuleId = "FSA1003")
+        results |> List.exists (fun r -> r.RuleId = "OBSOLETE_FSA")
     
-    Expect.isTrue hasExceptionViolation "Expected FSA1003 (Exception Control Flow) to be triggered by failwith"
+    Expect.isTrue hasExceptionViolation "Expected OBSOLETE_FSA (Exception Control Flow) to be triggered by failwith"
 ```
 
 ## Summary

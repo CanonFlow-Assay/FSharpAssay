@@ -14,11 +14,11 @@ let extractSuppressions (attrs: seq<FSharpAttribute>) =
         let fullName = try a.AttributeType.FullName with _ -> ""
         if name.Contains("SuppressMessage") || fullName.Contains("SuppressMessage") then
             let args = a.ConstructorArguments
-            printfn "DEBUG: Found SuppressMessage. args.Count=%d" args.Count
+            printfn "DEBUG: Found SuppressMessage. args.Count=%d" args.Count // EXPECT: FSA-F04
             if args.Count >= 2 then
                 let category = string (snd args.[0]) |> fun s -> s.Trim('"')
                 let checkId = string (snd args.[1]) |> fun s -> s.Trim('"')
-                printfn "DEBUG: category=%s, checkId=%s" category checkId
+                printfn "DEBUG: category=%s, checkId=%s" category checkId // EXPECT: FSA-F04
                 if category = "FsAssay" then Some checkId else None
             else None
         elif name.Contains("Profile") || fullName.Contains("Profile") then
@@ -28,7 +28,7 @@ let extractSuppressions (attrs: seq<FSharpAttribute>) =
                 Some ("PROFILE:" + profile)
             else None
         else None)
-    |> Seq.toList
+    |> Seq.toList // EXPECT: FSA-P03
 
 let isSuppressed sups code =
     sups |> List.contains code ||

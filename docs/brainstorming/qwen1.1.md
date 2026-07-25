@@ -28,8 +28,8 @@ The 80/20 rule applies. **80% of violations are catchable with heuristics.** The
 │                                                             │
 │  Pass 1: LEXICAL (regex on sanitized source)                │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │  FSA1004: source.Contains("string") in type position │    │
-│  │  FSA1007: Regex @"\bwhile\b"                        │    │
+│  │  OBSOLETE_FSA: source.Contains("string") in type position │    │
+│  │  OBSOLETE_FSA: Regex @"\bwhile\b"                        │    │
 │  │  FSA2014: Regex @"TODO|HACK|FIXME"                  │    │
 │  │  FSA-SEC01: Regex for hard-coded secrets            │    │
 │  │                                                     │    │
@@ -41,10 +41,10 @@ The 80/20 rule applies. **80% of violations are catchable with heuristics.** The
 │                         ▼                                   │
 │  Pass 2: STRUCTURAL (AST/TAST traversal)                    │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │  FSA1001: binding.IsMutable on SynBinding            │    │
-│  │  FSA1002: FSharpExprPatterns.Call to Option.get      │    │
-│  │  FSA1003: FSharpExprPatterns.DefaultValue            │    │
-│  │  FSA1006: SynExpr.Raise / SynExpr.FailWith           │    │
+│  │  OBSOLETE_FSA: binding.IsMutable on SynBinding            │    │
+│  │  OBSOLETE_FSA: FSharpExprPatterns.Call to Option.get      │    │
+│  │  OBSOLETE_FSA: FSharpExprPatterns.DefaultValue            │    │
+│  │  OBSOLETE_FSA: SynExpr.Raise / SynExpr.FailWith           │    │
 │  │  FSA2022: SynExpr.Call to System.IO / HttpClient     │    │
 │  │                                                     │    │
 │  │  Speed: ~50ms per file                              │    │
@@ -86,7 +86,7 @@ $$\forall r \in \text{Rules}:\quad \text{Engine}(r) = \begin{cases} \text{Lexica
 | FSA-SEC13 (SSRF) | **Graph** | Need dataflow: user input → URL |
 | FSA2022 (I/O in domain) | **Structural** | Need to resolve `System.IO` / `HttpClient` calls |
 | FSA-AI01 (dead code) | **Graph** | Need cross-file symbol reference |
-| FSA1009 (module size) | **Lexical** | Count lines. Simple. |
+| OBSOLETE_FSA (module size) | **Lexical** | Count lines. Simple. |
 | FSA2016 (dependency depth) | **Graph** | Need module dependency graph |
 | FSA2017 (circular deps) | **Graph** | Need module dependency graph |
 | FSA-TDD01 (test exists) | **Graph** | Need cross-file: Domain/X.fs → Tests/X.fs |
@@ -117,14 +117,14 @@ $$\forall r \in \text{Rules}:\quad \text{Engine}(r) = \begin{cases} \text{Lexica
 
 ```
 src/Domain/Order.fs
- └── [FSA1001] Mutable variable 'total' detected. (Line: 14, Col: 5)
+ └── [OBSOLETE_FSA] Mutable variable 'total' detected. (Line: 14, Col: 5)
 ```
 
 **What you need:**
 
 ```
 src/Domain/Order.fs:14:5
- └── [FSA1001] error: Mutable variable 'total' detected.
+ └── [OBSOLETE_FSA] error: Mutable variable 'total' detected.
      │
      │  14 │     let mutable total = 0m
      │     │         ^^^^^^^
@@ -133,9 +133,9 @@ src/Domain/Order.fs:14:5
      │   └── let total = items |> List.fold (fun acc i -> acc + i.Price) 0m
      │
      ├── Why: Mutable state in domain violates FCIS (FSA2022).
-     │        See: docs/rules/FSA1001.md
+     │        See: docs/rules/OBSOLETE_FSA.md
      │
-     └── Related: FSA1007 (imperative loop), FSA-AI05 (inconsistent errors)
+     └── Related: OBSOLETE_FSA (imperative loop), FSA-AI05 (inconsistent errors)
 ```
 
 **The math:**
@@ -293,7 +293,7 @@ let buildGraph (files: string list) : ModuleGraph =
 | Task | Engine | Effort | Priority |
 |---|---|---|---|
 | Build Module Graph Builder | Graph | 5 days | **P0** |
-| FSA1009: Module size > 200 lines | Lexical | 1 day | P1 |
+| OBSOLETE_FSA: Module size > 200 lines | Lexical | 1 day | P1 |
 | FSA2016: Dependency depth > 4 | Graph | 2 days | P1 |
 | FSA2017: Circular dependencies | Graph | 2 days | P1 |
 | FSA-ARCH01: Layer violation (Domain → Infrastructure) | Graph | 3 days | P1 |

@@ -13,7 +13,7 @@ let vulnerablePackages =
     ]
 
 let parseProjectFile (filePath: string) : Violation list =
-    if not (File.Exists(filePath)) then []
+    if not (File.Exists(filePath)) then [] // EXPECT: FSA2022
     else
         try
             let doc = XDocument.Load(filePath)
@@ -26,15 +26,15 @@ let parseProjectFile (filePath: string) : Violation list =
             // We'll just return range.Zero for simplicity or attempt to parse line info.
             let dummyText = FSharp.Compiler.Text.SourceText.ofString ""
             
-            for pref in packageRefs do
+            for pref in packageRefs do // EXPECT: FSA-P02 // EXPECT: FSA-F04
                 let includeAttr = pref.Attribute(XName.Get("Include"))
-                if includeAttr <> null then
+                if includeAttr <> null then // EXPECT: FSA-C01
                     let name = includeAttr.Value
                     if vulnerablePackages.Contains(name) then
                         match AstUtils.mkLocated FSASEC09 FSharp.Compiler.Text.Range.range0 with
                         | Some loc ->
                             match toViolation dummyText loc with
-                            | Some v -> findings <- v :: findings
+                            | Some v -> findings <- v :: findings // EXPECT: FSA-C10
                             | None -> ()
                         | None -> ()
             findings

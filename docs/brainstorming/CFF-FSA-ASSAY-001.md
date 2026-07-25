@@ -128,7 +128,7 @@ Registration coverage is **independent of** $\mathrm{Prec}$ and $\mathrm{Rec}$ a
 | Dummy rules emitting `Severity.Error` | **22** | `Library.fs:165` |
 | Rules in the "10 Moat Rules (`FSA-M01`–`FSA-M10`)" tier | **M01–M04 exist**; the other six are re-used C/S codes | `README.md:221` |
 | Emitters of the `FSA1xxx`/`FSA2xxx` namespace | **0** | grep |
-| `out.json` codes | `FSA2017`, `FSA2020`, `FSA2023` | unreproducible from HEAD |
+| `out.json` codes | `FSA2017`, `OBSOLETE_FSA`, `OBSOLETE_FSA` | unreproducible from HEAD |
 | Consumers of `// EXPECT:` annotations | **0** | grep |
 
 The three headline numbers — 42 claimed, 37 defined, 36 tested — agree with each
@@ -217,7 +217,7 @@ so $v = g \circ \rho \circ F$, not $g \circ F$.
 *(i) False Shark:* $\rho$ interleaves banners and file paths with findings; any path
 containing `FSA-C` satisfies $g$.
 *(ii) False Dolphin:* the codes actually present in `out.json` are
-$\{\texttt{FSA2017},\texttt{FSA2020},\texttt{FSA2023}\}$, and
+$\{\texttt{FSA2017},\texttt{OBSOLETE_FSA},\texttt{OBSOLETE_FSA}\}$, and
 $\{\texttt{FSA-E0},\texttt{FSA-C},\texttt{FSA-F}\} \cap \mathrm{prefixes} = \varnothing$.
 A repository with non-empty findings is therefore declared
 🐬 *Dolphin (Passed Elite F# Checks)* with exit 0. $\blacksquare$
@@ -365,7 +365,7 @@ Violates A5.
 
 **E-2 — Dead identifier namespace.** `FSA1xxx`/`FSA2xxx` appears in Specimen
 comments, `ratecard.md`, `out.json` and four `SuppressMessage` attributes — and in
-no emitter. Consequently `AutoFix.fs`, which dispatches on `FSA1001/1003/1004/1009`,
+no emitter. Consequently `AutoFix.fs`, which dispatches on `OBSOLETE_FSA/1003/1004/1009`,
 is **unreachable code in its entirety**.
 
 **E-3 — Identifier contradiction.** `README.md:221` announces
@@ -386,7 +386,7 @@ measurement, citation, or demotion to hypothesis:
 **E-6 — Negative dogfooding.** `Library.fs` uses `let mutable f = []` with `f <- f @ …`
 in ~20 sites — the exact pattern of `FSA-C10`, plus quadratic append — inside the
 enforcement kernel. `Scanner` self-suppresses `C10`/`S05`; `Orchestrator`
-self-suppresses `FSA2017`/`C01`; `Domain.fs` suppresses `FSA1001` four times, a code
+self-suppresses `FSA2017`/`C01`; `Domain.fs` suppresses `OBSOLETE_FSA` four times, a code
 that cannot fire. ⚠️ A C#-shaped accumulator in the organ that certifies F# purity
 is the single most quotable defect in the repository.
 

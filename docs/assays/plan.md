@@ -42,8 +42,8 @@ The roadmap is structured into structured trust boundaries rather than feature s
 
 ### Phase 1: Vertical Trust Slice
 *   Implement a foundational set of rules to validate the AST/TAST pipelines:
-    *   `FSA1002` (`Option.get`/`.Value`) to validate TAST symbol identity.
-    *   `FSA1001` (Null literal) to validate AST collection.
+    *   `OBSOLETE_FSA` (`Option.get`/`.Value`) to validate TAST symbol identity.
+    *   `OBSOLETE_FSA` (Null literal) to validate AST collection.
     *   `FSA1301` (EF Core scope) and `FSA1402` (Argu `ParseResults` leakage).
 *   Implement rule outcomes (`Completed`, `Skipped`, `Failed`) and top-level verdicts.
 

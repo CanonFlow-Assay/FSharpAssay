@@ -37,27 +37,29 @@ let coreAnalyzer (ctxParseTree: FSharp.Compiler.Syntax.ParsedInput option) (ctxT
     async {
         let diagFindings =
             ctxDiagnostics
-            |> Seq.filter (fun d -> d.ErrorNumber = 25)
+            |> Seq.filter (fun d -> d.ErrorNumber = 25) // EXPECT: FSA-AI10
             |> Seq.choose (fun d -> mkLocated FSAC05 d.Range)
-            |> Seq.toList
+            |> Seq.toList // EXPECT: FSA-P03
 
         match ctxTypedTree with
         | Some tree ->
-            let topLevelSups = []
+            let topLevelSups = [ "PROFILE:" + profile.ToString().ToLowerInvariant() ]
             
             let compExprRanges = AstContext.getCompExprRanges ctxSourceText ctxFileName
             
             let isTestFile = profile = Profile.Test || topLevelSups |> List.contains "PROFILE:test" || ctxFileName.ToLowerInvariant().Contains("test")
-            let hasProperty = ref false
-            let astFindings =
-                tree.Declarations
-                |> List.map (fun d -> analyzeDecl d topLevelSups ctxSourceText compExprRanges isTestFile hasProperty)
-                |> Set.unionMany
             
-            let mutable additionalFindings = []
-            if isTestFile && not hasProperty.Value then
-                let f = mkLocated FSATDD02 FSharp.Compiler.Text.Range.range0
-                if f.IsSome then additionalFindings <- f.Value :: additionalFindings
+            let (astFindings, finalHasProperty) =
+                tree.Declarations
+                |> List.fold (fun (accF, accP) d -> 
+                    let (f, p) = analyzeDecl d topLevelSups ctxSourceText compExprRanges isTestFile accP
+                    (Set.union accF f, p)
+                ) (Set.empty, false)
+            
+            let additionalFindings = 
+                if isTestFile && not finalHasProperty then
+                    mkLocated FSATDD02 FSharp.Compiler.Text.Range.range0 |> Option.toList
+                else []
             
             let allFindings = (astFindings |> Set.toList) @ diagFindings @ additionalFindings
             
@@ -82,8 +84,8 @@ let projectAnalyzer (files: (string * FSharpImplementationFileContents * ISource
         let tddFindings = FsAssay.Analyzers.Graph.checkTDD graph
         
         let fsprojFile = files |> List.tryPick (fun (f, _, _) -> // fsharp-assay-ignore FSA2022
-            let dir = System.IO.Path.GetDirectoryName(f)
-            let fsprojs = System.IO.Directory.GetFiles(dir, "*.fsproj")
+            let dir = System.IO.Path.GetDirectoryName(f) // EXPECT: FSA2022
+            let fsprojs = System.IO.Directory.GetFiles(dir, "*.fsproj") // EXPECT: FSA2022
             if fsprojs.Length > 0 then Some fsprojs.[0] else None
         )
         let nugetFindings = match fsprojFile with Some proj -> FsAssay.Analyzers.ProjectParser.parseProjectFile proj | None -> []

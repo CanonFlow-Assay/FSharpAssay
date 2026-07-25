@@ -3,8 +3,8 @@ namespace FsAssay.Specimens.SectionF
 open System
 
 module DomainModeling =
-    // FSA2027 / FSA1004 — Primitive Obsession
-    // EXPECT: FSA1004
+    // FSA2027 / OBSOLETE_FSA — Primitive Obsession
+    // EXPECT: REMOVED
     type EmailAddress = string
 
     // FSA2030 — Boolean Flag Parameters

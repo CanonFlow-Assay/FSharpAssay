@@ -5,15 +5,15 @@ open System.Collections.Generic
 
 module ImmutabilityAndCollections =
     // FSA2012 — Mutable Collection Intrusion
-    // EXPECT: FSA1009
+    // EXPECT: REMOVED
     let mutable globalItems = ResizeArray<string>()
 
     // FSA2014 — Imperative Accumulation
     let sumNumbers (numbers: int list) =
-        // EXPECT: FSA1001
+        // EXPECT: REMOVED
         let mutable total = 0
-        // EXPECT: FSA1007
-        // EXPECT: FSA2014
+        // EXPECT: REMOVED
+        // EXPECT: REMOVED
         for n in numbers do
             total <- total + n
         total

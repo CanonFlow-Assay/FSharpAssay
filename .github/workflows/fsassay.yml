@@ -29,11 +29,10 @@ jobs:
       - name: Run FsAssay Audit Engine
         run: |
           dotnet run --project FsAssay.Runner -c Release -- \
-            ./FsAssay.slnx \
             --s results.sarif \
             -r ratecard.md \
-            -m dashboard.html
-        continue-on-error: true
+            -m dashboard.html \
+            ./FsAssay.slnx
 
       - name: Upload SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3

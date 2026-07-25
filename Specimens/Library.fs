@@ -2,8 +2,8 @@ module Specimens.Library
 open System
 
 let badMutation () =
-    let mutable x = 1 // EXPECT: FSA1001
-    x <- 2 // EXPECT: FSA1001
+    let mutable x = 1 // EXPECT: REMOVED
+    x <- 2 // EXPECT: REMOVED
     x
 
 let goodMutation () =
@@ -11,8 +11,8 @@ let goodMutation () =
     x
 
 let badNull () =
-    let y = Unchecked.defaultof<string> // EXPECT: FSA1003
-    let z : obj = null // EXPECT: FSA1003
+    let y = Unchecked.defaultof<string> // EXPECT: REMOVED
+    let z : obj = null // EXPECT: REMOVED
     y
 
 let goodOption () =

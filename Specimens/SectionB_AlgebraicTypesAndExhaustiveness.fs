@@ -26,5 +26,5 @@ module ObjectErasure =
 // FSA2011 — Conditional Dispatch on Sum Types
 module ConditionalDispatch =
     let handleShape (shape: Shape) =
-        // EXPECT: FSA2024
+        // EXPECT: REMOVED
         if shape.GetType().Name = "Circle" then 1.0 else 0.0

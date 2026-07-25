@@ -2,90 +2,87 @@
   <img src="https://raw.githubusercontent.com/microsoft/fsharp/main/FSharpLogo.png" alt="FSharpAssay Logo" width="120" />
   <h1>FsAssay</h1>
   <p><strong>The Elite F# Architecture & Code Quality Engine</strong></p>
-  
-  [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#)
-  [![Version](https://img.shields.io/badge/version-0.1.0-blue)](#)
-  [![License](https://img.shields.io/badge/license-MIT-purple)](#)
-  [![Tests](https://img.shields.io/badge/tests-38%20passed-success)](#)
+
+  [![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge)](#)
+  [![Version](https://img.shields.io/badge/version-1.0.0-blue?style=for-the-badge)](#)
+  [![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](#)
+  [![Tests](https://img.shields.io/badge/tests-pass-success?style=for-the-badge)](#)
 </div>
 
 <br/>
 
 > [!IMPORTANT]
-> **FsAssay** is not just another linter. It is a strictly opinionated **Type Gym** and Code Quality Engine designed to enforce elite-tier functional F# standards through deep heuristic and TAST (Typed Abstract Syntax Tree) analysis.
+> **FsAssay is not a formatter.** It is a highly opinionated **Type Gym** and code quality engine designed to enforce elite-tier functional F# standards. Utilizing Deep Typed Abstract Syntax Tree (TAST) analysis, FsAssay understands the intent, data flow, and architectural boundaries of your entire solution.
 
 ---
 
 ## ⚡ The Vision: Beyond Linters
 
-Most tools like `FSharpLint` are excellent for formatting and surface-level syntax rules. FsAssay operates at the architectural level. By migrating away from purely syntactic heuristics to **F# Compiler Service Typed Trees**, FsAssay understands the *intent*, *data flow*, and *architectural boundaries* of your codebase.
+While conventional tools focus on syntax and formatting, FsAssay operates at the **architectural level**. 
 
-**FsAssay guarantees:**
-- **Zero Mutable State**: Identifies and eradicates unidiomatic `<-` allocations and mutable collections.
-- **Architectural Purity**: Enforces Domain-Driven Design (DDD). E.g., `System.IO` in a Domain module triggers a P0 violation.
-- **Security by Default**: Proactively scans for SSRF and Prompt Injection patterns (LLMs).
-- **Test-Driven Design**: Identifies domain modules missing corresponding automated tests.
+**Core Guarantees:**
+- 🛡️ **Zero Mutable State**: Identifies and eradicates unidiomatic `<-` allocations and mutable collections, enforcing pure functional state-passing.
+- 🏗️ **Architectural Purity**: Enforces Domain-Driven Design (DDD). Importing `System.IO` or `HttpClient` in a Domain module triggers a P0 architectural violation.
+- 🤖 **AI Security by Default**: Proactively scans for SSRF, Prompt Injection patterns, and unsafe LLM boundaries.
+- 🧪 **Self-Adjudicating TDD**: Evaluates its own rules recursively, proving stability through the built-in Adjudicator.
 
 ---
 
-## 🏗️ How It Works: The Analysis Pipeline
+## 🏗️ The Analysis Pipeline
 
-FsAssay fuses **Regex Heuristics**, **AST Parsing**, and **Dependency Graphing** into a unified evaluation pipeline.
+FsAssay leverages a unified evaluation pipeline combining heuristic scanning, TAST extraction, and deep dependency graphing.
 
 ```mermaid
 graph TD
+    classDef default fill:#1e1e1e,stroke:#333,stroke-width:1px,color:#fff;
+    classDef highlight fill:#0078D7,stroke:#005A9E,stroke-width:2px,color:#fff;
+    
     A[F# Source Files] -->|Parsed by| B[FSharpChecker]
     B --> C{Analyzer Engine}
     
-    C -->|Syntax| D[Heuristic Scans / Regex]
-    C -->|Architecture| E[Module Dependency Graph]
-    C -->|Semantics| F[TAST Typed Tree Scanner]
-    C -->|Plugins| G[FSharpLint / External SDKs]
+    C --> D[Regex Heuristics]
+    C --> E[Module Dependency Graph]
+    C --> F[TAST Typed Tree Scanner]
     
     D --> H[Violation Mapping]
     E --> H
     F --> H
-    G --> H
     
     H --> I((Violations List))
+    class I highlight
     I -->|Export| J[JSON / SARIF / CLI]
+    I -->|MCP| K[AI Agents / Claude / GPT]
 ```
-
-### The Module Graph Builder
-FsAssay maps out your solution structure dynamically:
-- Maps all internal module dependencies.
-- Prevents layer inversions (e.g., Domain calling Infrastructure).
-- Detects cyclical references early.
 
 ---
 
 ## 🚀 Key Capabilities
 
 ### 1. The Core Analyzer
-Enforces rules strictly tailored to elite functional programming:
-* **FSA-C10**: No `Unchecked.defaultof<_>`.
-* **FSA-F04**: Strict avoidance of implicit unit sequences (e.g., `if...then` without `else ()`).
-* **FSA2022**: Absolute ban on impure I/O Operations (`System.IO`, `HttpClient`) in Domain modules.
+Strict rules tailored to functional programming mastery:
+* **FSA-C10**: Bans `Unchecked.defaultof<_>`.
+* **FSA-F04**: Strict avoidance of implicit unit sequences.
+* **FSA2022**: Absolute ban on impure I/O Operations in Domain modules.
 
-### 2. External Plugin Support (Phase 8 Completed)
-FsAssay integrates natively with the **F# Analyzer SDK**. 
-Load custom compiled analyzers dynamically via Reflection:
-```bash
-dotnet run --project FsAssay.Runner -- --plugin ./path/to/MyCustomAnalyzer.dll .
-```
-This automatically merges native `FSharpLint` rules alongside elite FsAssay rules in a single unified SARIF/JSON report.
-
-### 3. Model Context Protocol (MCP) Server
+### 2. Model Context Protocol (MCP) Server
 FsAssay acts as a persistent Language Server bridging directly into AI Agents (Claude / GPT).
 * Automatically stream violations as JSON-RPC payloads.
-* Request AI-driven fixes for architectural problems directly via IDE integrations.
+* Request AI-driven fixes for architectural problems dynamically.
+
+### 3. Precision Adjudicator
+Built-in tooling to evaluate the Precision/Recall of rules against `// EXPECT` comments, guaranteeing 0 false positives during rule tuning.
+
+```bash
+dotnet run --project FsAssay.Runner -- --adjudicate --profile Default .
+```
 
 ---
 
 ## 💻 Getting Started
 
 ### Installation
-Clone the repository and build the runner:
+
+Clone the repository and build the engine:
 ```bash
 git clone https://github.com/CanonFlowFoundation/FSharpAssay.git
 cd FSharpAssay
@@ -93,34 +90,18 @@ dotnet build
 ```
 
 ### Running the Engine
-Point the engine at any F# project or directory:
+Execute a deep scan on any F# project:
 ```bash
-# Scan a project
 dotnet run --project FsAssay.Runner/FsAssay.Runner.fsproj -- ./MyAwesomeApp
-
-# Run with Adjudicate Mode (evaluate precision/recall against expected failures)
-dotnet run --project FsAssay.Runner/FsAssay.Runner.fsproj -- -a ./MyAwesomeApp
 ```
 
-> [!TIP]
-> Use `--profile core` or `--profile script` to tailor the engine's strictness based on the target context.
-
----
-
-## 📈 Quality Assurance: Self-Hosting
-FsAssay believes in "**eating our own dog food**". 
-The engine continuously runs against its own source code to demonstrate its viability. Any architectural regressions within the FsAssay codebase block the CI pipeline immediately.
-
-```mermaid
-pie title "FsAssay Internal Test Distribution"
-    "E2E Fault Injection" : 10
-    "Rule Detection (Positive)" : 15
-    "False Positive Evasion" : 10
-    "Architectural Purity" : 3
+### Interactive Watch Mode
+Run in watch mode to continually audit your code as you write:
+```bash
+dotnet run --project FsAssay.Runner/FsAssay.Runner.fsproj -- -w ./MyAwesomeApp
 ```
 
 ---
-
 <div align="center">
-  <i>Built with ❤️ by the CanonFlow Foundation. Enforcing Functional Excellence.</i>
+  <i>Built with ❤️ by the CanonFlow Foundation.</i>
 </div>
