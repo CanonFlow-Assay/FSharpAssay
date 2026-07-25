@@ -3,4 +3,5 @@
   <Project Path="FsAssay.Runner/FsAssay.Runner.fsproj" />
   <Project Path="FsAssay.Tests/FsAssay.Tests.fsproj" />
   <Project Path="FsAssay.Desktop/FsAssay.Desktop.fsproj" />
+  <Project Path="FsAssay.TypeGym/FsAssay.TypeGym.fsproj" />
 </Solution>
