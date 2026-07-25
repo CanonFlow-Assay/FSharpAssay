@@ -66,14 +66,20 @@ let projectAnalyzer (files: (string * FSharpImplementationFileContents * ISource
         let cycleFindings = FsAssay.Analyzers.Graph.detectCycles graph
         let depthFindings = FsAssay.Analyzers.Graph.calculateDepth graph
         let layerFindings = FsAssay.Analyzers.Graph.checkLayerViolations graph
+        let ssrfFindings = FsAssay.Analyzers.Graph.checkSSRF graph
         
-        // Convert to violations. We attach these to the first file conceptually, or we can return them as global violations.
-        // For simplicity, we just map them using the first file's sourceText if possible, or dummy.
-        let allFindings = cycleFindings @ depthFindings @ layerFindings
+        let fsprojFile = files |> List.tryPick (fun (f, _, _) -> 
+            let dir = System.IO.Path.GetDirectoryName(f)
+            let fsprojs = System.IO.Directory.GetFiles(dir, "*.fsproj")
+            if fsprojs.Length > 0 then Some fsprojs.[0] else None
+        )
+        let nugetFindings = match fsprojFile with Some proj -> FsAssay.Analyzers.ProjectParser.parseProjectFile proj | None -> []
+        
+        let allFindings = cycleFindings @ depthFindings @ layerFindings @ ssrfFindings
         
         // Since architectural violations don't have a specific file snippet easily, we just use a dummy source text or the first file's text
         let dummyText = match files with | (_, _, t) :: _ -> t | [] -> FSharp.Compiler.Text.SourceText.ofString ""
-        return allFindings |> List.choose (toViolation dummyText)
+        return (allFindings |> List.choose (toViolation dummyText)) @ nugetFindings
     }
 
 let toSDKMessage (v: Violation) : Message =

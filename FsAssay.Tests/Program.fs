@@ -242,6 +242,51 @@ module ModuleB =
             ]
             let results = runFsAssayMulti sources
             expectViolation "FSA2017" results
+            
+        testCase "FSA-SEC08: Broken Access Control triggers FSA-SEC08" <| fun _ ->
+            let sourceCode = """
+module BadCode
+type HttpGetAttribute() = inherit System.Attribute()
+
+[<HttpGet>]
+let getSensitiveData () = "Sensitive"
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-SEC08" results
+
+        testCase "FSA-SEC11: Unsigned ONDC Message triggers FSA-SEC11" <| fun _ ->
+            let sourceCode = """
+module BadCode
+type ONDCMessage = { Data: string }
+let send msg = ()
+let doSomething () =
+    let msg = { Data = "test" }
+    send msg
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-SEC11" results
+
+        testCase "FSA-SEC12: PII in Logs triggers FSA-SEC12" <| fun _ ->
+            let sourceCode = """
+module BadCode
+let Log (msg: string) = ()
+let doSomething () =
+    Log "User password is test"
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-SEC12" results
+
+        testCase "FSA-SEC13: SSRF triggers FSA-SEC13" <| fun _ ->
+            let sources = [
+                "Api.fs", """
+module Api.Controllers
+let doSomething (url: string) =
+    let client = System.Net.WebRequest.Create(url)
+    client.GetResponse() |> ignore
+"""
+            ]
+            let results = runFsAssayMulti sources
+            expectViolation "FSA-SEC13" results
     ]
 
 let runE2E (projectCode: string) (sourceCode: string) =

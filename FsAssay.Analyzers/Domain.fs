@@ -162,6 +162,7 @@ type Rule =
             match this with
             | FSA2022 | FSAAI01 -> Implemented
             | FSA2016 | FSA2017 | FSAARCH01 | FSAARCH02 -> Implemented
+            | FSASEC08 | FSASEC09 | FSASEC10 | FSASEC11 | FSASEC12 | FSASEC13 -> Implemented
             | FSAC07 | FSAC11 | FSAC12 | FSAC13
             | FSAS04
             | FSAML01 | FSAML02

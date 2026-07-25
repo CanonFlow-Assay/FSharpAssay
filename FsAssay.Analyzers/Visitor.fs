@@ -50,7 +50,17 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
                 if fullCallName.Contains("OpenAI") || fullCallName.Contains("Anthropic") || fullCallName.Contains("Gemini") then
                     if not (isSuppressed currentSups "FSA-AI01") then f <- f @ (mkLocated FSAAI01 expr.Range |> Option.toList)
 
-                printfn "DEBUG Call: name='%s' logicalName='%s' declaringEntity='%s' fullCallName='%s'" name logicalName declaringEntity fullCallName
+                if logicalName.Contains("Log") || logicalName = "printfn" || logicalName = "printf" || logicalName = "Write" || logicalName = "WriteLine" then
+                    let text = try sourceText.GetSubTextFromRange(expr.Range).ToString().ToLowerInvariant() with _ -> ""
+                    if text.Contains("password") || text.Contains("ssn") || text.Contains("email") || text.Contains("phone") || text.Contains("pii") then
+                        if not (isSuppressed currentSups "FSA-SEC12") then f <- f @ (mkLocated FSASEC12 expr.Range |> Option.toList)
+
+                let nLow = logicalName.ToLowerInvariant()
+                if nLow.Contains("send") || nLow.Contains("post") || nLow.Contains("publish") then
+                    let text = try sourceText.GetSubTextFromRange(expr.Range).ToString() with _ -> ""
+                    let hasOndcType = args |> List.exists (fun a -> try a.Type.TypeDefinition.LogicalName.Contains("ONDC") with _ -> false)
+                    if (text.Contains("ONDCMessage") || hasOndcType) && not (text.Contains("Sign")) then
+                        if not (isSuppressed currentSups "FSA-SEC11") then f <- f @ (mkLocated FSASEC11 expr.Range |> Option.toList)
                 
                 if Catalogue.isEffectful fullCallName || Catalogue.isEffectful name || Catalogue.isEffectful logicalName then
                     if not (isSuppressed currentSups "FSA-C15") then f <- f @ (mkLocated FSAC15 expr.Range |> Option.toList)
@@ -213,6 +223,12 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
                 if v.GenericParameters.Count > 5 then
                     if not (isSuppressed localSups "FSA-AI07") then f <- f @ (mkLocated FSAAI07 body.Range |> Option.toList)
                 
+                let hasEndpointAttr = v.Attributes |> Seq.exists (fun a -> let n = a.AttributeType.LogicalName in n = "HttpGetAttribute" || n = "HttpPostAttribute" || n = "EndpointAttribute" || n = "RouteAttribute")
+                if hasEndpointAttr then
+                    let hasAuth = v.Attributes |> Seq.exists (fun a -> let n = a.AttributeType.LogicalName in n = "AuthorizeAttribute" || n = "AllowAnonymousAttribute" || n = "AdminAttribute")
+                    if not hasAuth && not (isSuppressed localSups "FSA-SEC08") then
+                        f <- f @ (mkLocated FSASEC08 body.Range |> Option.toList)
+
                 f @ visitExpr body localSups false false false
         | FSharpImplementationFileDeclaration.InitAction(expr) ->
             visitExpr expr sups false false false

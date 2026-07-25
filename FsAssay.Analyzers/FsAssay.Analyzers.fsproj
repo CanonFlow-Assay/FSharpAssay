@@ -11,6 +11,7 @@
     <Compile Include="Catalogue.fs" />
     <Compile Include="Suppression.fs" />
     <Compile Include="AstUtils.fs" />
+    <Compile Include="ProjectParser.fs" />
     <Compile Include="Graph.fs" />
     <Compile Include="Visitor.fs" />
     <Compile Include="Library.fs" />
