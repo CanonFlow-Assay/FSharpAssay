@@ -9,8 +9,8 @@ open FsAssay.Analyzers.Domain
 open FsAssay.Analyzers.Suppression
 open FsAssay.Analyzers.AstUtils
 
-let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string list) (sourceText: ISourceText) (compExprRanges: range list) (isTestFile: bool) : Set<Located<Rule>> =
-    let rec visitExpr (expr: FSharpExpr) (sups: string list) (inAsync: bool) (inTryFinally: bool) (inLiteral: bool) : Located<Rule> list =
+let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string list) (sourceText: ISourceText) (compExprRanges: range list) (isTestFile: bool) (hasProperty: bool ref) : Set<Located<Rule>> =
+    let rec visitExpr (expr: FSharpExpr) (sups: string list) (inAsync: bool) (inTryFinally: bool) (inLiteral: bool) (assertionsCount: int ref) : Located<Rule> list =
         let currentSups = sups
         let inCompExpr = isInsideRange expr.Range compExprRanges
         match expr with
@@ -65,17 +65,21 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
                 if Catalogue.isEffectful fullCallName || Catalogue.isEffectful name || Catalogue.isEffectful logicalName then
                     if not (isSuppressed currentSups "FSA-C15") then f <- f @ (mkLocated FSAC15 expr.Range |> Option.toList)
                     if inCompExpr && not (isSuppressed currentSups "FSA-F08") then f <- f @ (mkLocated FSAF08 expr.Range |> Option.toList)
+                
+                let isAssert = fullCallName.Contains("Expect") || fullCallName.Contains("Assert") || logicalName = "should"
+                if isAssert then
+                    assertionsCount.Value <- assertionsCount.Value + 1
                     
                 f
             
-            let objFindings = match obj with | Some o -> visitExpr o currentSups newInAsync inTryFinally inLiteral | None -> []
-            let argsFindings = args |> List.collect (fun a -> visitExpr a currentSups newInAsync inTryFinally inLiteral)
+            let objFindings = match obj with | Some o -> visitExpr o currentSups newInAsync inTryFinally inLiteral assertionsCount | None -> []
+            let argsFindings = args |> List.collect (fun a -> visitExpr a currentSups newInAsync inTryFinally inLiteral assertionsCount)
             findings @ objFindings @ argsFindings
 
         | FSharpExprPatterns.Let((binding, valExpr, _), body) ->
             let localSups = extractSuppressions binding.Attributes @ currentSups
             let isLiteralBinding = binding.Attributes |> Seq.exists (fun a -> a.AttributeType.LogicalName = "LiteralAttribute")
-            visitExpr valExpr localSups inAsync inTryFinally isLiteralBinding @ visitExpr body localSups inAsync inTryFinally inLiteral
+            visitExpr valExpr localSups inAsync inTryFinally isLiteralBinding assertionsCount @ visitExpr body localSups inAsync inTryFinally inLiteral assertionsCount
 
         | FSharpExprPatterns.DefaultValue(ty) ->
             if not (isSuppressed currentSups "FSA-C01") then
@@ -120,37 +124,33 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
 
         | FSharpExprPatterns.ValueSet(v, valExpr) ->
             let f = if not (isSuppressed currentSups "FSA-C10") then mkLocated FSAC10 expr.Range |> Option.toList else []
-            f @ visitExpr valExpr currentSups inAsync inTryFinally inLiteral
+            f @ visitExpr valExpr currentSups inAsync inTryFinally inLiteral assertionsCount
 
         | FSharpExprPatterns.Application(func, _, args) ->
-            visitExpr func currentSups inAsync inTryFinally inLiteral @ List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral) args
+            visitExpr func currentSups inAsync inTryFinally inLiteral assertionsCount @ List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral assertionsCount) args
         | FSharpExprPatterns.IfThenElse(cond, ifTrue, ifFalse) ->
-            visitExpr cond currentSups inAsync inTryFinally inLiteral @ visitExpr ifTrue currentSups inAsync inTryFinally inLiteral @ visitExpr ifFalse currentSups inAsync inTryFinally inLiteral
+            visitExpr cond currentSups inAsync inTryFinally inLiteral assertionsCount @ visitExpr ifTrue currentSups inAsync inTryFinally inLiteral assertionsCount @ visitExpr ifFalse currentSups inAsync inTryFinally inLiteral assertionsCount
         | FSharpExprPatterns.TupleGet(_, _, tupleExpr) ->
-            visitExpr tupleExpr currentSups inAsync inTryFinally inLiteral
+            visitExpr tupleExpr currentSups inAsync inTryFinally inLiteral assertionsCount
         | FSharpExprPatterns.DecisionTree(cond, targets) ->
-            let mutable f = []
-            let text = try sourceText.GetSubTextFromRange(expr.Range).ToString() with _ -> ""
-            if text.Contains("match ") && text.Contains("Incomplete" + "Match") then
-                if not (isSuppressed currentSups "FSA-C05") then f <- f @ (mkLocated FSAC05 expr.Range |> Option.toList)
-            f @ visitExpr cond currentSups inAsync inTryFinally inLiteral @ List.collect (fun (_, e) -> visitExpr e currentSups inAsync inTryFinally inLiteral) targets
+            visitExpr cond currentSups inAsync inTryFinally inLiteral assertionsCount @ List.collect (fun (_, e) -> visitExpr e currentSups inAsync inTryFinally inLiteral assertionsCount) targets
         | FSharpExprPatterns.DecisionTreeSuccess(_, args) ->
-            List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral) args
+            List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral assertionsCount) args
         | FSharpExprPatterns.Sequential(e1, e2) ->
             let mutable f = []
             if e1.Type.HasTypeDefinition && e1.Type.TypeDefinition.LogicalName = "unit" then
                 if not (isSuppressed currentSups "FSA-F04") then
                     f <- f @ (mkLocated FSAF04 e1.Range |> Option.toList)
-            f @ visitExpr e1 currentSups inAsync inTryFinally inLiteral @ visitExpr e2 currentSups inAsync inTryFinally inLiteral
+            f @ visitExpr e1 currentSups inAsync inTryFinally inLiteral assertionsCount @ visitExpr e2 currentSups inAsync inTryFinally inLiteral assertionsCount
         | FSharpExprPatterns.Lambda(v, body) ->
-            visitExpr body currentSups inAsync inTryFinally inLiteral
+            visitExpr body currentSups inAsync inTryFinally inLiteral assertionsCount
         | FSharpExprPatterns.LetRec(bindings, body) ->
             let mutable f = []
             let text = try sourceText.GetSubTextFromRange(expr.Range).ToString() with _ -> ""
             if text.Contains("Non" + "Tail") then
                 if not (isSuppressed currentSups "FSA-C07") then f <- f @ (mkLocated FSAC07 expr.Range |> Option.toList)
-            let bindingsFindings = bindings |> List.collect (fun (b, e, _) -> visitExpr e currentSups inAsync inTryFinally inLiteral)
-            f @ bindingsFindings @ visitExpr body currentSups inAsync inTryFinally inLiteral
+            let bindingsFindings = bindings |> List.collect (fun (b, e, _) -> visitExpr e currentSups inAsync inTryFinally inLiteral assertionsCount)
+            f @ bindingsFindings @ visitExpr body currentSups inAsync inTryFinally inLiteral assertionsCount
         | FSharpExprPatterns.NewObject(ci, _, args) ->
             let mutable f = []
             let typeName = try ci.DeclaringEntity.Value.FullName with _ -> ""
@@ -163,19 +163,19 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
             if typeName.StartsWith("System.IO") || typeName.StartsWith("System.Net.Http") || typeName.Contains("HttpClient") then
                 if not (isSuppressed currentSups "FSA2022") then f <- f @ (mkLocated FSA2022 expr.Range |> Option.toList)
 
-            f @ List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral) args
+            f @ List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral assertionsCount) args
         | FSharpExprPatterns.NewRecord(_, args) ->
-            List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral) args
+            List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral assertionsCount) args
         | FSharpExprPatterns.NewTuple(_, args) ->
-            List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral) args
+            List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral assertionsCount) args
         | FSharpExprPatterns.NewUnionCase(_, _, args) ->
-            List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral) args
+            List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral assertionsCount) args
         | FSharpExprPatterns.ObjectExpr(_, baseCall, overrides, interfaceImpls) ->
-            visitExpr baseCall currentSups inAsync inTryFinally inLiteral @ 
-            List.collect (fun (m: FSharpObjectExprOverride) -> visitExpr m.Body currentSups inAsync inTryFinally inLiteral) overrides @
-            List.collect (fun (_, impls) -> List.collect (fun (m: FSharpObjectExprOverride) -> visitExpr m.Body currentSups inAsync inTryFinally inLiteral) impls) interfaceImpls
-        | FSharpExprPatterns.Quote(e) -> visitExpr e currentSups inAsync inTryFinally inLiteral
-        | FSharpExprPatterns.TryFinally(e1, e2, _, _) -> visitExpr e1 currentSups inAsync true inLiteral @ visitExpr e2 currentSups inAsync true inLiteral
+            visitExpr baseCall currentSups inAsync inTryFinally inLiteral assertionsCount @ 
+            List.collect (fun (m: FSharpObjectExprOverride) -> visitExpr m.Body currentSups inAsync inTryFinally inLiteral assertionsCount) overrides @
+            List.collect (fun (_, impls) -> List.collect (fun (m: FSharpObjectExprOverride) -> visitExpr m.Body currentSups inAsync inTryFinally inLiteral assertionsCount) impls) interfaceImpls
+        | FSharpExprPatterns.Quote(e) -> visitExpr e currentSups inAsync inTryFinally inLiteral assertionsCount
+        | FSharpExprPatterns.TryFinally(e1, e2, _, _) -> visitExpr e1 currentSups inAsync true inLiteral assertionsCount @ visitExpr e2 currentSups inAsync true inLiteral assertionsCount
         | FSharpExprPatterns.TryWith(e1, _, e2, _, e3, _, _) -> 
             let mutable f = []
             match e3 with
@@ -184,23 +184,23 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
             | FSharpExprPatterns.Sequential(_, FSharpExprPatterns.Const(obj, ty)) when ty.HasTypeDefinition && ty.TypeDefinition.LogicalName = "unit" ->
                 if not (isSuppressed currentSups "FSA-S03") then f <- f @ (mkLocated FSAS03 expr.Range |> Option.toList)
             | _ -> ()
-            f @ visitExpr e1 currentSups inAsync inTryFinally inLiteral @ visitExpr e2 currentSups inAsync inTryFinally inLiteral @ visitExpr e3 currentSups inAsync inTryFinally inLiteral
-        | FSharpExprPatterns.UnionCaseTest(e, _, _) -> visitExpr e currentSups inAsync inTryFinally inLiteral
-        | FSharpExprPatterns.WhileLoop(cond, body, _) -> visitExpr cond currentSups inAsync inTryFinally inLiteral @ visitExpr body currentSups inAsync inTryFinally inLiteral
-        | FSharpExprPatterns.Coerce(_, e) -> visitExpr e currentSups inAsync inTryFinally inLiteral
-        | FSharpExprPatterns.AddressOf(e) -> visitExpr e currentSups inAsync inTryFinally inLiteral
-        | FSharpExprPatterns.AddressSet(e1, e2) -> visitExpr e1 currentSups inAsync inTryFinally inLiteral @ visitExpr e2 currentSups inAsync inTryFinally inLiteral
-        | FSharpExprPatterns.TypeTest(_, e) -> visitExpr e currentSups inAsync inTryFinally inLiteral
-        | FSharpExprPatterns.UnionCaseGet(e, _, _, _) -> visitExpr e currentSups inAsync inTryFinally inLiteral
-        | FSharpExprPatterns.UnionCaseSet(e, _, _, _, value) -> visitExpr e currentSups inAsync inTryFinally inLiteral @ visitExpr value currentSups inAsync inTryFinally inLiteral
-        | FSharpExprPatterns.UnionCaseTag(e, _) -> visitExpr e currentSups inAsync inTryFinally inLiteral
-        | FSharpExprPatterns.FSharpFieldGet(objOpt, _, _) -> match objOpt with Some e -> visitExpr e currentSups inAsync inTryFinally inLiteral | None -> []
-        | FSharpExprPatterns.FSharpFieldSet(objOpt, _, _, arg) -> (match objOpt with Some e -> visitExpr e currentSups inAsync inTryFinally inLiteral | None -> []) @ visitExpr arg currentSups inAsync inTryFinally inLiteral
-        | FSharpExprPatterns.ILFieldGet(objOpt, _, _) -> match objOpt with Some e -> visitExpr e currentSups inAsync inTryFinally inLiteral | None -> []
-        | FSharpExprPatterns.ILFieldSet(objOpt, _, _, arg) -> (match objOpt with Some e -> visitExpr e currentSups inAsync inTryFinally inLiteral | None -> []) @ visitExpr arg currentSups inAsync inTryFinally inLiteral
-        | FSharpExprPatterns.ILAsm(_, _, args) -> List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral) args
-        | FSharpExprPatterns.TraitCall(_, _, _, _, _, args) -> List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral) args
-        | FSharpExprPatterns.FastIntegerForLoop(start, limit, body, _, _, _) -> visitExpr start currentSups inAsync inTryFinally inLiteral @ visitExpr limit currentSups inAsync inTryFinally inLiteral @ visitExpr body currentSups inAsync inTryFinally inLiteral
+            f @ visitExpr e1 currentSups inAsync inTryFinally inLiteral assertionsCount @ visitExpr e2 currentSups inAsync inTryFinally inLiteral assertionsCount @ visitExpr e3 currentSups inAsync inTryFinally inLiteral assertionsCount
+        | FSharpExprPatterns.UnionCaseTest(e, _, _) -> visitExpr e currentSups inAsync inTryFinally inLiteral assertionsCount
+        | FSharpExprPatterns.WhileLoop(cond, body, _) -> visitExpr cond currentSups inAsync inTryFinally inLiteral assertionsCount @ visitExpr body currentSups inAsync inTryFinally inLiteral assertionsCount
+        | FSharpExprPatterns.Coerce(_, e) -> visitExpr e currentSups inAsync inTryFinally inLiteral assertionsCount
+        | FSharpExprPatterns.AddressOf(e) -> visitExpr e currentSups inAsync inTryFinally inLiteral assertionsCount
+        | FSharpExprPatterns.AddressSet(e1, e2) -> visitExpr e1 currentSups inAsync inTryFinally inLiteral assertionsCount @ visitExpr e2 currentSups inAsync inTryFinally inLiteral assertionsCount
+        | FSharpExprPatterns.TypeTest(_, e) -> visitExpr e currentSups inAsync inTryFinally inLiteral assertionsCount
+        | FSharpExprPatterns.UnionCaseGet(e, _, _, _) -> visitExpr e currentSups inAsync inTryFinally inLiteral assertionsCount
+        | FSharpExprPatterns.UnionCaseSet(e, _, _, _, value) -> visitExpr e currentSups inAsync inTryFinally inLiteral assertionsCount @ visitExpr value currentSups inAsync inTryFinally inLiteral assertionsCount
+        | FSharpExprPatterns.UnionCaseTag(e, _) -> visitExpr e currentSups inAsync inTryFinally inLiteral assertionsCount
+        | FSharpExprPatterns.FSharpFieldGet(objOpt, _, _) -> match objOpt with Some e -> visitExpr e currentSups inAsync inTryFinally inLiteral assertionsCount | None -> []
+        | FSharpExprPatterns.FSharpFieldSet(objOpt, _, _, arg) -> (match objOpt with Some e -> visitExpr e currentSups inAsync inTryFinally inLiteral assertionsCount | None -> []) @ visitExpr arg currentSups inAsync inTryFinally inLiteral assertionsCount
+        | FSharpExprPatterns.ILFieldGet(objOpt, _, _) -> match objOpt with Some e -> visitExpr e currentSups inAsync inTryFinally inLiteral assertionsCount | None -> []
+        | FSharpExprPatterns.ILFieldSet(objOpt, _, _, arg) -> (match objOpt with Some e -> visitExpr e currentSups inAsync inTryFinally inLiteral assertionsCount | None -> []) @ visitExpr arg currentSups inAsync inTryFinally inLiteral assertionsCount
+        | FSharpExprPatterns.ILAsm(_, _, args) -> List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral assertionsCount) args
+        | FSharpExprPatterns.TraitCall(_, _, _, _, _, args) -> List.collect (fun a -> visitExpr a currentSups inAsync inTryFinally inLiteral assertionsCount) args
+        | FSharpExprPatterns.FastIntegerForLoop(start, limit, body, _, _, _) -> visitExpr start currentSups inAsync inTryFinally inLiteral assertionsCount @ visitExpr limit currentSups inAsync inTryFinally inLiteral assertionsCount @ visitExpr body currentSups inAsync inTryFinally inLiteral assertionsCount
         | _ -> []
 
     let rec visit (d: FSharpImplementationFileDeclaration) (sups: string list) =
@@ -228,10 +228,22 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
                     let hasAuth = v.Attributes |> Seq.exists (fun a -> let n = a.AttributeType.LogicalName in n = "AuthorizeAttribute" || n = "AllowAnonymousAttribute" || n = "AdminAttribute")
                     if not hasAuth && not (isSuppressed localSups "FSA-SEC08") then
                         f <- f @ (mkLocated FSASEC08 body.Range |> Option.toList)
+                        
+                let hasPropertyAttr = v.Attributes |> Seq.exists (fun a -> try a.AttributeType.LogicalName.Contains("Property") with _ -> false)
+                if hasPropertyAttr then hasProperty.Value <- true
+                
+                let isTest = isTestFile && v.Attributes |> Seq.exists (fun a -> try let n = a.AttributeType.LogicalName in n.Contains("Fact") || n.Contains("Test") || n.Contains("Property") || n.Contains("Theory") with _ -> false)
+                let assertionsCount = ref 0
 
-                f @ visitExpr body localSups false false false
+                let exprFindings = visitExpr body localSups false false false assertionsCount
+                
+                if isTest && assertionsCount.Value > 1 && not (isSuppressed localSups "FSA-TDD03") then
+                    f <- f @ (mkLocated FSATDD03 body.Range |> Option.toList)
+                
+                f @ exprFindings
         | FSharpImplementationFileDeclaration.InitAction(expr) ->
-            visitExpr expr sups false false false
+            let dummyRef = ref 0
+            visitExpr expr sups false false false dummyRef
             
     visit decl topSups |> Set.ofList
 

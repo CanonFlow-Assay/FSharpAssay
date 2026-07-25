@@ -39,6 +39,7 @@ type Rule =
     | FSASEC08 | FSASEC09 | FSASEC10 | FSASEC11 | FSASEC12 | FSASEC13
     | FSA2022
     | FSA2016 | FSA2017 | FSAARCH01 | FSAARCH02
+    | FSATDD01 | FSATDD02 | FSATDD03 | FSATDD04
     with
         member this.Code = 
             match this with
@@ -98,6 +99,10 @@ type Rule =
             | FSA2017 -> "FSA2017"
             | FSAARCH01 -> "FSA-ARCH01"
             | FSAARCH02 -> "FSA-ARCH02"
+            | FSATDD01 -> "FSA-TDD01"
+            | FSATDD02 -> "FSA-TDD02"
+            | FSATDD03 -> "FSA-TDD03"
+            | FSATDD04 -> "FSA-TDD04"
             
         member this.Message =
             match this with
@@ -157,12 +162,17 @@ type Rule =
             | FSA2017 -> "Circular dependency detected"
             | FSAARCH01 -> "Domain layer should not depend on Infrastructure"
             | FSAARCH02 -> "Dependencies must flow downwards"
+            | FSATDD01 -> "Domain file is missing a corresponding Test file."
+            | FSATDD02 -> "Test file is missing Property-Based tests ([<Property>])."
+            | FSATDD03 -> "Test contains multiple assertions. Keep it to a single logical assertion."
+            | FSATDD04 -> "Implementation committed before tests (TDD violation)."
 
         member this.Status =
             match this with
             | FSA2022 | FSAAI01 -> Implemented
             | FSA2016 | FSA2017 | FSAARCH01 | FSAARCH02 -> Implemented
             | FSASEC08 | FSASEC09 | FSASEC10 | FSASEC11 | FSASEC12 | FSASEC13 -> Implemented
+            | FSATDD01 | FSATDD02 | FSATDD03 | FSATDD04 -> Implemented
             | FSAC07 | FSAC11 | FSAC12 | FSAC13
             | FSAS04
             | FSAML01 | FSAML02
@@ -179,7 +189,8 @@ type Rule =
             | FSAC02 | FSAC03 | FSAC06 | FSAC10 | FSAS01 | FSAS02 | FSAS03 | FSAS04 | FSAS05 -> Critical
             | FSA2017 | FSAARCH01 -> Critical
             | FSA2022 | FSAAI01 | FSAAI10 | FSAAI07 | FSAAI11 | FSAC05 -> Major
-            | FSA2016 | FSAARCH02 -> Major
+            | FSA2016 | FSAARCH02 | FSATDD02 | FSATDD03 | FSATDD04 -> Major
+            | FSATDD01 -> Minor
             | _ -> Minor
 
         member this.Explanation =
@@ -193,6 +204,10 @@ type Rule =
             | FSAARCH02 -> "Lower layers should not depend on higher layers (e.g. Infrastructure depending on API)."
             | FSAAI01 -> "AI outputs (e.g., from OpenAI, Anthropic) are untrusted. They must be validated through a smart constructor before entering the domain."
             | FSAS01 -> "Hard-coded credentials are a major security vulnerability."
+            | FSATDD01 -> "A Domain file should have a corresponding test file to ensure test coverage."
+            | FSATDD02 -> "Property-based tests are required to ensure robustness."
+            | FSATDD03 -> "A single assertion per test makes tests focused and easier to debug."
+            | FSATDD04 -> "Tests should be written before or alongside implementation, not after."
             | _ -> "Violates established elite F# coding standards."
 
         member this.DocLink =

@@ -220,6 +220,38 @@ let checkSSRF (graph: ModuleGraph) : Located<Rule> list =
     )
     findings
 
+let checkTDD (graph: ModuleGraph) : Located<Rule> list =
+    let mutable findings = []
+    graph.Nodes |> Map.iter (fun name node ->
+        if node.Layer = Domain then
+            let hasTest = graph.Nodes |> Map.exists (fun k _ -> k.Contains(name) && (k.Contains("Test") || k.Contains("Spec")))
+            if not hasTest then
+                findings <- (mkLocated FSATDD01 FSharp.Compiler.Text.Range.range0 |> Option.toList) @ findings
+            else
+                let testNodeOpt = graph.Nodes |> Map.tryPick (fun k v -> if k.Contains(name) && (k.Contains("Test") || k.Contains("Spec")) then Some v else None)
+                match testNodeOpt with
+                | Some tn ->
+                    try
+                        let getGitTime file =
+                            let psi = System.Diagnostics.ProcessStartInfo("git", sprintf "log --diff-filter=A --format=%%at -1 -- \"%s\"" file)
+                            psi.RedirectStandardOutput <- true
+                            psi.UseShellExecute <- false
+                            psi.WorkingDirectory <- System.IO.Path.GetDirectoryName(file)
+                            let p = System.Diagnostics.Process.Start(psi)
+                            p.WaitForExit()
+                            let timeStr = p.StandardOutput.ReadToEnd().Trim()
+                            if System.String.IsNullOrWhiteSpace(timeStr) then 0L else int64 timeStr
+                            
+                        let domainTime = getGitTime node.File
+                        let testTime = getGitTime tn.File
+                        
+                        if domainTime > 0L && testTime > 0L && domainTime < testTime then
+                            findings <- (mkLocated FSATDD04 FSharp.Compiler.Text.Range.range0 |> Option.toList) @ findings
+                    with _ -> ()
+                | None -> ()
+    )
+    findings
+
 let detectCycles (graph: ModuleGraph) =
     let mutable findings = []
     let visited = HashSet<string>()

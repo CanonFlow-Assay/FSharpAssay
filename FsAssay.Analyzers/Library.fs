@@ -47,13 +47,19 @@ let coreAnalyzer (ctxTypedTree: FSharpImplementationFileContents option) (ctxFil
             
             let compExprRanges = AstContext.getCompExprRanges ctxSourceText ctxFileName
             
-            let isTestFile = topLevelSups |> List.contains "PROFILE:test" || ctxFileName.ToLowerInvariant().Contains("test")
+            let isTestFile = profile = Profile.Test || topLevelSups |> List.contains "PROFILE:test" || ctxFileName.ToLowerInvariant().Contains("test")
+            let hasProperty = ref false
             let astFindings =
                 tree.Declarations
-                |> List.map (fun d -> analyzeDecl d topLevelSups ctxSourceText compExprRanges isTestFile)
+                |> List.map (fun d -> analyzeDecl d topLevelSups ctxSourceText compExprRanges isTestFile hasProperty)
                 |> Set.unionMany
             
-            let allFindings = (astFindings |> Set.toList) @ diagFindings
+            let mutable additionalFindings = []
+            if isTestFile && not hasProperty.Value then
+                let f = mkLocated FSATDD02 FSharp.Compiler.Text.Range.range0
+                if f.IsSome then additionalFindings <- f.Value :: additionalFindings
+            
+            let allFindings = (astFindings |> Set.toList) @ diagFindings @ additionalFindings
             return allFindings |> List.choose (toViolation ctxSourceText)
         | None -> return diagFindings |> List.choose (toViolation ctxSourceText)
     }
@@ -67,6 +73,7 @@ let projectAnalyzer (files: (string * FSharpImplementationFileContents * ISource
         let depthFindings = FsAssay.Analyzers.Graph.calculateDepth graph
         let layerFindings = FsAssay.Analyzers.Graph.checkLayerViolations graph
         let ssrfFindings = FsAssay.Analyzers.Graph.checkSSRF graph
+        let tddFindings = FsAssay.Analyzers.Graph.checkTDD graph
         
         let fsprojFile = files |> List.tryPick (fun (f, _, _) -> 
             let dir = System.IO.Path.GetDirectoryName(f)
@@ -75,7 +82,7 @@ let projectAnalyzer (files: (string * FSharpImplementationFileContents * ISource
         )
         let nugetFindings = match fsprojFile with Some proj -> FsAssay.Analyzers.ProjectParser.parseProjectFile proj | None -> []
         
-        let allFindings = cycleFindings @ depthFindings @ layerFindings @ ssrfFindings
+        let allFindings = cycleFindings @ depthFindings @ layerFindings @ ssrfFindings @ tddFindings
         
         // Since architectural violations don't have a specific file snippet easily, we just use a dummy source text or the first file's text
         let dummyText = match files with | (_, _, t) :: _ -> t | [] -> FSharp.Compiler.Text.SourceText.ofString ""

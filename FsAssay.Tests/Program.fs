@@ -287,6 +287,40 @@ let doSomething (url: string) =
             ]
             let results = runFsAssayMulti sources
             expectViolation "FSA-SEC13" results
+
+        testCase "FSA-TDD01: Missing test for Domain module triggers FSA-TDD01" <| fun _ ->
+            let sources = [
+                "Domain.Models.fs", """
+module Domain.Models
+let doDomainThing () = 1
+"""
+            ]
+            let results = runFsAssayMulti sources
+            expectViolation "FSA-TDD01" results
+
+        testCase "FSA-TDD02: Test file without Property triggers FSA-TDD02" <| fun _ ->
+            let sourceCode = """
+module MyTests
+type FactAttribute() = class inherit System.Attribute() end
+[<Fact>]
+let myTest () = ()
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-TDD02" results
+
+        testCase "FSA-TDD03: Multiple assertions trigger FSA-TDD03" <| fun _ ->
+            let sourceCode = """
+module MyTests
+type PropertyAttribute() = class inherit System.Attribute() end
+module Expect =
+    let equal a b c = ()
+[<Property>]
+let myTest () =
+    Expect.equal 1 1 "first"
+    Expect.equal 2 2 "second"
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-TDD03" results
     ]
 
 let runE2E (projectCode: string) (sourceCode: string) =
