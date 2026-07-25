@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/microsoft/fsharp/main/FSharpLogo.png" alt="FSharpAssay Logo" width="120" />
+  <img src="assets/logo.png" alt="FSharpAssay Logo" width="120" />
   <h1>FsAssay</h1>
   <p><strong>The Elite F# Architecture & Code Quality Engine</strong></p>
 
