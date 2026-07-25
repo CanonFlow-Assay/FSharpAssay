@@ -360,6 +360,56 @@ let e2eTests =
             Expect.equal exitCode 2 "Expected RequiredEvidenceMissing (2) on unparseable F# file"
     ]
 
+let perfAndCompTests =
+    testList "Phase 5: Performance and Composition Tests" [
+        testCase "FSA-P01: List append inside a loop triggers P01" <| fun _ ->
+            let sourceCode = """
+module P01
+let doLoop () =
+    let mutable res = []
+    for i in 1..10 do
+        res <- res @ [i]
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-P01" results
+
+        testCase "FSA-P02: Boxing triggers P02" <| fun _ ->
+            let sourceCode = """
+module P02
+let x = box 5
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-P02" results
+
+        testCase "FSA-P03: Seq.toList triggers P03" <| fun _ ->
+            let sourceCode = """
+module P03
+let listify xs = Seq.toList xs
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-P03" results
+
+        testCase "FSA-P04: String append in loop triggers P04" <| fun _ ->
+            let sourceCode = """
+module P04
+let doLoop () =
+    let mutable s = ""
+    for i in 1..10 do
+        s <- s + "a"
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-P04" results
+
+        testCase "FSA-P05: Large struct triggers P05" <| fun _ ->
+            let sourceCode = """
+module P05
+[<Struct>]
+type LargeStruct = { A: int; B: int; C: int; D: int; E: int }
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-P05" results
+    ]
+
 [<EntryPoint>]
 let main argv =
-    runTestsWithCLIArgs [] argv (testList "All Tests" [tests; e2eTests])
+    runTestsWithCLIArgs [] argv (testList "All Tests" [tests; e2eTests; perfAndCompTests])

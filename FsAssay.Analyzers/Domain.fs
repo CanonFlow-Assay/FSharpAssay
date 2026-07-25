@@ -40,6 +40,7 @@ type Rule =
     | FSA2022
     | FSA2016 | FSA2017 | FSAARCH01 | FSAARCH02
     | FSATDD01 | FSATDD02 | FSATDD03 | FSATDD04
+    | FSAP01 | FSAP02 | FSAP03 | FSAP04 | FSAP05
     with
         member this.Code = 
             match this with
@@ -103,6 +104,11 @@ type Rule =
             | FSATDD02 -> "FSA-TDD02"
             | FSATDD03 -> "FSA-TDD03"
             | FSATDD04 -> "FSA-TDD04"
+            | FSAP01 -> "FSA-P01"
+            | FSAP02 -> "FSA-P02"
+            | FSAP03 -> "FSA-P03"
+            | FSAP04 -> "FSA-P04"
+            | FSAP05 -> "FSA-P05"
             
         member this.Message =
             match this with
@@ -166,6 +172,11 @@ type Rule =
             | FSATDD02 -> "Test file is missing Property-Based tests ([<Property>])."
             | FSATDD03 -> "Test contains multiple assertions. Keep it to a single logical assertion."
             | FSATDD04 -> "Implementation committed before tests (TDD violation)."
+            | FSAP01 -> "Avoid list concatenation (@) or Array.append inside loops (O(N^2) complexity)."
+            | FSAP02 -> "Avoid boxing (box or upcasts to obj) in performance-critical code."
+            | FSAP03 -> "Avoid unnecessary Seq materialization (e.g., Seq.toList followed by List.toSeq)."
+            | FSAP04 -> "Avoid string concatenation (+) in loops. Use StringBuilder."
+            | FSAP05 -> "Struct definition is too large (> 4 fields). Consider a reference type or record."
 
         member this.Status =
             match this with
@@ -173,7 +184,9 @@ type Rule =
             | FSA2016 | FSA2017 | FSAARCH01 | FSAARCH02 -> Implemented
             | FSASEC08 | FSASEC09 | FSASEC10 | FSASEC11 | FSASEC12 | FSASEC13 -> Implemented
             | FSATDD01 | FSATDD02 | FSATDD03 | FSATDD04 -> Implemented
-            | FSAC07 | FSAC11 | FSAC12 | FSAC13
+            | FSAC01 | FSAC02 | FSAC03 | FSAC05 | FSAC06 | FSAC07 | FSAC08 | FSAC09 | FSAC10 -> Implemented
+            | FSAP01 | FSAP02 | FSAP03 | FSAP04 | FSAP05 -> Implemented
+            | FSAC11 | FSAC12 | FSAC13
             | FSAS04
             | FSAML01 | FSAML02
             | FSAB01
@@ -190,6 +203,7 @@ type Rule =
             | FSA2017 | FSAARCH01 -> Critical
             | FSA2022 | FSAAI01 | FSAAI10 | FSAAI07 | FSAAI11 | FSAC05 -> Major
             | FSA2016 | FSAARCH02 | FSATDD02 | FSATDD03 | FSATDD04 -> Major
+            | FSAP01 | FSAP02 | FSAP03 | FSAP04 | FSAP05 -> Major
             | FSATDD01 -> Minor
             | _ -> Minor
 
