@@ -9,7 +9,7 @@ open System
 let checker = FSharpChecker.Create(keepAssemblyContents = true)
 
 let runFsAssay (source: string) =
-    let file = Path.Combine(Path.GetTempPath(), "Test.fs")
+    let file = Path.Combine(Path.GetTempPath(), "Test_" + Guid.NewGuid().ToString() + ".fs")
     File.WriteAllText(file, source)
     let sourceText = SourceText.ofString source
     let optionsUnresolved, _ = checker.GetProjectOptionsFromScript(file, sourceText) |> Async.RunSynchronously
@@ -30,7 +30,7 @@ let runFsAssay (source: string) =
             ProjectOptions = Unchecked.defaultof<_>
             AnalyzerIgnoreRanges = Map.empty
         }
-        Library.coreAnalyzer context.TypedTree context.FileName context.SourceText Domain.Profile.Core |> Async.RunSynchronously
+        Library.coreAnalyzer context.TypedTree context.FileName context.SourceText context.CheckFileResults.Diagnostics Domain.Profile.Core |> Async.RunSynchronously
     | FSharpCheckFileAnswer.Aborted -> 
         failwith "Failed to parse and check: Aborted"
 
@@ -153,6 +153,29 @@ let doSomething () =
 """
             let results = runFsAssay sourceCode
             expectNoViolation "FSA-S05" results
+
+        testCase "FSA-C02: Option.get triggers C02" <| fun _ ->
+            let sourceCode = """
+module BadCode
+type ProfileAttribute(name: string) = inherit System.Attribute()
+
+[<Profile("core")>]
+let doSomething () =
+    let x = Some 5
+    Option.get x
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-C02" results
+
+        testCase "FSA-C05: Incomplete Match triggers C05" <| fun _ ->
+            let sourceCode = """
+module BadCode
+let doSomething (x: int option) =
+    match x with
+    | Some v -> v
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-C05" results
     ]
 
 let runE2E (projectCode: string) (sourceCode: string) =

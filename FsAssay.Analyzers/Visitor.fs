@@ -20,9 +20,13 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
             let isAsyncBuilder = try func.DeclaringEntity.Value.LogicalName = "AsyncBuilder" with _ -> false
             let newInAsync = inAsync || isAsyncBuilder
             
+            let declaringEntity = try func.DeclaringEntity.Value.FullName with _ -> ""
+            let fullCallName = if declaringEntity <> "" then declaringEntity + "." + logicalName else name
+
             let findings = 
                 let mutable f = []
-                if name = "Microsoft.FSharp.Core.OptionModule.GetValue" then
+                if name = "Microsoft.FSharp.Core.Option.get" || fullCallName = "Microsoft.FSharp.Core.OptionModule.get" then
+                    printfn "DEBUG: Inside Option.get check! isSuppressed=%b" (isSuppressed currentSups "FSA-C02")
                     if not (isSuppressed currentSups "FSA-C02") then f <- f @ (mkLocated FSAC02 expr.Range |> Option.toList)
                 if name.Contains(".Result") || name.Contains(".Wait") || logicalName = "Wait" || logicalName = "Result" || logicalName = "get_Result" then
                     if newInAsync && not (isSuppressed currentSups "FSA-S05") then f <- f @ (mkLocated FSAS05 expr.Range |> Option.toList)
@@ -39,9 +43,6 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
                     let text = try sourceText.GetSubTextFromRange(expr.Range).ToString() with _ -> ""
                     if text.Contains("is" + "Null") || text.Contains("null") then
                         if not (isSuppressed currentSups "FSA-C09") then f <- f @ (mkLocated FSAC09 expr.Range |> Option.toList)
-                
-                let declaringEntity = try func.DeclaringEntity.Value.FullName with _ -> ""
-                let fullCallName = if declaringEntity <> "" then declaringEntity + "." + logicalName else name
                 
                 printfn "DEBUG Call: name='%s' logicalName='%s' declaringEntity='%s' fullCallName='%s'" name logicalName declaringEntity fullCallName
                 

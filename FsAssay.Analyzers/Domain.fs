@@ -14,6 +14,14 @@ open System
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-S05")>]
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-C14")>]
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-1301")>]
+
+type RuleStatus =
+    | Proposed
+    | Dummy
+    | Prototype
+    | Delegated of string
+    | Implemented
+
 type Rule = 
     | FSAC01 | FSAC02 | FSAC03 | FSAC04 | FSAC05 | FSAC06 | FSAC07 | FSAC08 | FSAC09 | FSAC10
     | FSAC11 | FSAC12 | FSAC13 | FSAC14 | FSAC15 | FSAC16
@@ -118,6 +126,20 @@ type Rule =
             | FSAAI07 -> "Overly Generic: more than 5 generic parameters in a function/method"
             | FSAAI11 -> "Missing [<RequireQualifiedAccess>] attribute on Discriminated Union or Enum"
 
+        member this.Status =
+            match this with
+            | FSAC02 | FSAC05 -> Implemented
+            | FSAC07 | FSAC11 | FSAC12 | FSAC13
+            | FSAS04
+            | FSAML01 | FSAML02
+            | FSAB01
+            | FSAF01 | FSAF02 | FSAF03 | FSAF05 | FSAF06 | FSAF07
+            | FSAE01 | FSAE02 | FSAE03 | FSAE04
+            | FSAM01 | FSAM03 | FSAM04 -> Dummy
+            | FSAC04 -> Delegated "DisposedBeforeAsyncRunAnalyzer"
+            | _ -> Prototype
+
+
 [<CustomEquality; CustomComparison>]
 type Located<'F when 'F : comparison> = 
     { Finding: 'F; Range: range }
@@ -145,21 +167,30 @@ type Located<'F when 'F : comparison> =
             | _ -> invalidArg "yobj" "cannot compare values of different types"
 
 
-let toMessage (loc: Located<Rule>) : Message =
-    let fixes =
-        match loc.Finding.Code with
-        | "FSA-C09" ->
-            [ { FromRange = loc.Range; FromText = "is" + "Null"; ToText = "Option.isNone" } ]
-        | _ -> []
-        
-    {
-        Type = loc.Finding.Code
-        Message = loc.Finding.Message
-        Code = loc.Finding.Code
-        Severity = if loc.Finding.Code.StartsWith("FSA-S") then Severity.Warning else Severity.Error
-        Range = loc.Range
-        Fixes = fixes
-    }
+let toMessage (loc: Located<Rule>) : Message option =
+    match loc.Finding.Status with
+    | Dummy | Proposed -> None
+    | status ->
+        let fixes =
+            match loc.Finding.Code with
+            | "FSA-C09" ->
+                [ { FromRange = loc.Range; FromText = "is" + "Null"; ToText = "Option.isNone" } ]
+            | _ -> []
+            
+        let severity =
+            match status with
+            | Implemented | Delegated _ -> Severity.Error
+            | Prototype -> Severity.Warning
+            | _ -> Severity.Warning
+            
+        Some {
+            Type = loc.Finding.Code
+            Message = loc.Finding.Message
+            Code = loc.Finding.Code
+            Severity = severity
+            Range = loc.Range
+            Fixes = fixes
+        }
     
 
 type Profile =

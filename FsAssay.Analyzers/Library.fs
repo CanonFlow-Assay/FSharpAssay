@@ -32,8 +32,14 @@ open FsAssay.Analyzers.Visitor
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-S05")>]
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-C14")>]
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-1301")>]
-let coreAnalyzer (ctxTypedTree: FSharpImplementationFileContents option) (ctxFileName: string) (ctxSourceText: ISourceText) (profile: Profile) =
+let coreAnalyzer (ctxTypedTree: FSharpImplementationFileContents option) (ctxFileName: string) (ctxSourceText: ISourceText) (ctxDiagnostics: FSharp.Compiler.Diagnostics.FSharpDiagnostic[]) (profile: Profile) =
     async {
+        let diagFindings =
+            ctxDiagnostics
+            |> Seq.filter (fun d -> d.ErrorNumber = 25)
+            |> Seq.choose (fun d -> mkLocated FSAC05 d.Range)
+            |> Seq.toList
+
         match ctxTypedTree with
         | Some tree ->
             let topLevelSups = []
@@ -45,15 +51,19 @@ let coreAnalyzer (ctxTypedTree: FSharpImplementationFileContents option) (ctxFil
                 tree.Declarations
                 |> List.map (fun d -> analyzeDecl d topLevelSups ctxSourceText compExprRanges isTestFile)
                 |> Set.unionMany
-            return (astFindings |> Set.toList) |> List.map toMessage
-        | None -> return []
+            
+            let allFindings = (astFindings |> Set.toList) @ diagFindings
+            return allFindings |> List.choose toMessage
+        | None -> return diagFindings |> List.choose toMessage
     }
 
 [<CliAnalyzer "FSA_All">]
 let antiPatternAnalyzer : Analyzer<CliContext> =
-    fun ctx -> coreAnalyzer ctx.TypedTree ctx.FileName ctx.SourceText Core
+    fun ctx -> 
+        coreAnalyzer ctx.TypedTree ctx.FileName ctx.SourceText ctx.CheckFileResults.Diagnostics Core
 
 [<EditorAnalyzer "FSA_All_Editor">]
 let antiPatternEditorAnalyzer : Analyzer<EditorContext> =
-    fun ctx -> coreAnalyzer ctx.TypedTree ctx.FileName ctx.SourceText Core
-
+    fun ctx -> 
+        let diagnostics = match ctx.CheckFileResults with Some res -> res.Diagnostics | None -> [||]
+        coreAnalyzer ctx.TypedTree ctx.FileName ctx.SourceText diagnostics Core
