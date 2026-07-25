@@ -19,6 +19,7 @@
     <Compile Include="Output.fs" />
     <Compile Include="Server.fs" />
     <Compile Include="McpServer.fs" />
+    <Compile Include="DocsGen.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

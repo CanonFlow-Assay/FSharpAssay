@@ -22,6 +22,7 @@ type Arguments =
     | [<AltCommandLine("-P")>] Profile of profileName:string
     | [<AltCommandLine("-f")>] Fix
     | [<AltCommandLine("-mcp")>] Mcp
+    | [<AltCommandLine("-docs")>] Docs of dir:string
     with
         interface IArgParserTemplate with
             member s.Usage =
@@ -41,6 +42,7 @@ type Arguments =
                 | Profile _ -> "Specify active domain profile (core, interop, cli, etl, test, script)."
                 | Fix -> "Automatically apply recommended fixes to source files."
                 | Mcp -> "Start Model Context Protocol (MCP) JSON-RPC server on stdio."
+                | Docs _ -> "Generate markdown documentation for all rules to specified directory."
 
 [<EntryPoint>]
 let main argv =
@@ -56,6 +58,12 @@ let main argv =
     if results.Contains(Mcp) then
         FsAssay.Runner.McpServer.run ()
         Environment.Exit(ExitCodes.Success)
+
+    match results.TryGetResult(Docs) with
+    | Some dir ->
+        FsAssay.Runner.DocsGen.generateDocs dir
+        Environment.Exit(ExitCodes.Success)
+    | None -> ()
 
     let path = results.GetResult(Target, defaultValue = Directory.GetCurrentDirectory())
     let rawConfig = Config.loadConfig path

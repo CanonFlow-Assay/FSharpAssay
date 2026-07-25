@@ -251,11 +251,18 @@ type Rule =
             match this with
             | FSAC02 -> ["FSA-C09"]
             | FSAC05 -> ["FSA-F02"]
+            | FSA2016 -> [ "FSA2017"; "FSA-ARCH01" ]
+            | FSASEC13 -> [ "FSA-SEC08" ]
             | FSA2022 -> ["FSA-C15"]
             | FSAARCH01 -> ["FSA-ARCH02"]
             | FSAARCH02 -> ["FSA-ARCH01"]
             | FSAAI01 -> ["FSA-AI07"]
             | _ -> []
+            
+        static member AllRules : Rule list =
+            FSharp.Reflection.FSharpType.GetUnionCases(typeof<Rule>)
+            |> Array.map (fun case -> FSharp.Reflection.FSharpValue.MakeUnion(case, [||]) :?> Rule)
+            |> Array.toList
 
 
 

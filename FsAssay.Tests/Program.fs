@@ -448,6 +448,51 @@ let generateText () : string = "result"
             expectViolation "FSA-AI16" results
     ]
 
+let negativeTests =
+    testList "Phase 7: Negative and False Positive Tests" [
+        testCase "FSA-P01: List.append outside loop does not trigger P01" <| fun _ ->
+            let sourceCode = """
+module P01Negative
+let a = [1; 2]
+let b = [3; 4]
+let c = a @ b
+"""
+            let results = runFsAssay sourceCode
+            expectNoViolation "FSA-P01" results
+
+        testCase "FSA-P04: String concat outside loop does not trigger P04" <| fun _ ->
+            let sourceCode = """
+module P04Negative
+let a = "hello"
+let b = "world"
+let c = a + b
+"""
+            let results = runFsAssay sourceCode
+            expectNoViolation "FSA-P04" results
+
+        testCase "FSA-AI15: String concat without prompt keywords does not trigger AI15" <| fun _ ->
+            let sourceCode = """
+module AI15Negative
+let buildName first last =
+    first + " " + last
+"""
+            let results = runFsAssay sourceCode
+            expectNoViolation "FSA-AI15" results
+
+        testCase "FSA-C01: Suppressed null does not trigger C01" <| fun _ ->
+            let sourceCode = """
+module C01Negative
+type ProfileAttribute(name: string) = inherit System.Attribute()
+
+[<Profile("interop")>]
+let getNull () =
+    let a: string = null
+    a
+"""
+            let results = runFsAssay sourceCode
+            expectNoViolation "FSA-C01" results
+    ]
+
 [<EntryPoint>]
 let main argv =
-    runTestsWithCLIArgs [] argv (testList "All Tests" [tests; e2eTests; perfAndCompTests; aiEcosystemTests])
+    runTestsWithCLIArgs [] argv (testList "All Tests" [tests; e2eTests; perfAndCompTests; aiEcosystemTests; negativeTests])
