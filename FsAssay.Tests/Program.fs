@@ -410,6 +410,44 @@ type LargeStruct = { A: int; B: int; C: int; D: int; E: int }
             expectViolation "FSA-P05" results
     ]
 
+let aiEcosystemTests =
+    testList "Phase 6: AI and Ecosystem Tests" [
+        testCase "FSA-AI12: Hardcoded API Key triggers AI12" <| fun _ ->
+            let sourceCode = """
+module AI12
+let key = "sk-ant-12345"
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-AI12" results
+
+        testCase "FSA-AI13: Missing max_tokens triggers AI13" <| fun _ ->
+            let sourceCode = """
+module AI13
+module OpenAI =
+    let complete prompt = ()
+let callAI () = OpenAI.complete "Hello"
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-AI13" results
+
+        testCase "FSA-AI15: String concat for prompt triggers AI15" <| fun _ ->
+            let sourceCode = """
+module AI15
+let buildPrompt user =
+    "system prompt" + user
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-AI15" results
+
+        testCase "FSA-AI16: Returning raw string from AI function triggers AI16" <| fun _ ->
+            let sourceCode = """
+module AI16
+let generateText () : string = "result"
+"""
+            let results = runFsAssay sourceCode
+            expectViolation "FSA-AI16" results
+    ]
+
 [<EntryPoint>]
 let main argv =
-    runTestsWithCLIArgs [] argv (testList "All Tests" [tests; e2eTests; perfAndCompTests])
+    runTestsWithCLIArgs [] argv (testList "All Tests" [tests; e2eTests; perfAndCompTests; aiEcosystemTests])

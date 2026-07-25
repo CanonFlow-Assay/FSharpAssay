@@ -36,6 +36,7 @@ type Rule =
     | FSAE01 | FSAE02 | FSAE03 | FSAE04
     | FSAM01 | FSAM03 | FSAM04
     | FSAAI10 | FSAAI07 | FSAAI11 | FSAAI01
+    | FSAAI12 | FSAAI13 | FSAAI14 | FSAAI15 | FSAAI16 | FSAAI17 | FSAAI18 | FSAAI19
     | FSASEC08 | FSASEC09 | FSASEC10 | FSASEC11 | FSASEC12 | FSASEC13
     | FSA2022
     | FSA2016 | FSA2017 | FSAARCH01 | FSAARCH02
@@ -89,6 +90,14 @@ type Rule =
             | FSAAI07 -> "FSA-AI07"
             | FSAAI11 -> "FSA-AI11"
             | FSAAI01 -> "FSA-AI01"
+            | FSAAI12 -> "FSA-AI12"
+            | FSAAI13 -> "FSA-AI13"
+            | FSAAI14 -> "FSA-AI14"
+            | FSAAI15 -> "FSA-AI15"
+            | FSAAI16 -> "FSA-AI16"
+            | FSAAI17 -> "FSA-AI17"
+            | FSAAI18 -> "FSA-AI18"
+            | FSAAI19 -> "FSA-AI19"
             | FSASEC08 -> "FSA-SEC08"
             | FSASEC09 -> "FSA-SEC09"
             | FSASEC10 -> "FSA-SEC10"
@@ -157,6 +166,14 @@ type Rule =
             | FSAAI07 -> "Overly Generic: more than 5 generic parameters in a function/method"
             | FSAAI11 -> "Missing [<RequireQualifiedAccess>] attribute on Discriminated Union or Enum"
             | FSAAI01 -> "Unvalidated AI output. No smart constructor on AI result."
+            | FSAAI12 -> "Hardcoded LLM API keys detected."
+            | FSAAI13 -> "Missing max_tokens parameter (unbounded generation)."
+            | FSAAI14 -> "No retry/resilience logic around LLM API calls."
+            | FSAAI15 -> "Using unstructured string concatenation (+) for prompts instead of templates."
+            | FSAAI16 -> "Returning raw LLM string outputs from the domain instead of parsed discriminated unions."
+            | FSAAI17 -> "Lack of logging/observability for AI operations."
+            | FSAAI18 -> "High temperature (> 1.0) usage in structured generation tasks."
+            | FSAAI19 -> "Passing un-sanitized user input directly to prompts (Prompt Injection risk)."
             | FSASEC08 -> "No admin logic in domain"
             | FSASEC09 -> "No known-vulnerable NuGet components"
             | FSASEC10 -> "No hard-coded credentials"
@@ -181,6 +198,7 @@ type Rule =
         member this.Status =
             match this with
             | FSA2022 | FSAAI01 -> Implemented
+            | FSAAI12 | FSAAI13 | FSAAI14 | FSAAI15 | FSAAI16 | FSAAI17 | FSAAI18 | FSAAI19 -> Implemented
             | FSA2016 | FSA2017 | FSAARCH01 | FSAARCH02 -> Implemented
             | FSASEC08 | FSASEC09 | FSASEC10 | FSASEC11 | FSASEC12 | FSASEC13 -> Implemented
             | FSATDD01 | FSATDD02 | FSATDD03 | FSATDD04 -> Implemented
@@ -200,8 +218,10 @@ type Rule =
             match this with
             | FSASEC08 | FSASEC09 | FSASEC10 | FSASEC11 | FSASEC12 | FSASEC13 -> Critical
             | FSAC02 | FSAC03 | FSAC06 | FSAC10 | FSAS01 | FSAS02 | FSAS03 | FSAS04 | FSAS05 -> Critical
+            | FSAAI12 | FSAAI19 -> Critical
             | FSA2017 | FSAARCH01 -> Critical
             | FSA2022 | FSAAI01 | FSAAI10 | FSAAI07 | FSAAI11 | FSAC05 -> Major
+            | FSAAI13 | FSAAI14 | FSAAI15 | FSAAI16 | FSAAI17 | FSAAI18 -> Major
             | FSA2016 | FSAARCH02 | FSATDD02 | FSATDD03 | FSATDD04 -> Major
             | FSAP01 | FSAP02 | FSAP03 | FSAP04 | FSAP05 -> Major
             | FSATDD01 -> Minor

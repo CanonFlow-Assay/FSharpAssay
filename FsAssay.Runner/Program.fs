@@ -21,6 +21,7 @@ type Arguments =
     | [<AltCommandLine("-c")>] Files of paths:string
     | [<AltCommandLine("-P")>] Profile of profileName:string
     | [<AltCommandLine("-f")>] Fix
+    | [<AltCommandLine("-mcp")>] Mcp
     with
         interface IArgParserTemplate with
             member s.Usage =
@@ -39,6 +40,7 @@ type Arguments =
                 | Files _ -> "Comma-separated list of explicit files to scan (Incremental mode)."
                 | Profile _ -> "Specify active domain profile (core, interop, cli, etl, test, script)."
                 | Fix -> "Automatically apply recommended fixes to source files."
+                | Mcp -> "Start Model Context Protocol (MCP) JSON-RPC server on stdio."
 
 [<EntryPoint>]
 let main argv =
@@ -50,6 +52,10 @@ let main argv =
             printfn "%s" e.Message
             Environment.Exit(ExitCodes.InvalidInvocation)
             failwith ""
+
+    if results.Contains(Mcp) then
+        FsAssay.Runner.McpServer.run ()
+        Environment.Exit(ExitCodes.Success)
 
     let path = results.GetResult(Target, defaultValue = Directory.GetCurrentDirectory())
     let rawConfig = Config.loadConfig path

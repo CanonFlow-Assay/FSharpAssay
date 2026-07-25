@@ -47,8 +47,15 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
                 if declaringEntity.StartsWith("System.IO") || declaringEntity.StartsWith("System.Net.Http") || logicalName.Contains("HttpClient") || declaringEntity.Contains("HttpClient") then
                     if not (isSuppressed currentSups "FSA2022") then f <- f @ (mkLocated FSA2022 expr.Range |> Option.toList)
 
-                if fullCallName.Contains("OpenAI") || fullCallName.Contains("Anthropic") || fullCallName.Contains("Gemini") then
+                if fullCallName.Contains("OpenAI") || fullCallName.Contains("Anthropic") || fullCallName.Contains("Gemini") || fullCallName.Contains("LLM") then
                     if not (isSuppressed currentSups "FSA-AI01") then f <- f @ (mkLocated FSAAI01 expr.Range |> Option.toList)
+                    
+                    let text = try sourceText.GetSubTextFromRange(expr.Range).ToString() with _ -> ""
+                    if not (text.Contains("max_tokens") || text.Contains("MaxTokens")) && not (isSuppressed currentSups "FSA-AI13") then
+                        f <- f @ (mkLocated FSAAI13 expr.Range |> Option.toList)
+                        
+                    if not (text.Contains("retry") || text.Contains("Polly") || text.Contains("try")) && not (isSuppressed currentSups "FSA-AI14") then
+                        f <- f @ (mkLocated FSAAI14 expr.Range |> Option.toList)
 
                 if logicalName.Contains("Log") || logicalName = "printfn" || logicalName = "printf" || logicalName = "Write" || logicalName = "WriteLine" then
                     let text = try sourceText.GetSubTextFromRange(expr.Range).ToString().ToLowerInvariant() with _ -> ""
@@ -75,6 +82,13 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
                         if not (isSuppressed currentSups "FSA-P01") then f <- f @ (mkLocated FSAP01 expr.Range |> Option.toList)
                     if logicalName = "op_Addition" && args.Length = 2 && args.[0].Type.HasTypeDefinition && args.[0].Type.TypeDefinition.LogicalName = "string" then
                         if not (isSuppressed currentSups "FSA-P04") then f <- f @ (mkLocated FSAP04 expr.Range |> Option.toList)
+                        
+                if logicalName = "op_Addition" && args.Length = 2 && args.[0].Type.HasTypeDefinition && args.[0].Type.TypeDefinition.LogicalName = "string" then
+                    let text = try sourceText.GetSubTextFromRange(expr.Range).ToString().ToLowerInvariant() with _ -> ""
+                    if text.Contains("prompt") || text.Contains("system") || text.Contains("user") then
+                        if not (isSuppressed currentSups "FSA-AI15") then f <- f @ (mkLocated FSAAI15 expr.Range |> Option.toList)
+                        if text.Contains("input") && not (isSuppressed currentSups "FSA-AI19") then
+                            f <- f @ (mkLocated FSAAI19 expr.Range |> Option.toList)
 
                 if logicalName = "box" then
                     if not (isSuppressed currentSups "FSA-P02") then f <- f @ (mkLocated FSAP02 expr.Range |> Option.toList)
@@ -116,6 +130,9 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
                 if s.Contains("AK" + "IA") || s.Contains("password=") || s.Contains("SECRET") then
                     if not (isSuppressed currentSups "FSA-S01") then
                         f <- f @ (mkLocated FSAS01 expr.Range |> Option.toList)
+                if s.StartsWith("sk-") || s.StartsWith("sk_live") then
+                    if not (isSuppressed currentSups "FSA-AI12") then
+                        f <- f @ (mkLocated FSAAI12 expr.Range |> Option.toList)
                 if s.Contains(".." + "/") || s.Contains("..\\") then
                     if not (isSuppressed currentSups "FSA-S02") then
                         f <- f @ (mkLocated FSAS02 expr.Range |> Option.toList)
@@ -132,6 +149,11 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
                     let isCommon = [200.0; 201.0; 202.0; 204.0; 400.0; 401.0; 403.0; 404.0; 500.0; 80.0; 443.0; 8080.0; 0.0; 1.0; -1.0; 2.0; 10.0; 100.0; 1000.0; 1024.0] |> List.contains num
                     if not isCommon && num > 1.0 then
                         f <- f @ (mkLocated FSAAI10 expr.Range |> Option.toList)
+                    
+                    if num > 1.0 && not (isSuppressed currentSups "FSA-AI18") then
+                        let lineText = try sourceText.GetLineString(expr.Range.StartLine - 1).ToLowerInvariant() with _ -> ""
+                        if lineText.Contains("temperature") then
+                            f <- f @ (mkLocated FSAAI18 expr.Range |> Option.toList)
             f
 
         | FSharpExprPatterns.ValueSet(v, valExpr) ->
@@ -255,6 +277,16 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
                 
                 let isTest = isTestFile && v.Attributes |> Seq.exists (fun a -> try let n = a.AttributeType.LogicalName in n.Contains("Fact") || n.Contains("Test") || n.Contains("Property") || n.Contains("Theory") with _ -> false)
                 let assertionsCount = ref 0
+                
+                let n = v.LogicalName.ToLowerInvariant()
+                if n.Contains("ai") || n.Contains("llm") || n.Contains("generate") then
+                    let isStringReturn = try v.ReturnParameter.Type.HasTypeDefinition && v.ReturnParameter.Type.TypeDefinition.LogicalName = "string" with _ -> false
+                    if isStringReturn && not (isSuppressed localSups "FSA-AI16") then
+                        f <- f @ (mkLocated FSAAI16 v.DeclarationLocation |> Option.toList)
+                        
+                    let text = try sourceText.GetSubTextFromRange(body.Range).ToString().ToLowerInvariant() with _ -> ""
+                    if not (text.Contains("log") || text.Contains("printf")) && not (isSuppressed localSups "FSA-AI17") then
+                        f <- f @ (mkLocated FSAAI17 body.Range |> Option.toList)
 
                 let exprFindings = visitExpr body localSups false false false false assertionsCount
                 

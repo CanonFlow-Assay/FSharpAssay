@@ -96,3 +96,29 @@ module Orchestrator =
     }
 
     let evaluateSingleFile file = evaluateSingleFileWithProfile file Core
+
+    let analyzeProject path = async {
+        let optionsList =
+            try ProjectSystem.getTargetProjects path
+            with _ -> []
+        let files = 
+            if List.isEmpty optionsList then
+                if File.Exists(path) && path.EndsWith(".fs") then [ (path, None) ]
+                elif Directory.Exists(path) then
+                    Directory.GetFiles(path, "*.fs", SearchOption.AllDirectories)
+                    |> Array.filter (fun f -> not (f.Contains("obj") || f.Contains("bin")))
+                    |> Array.map (fun f -> (f, None))
+                    |> Array.toList
+                else []
+            else
+                optionsList |> List.collect (fun opts -> opts.SourceFiles |> Array.map (fun f -> (f, Some opts)) |> Array.toList)
+        
+        let mutable results = []
+        for (f, o) in files do
+            if f.EndsWith(".fs") && not (f.Contains("AssemblyAttributes.fs") || f.Contains("AssemblyInfo.fs")) then
+                let! verdict = match o with Some opt -> evaluateFileWithProfile opt f Core | None -> evaluateSingleFileWithProfile f Core
+                match verdict with
+                | Completed (v, _, _) -> results <- results @ v
+                | _ -> ()
+        return results
+    }

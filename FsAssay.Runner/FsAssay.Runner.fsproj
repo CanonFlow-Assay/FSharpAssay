@@ -18,6 +18,7 @@
     <Compile Include="Orchestrator.fs" />
     <Compile Include="Output.fs" />
     <Compile Include="Server.fs" />
+    <Compile Include="McpServer.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
