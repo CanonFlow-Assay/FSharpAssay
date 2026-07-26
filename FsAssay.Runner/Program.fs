@@ -155,10 +155,16 @@ let main argv =
                 let isExcluded = config.exclude |> Array.exists (fun pat -> file.Contains(pat.Replace("*", "")))
                 if not isExcluded && file.EndsWith(".fs") && not (file.Contains("AssemblyAttributes.fs")) && not (file.Contains("AssemblyInfo.fs")) then
                     totalFiles <- totalFiles + 1 // EXPECT: FSA-F04 // EXPECT: FSA-C10
+                    
+                    let effectiveProfile =
+                        if file.EndsWith(".fsx") then FsAssay.Analyzers.Domain.Profile.Script
+                        elif file.Contains("Test") || file.Contains("test") || file.Contains("fsi") then FsAssay.Analyzers.Domain.Profile.Test
+                        else typedProfile
+
                     let verdict =
                         match optsOpt with
-                        | Some opts -> Orchestrator.evaluateFileWithProfile opts file typedProfile cliPlugins |> Async.RunSynchronously // EXPECT: FSA-C03
-                        | None -> Orchestrator.evaluateSingleFileWithProfile file typedProfile cliPlugins |> Async.RunSynchronously // EXPECT: FSA-C03
+                        | Some opts -> Orchestrator.evaluateFileWithProfile opts file effectiveProfile cliPlugins |> Async.RunSynchronously // EXPECT: FSA-C03
+                        | None -> Orchestrator.evaluateSingleFileWithProfile file effectiveProfile cliPlugins |> Async.RunSynchronously // EXPECT: FSA-C03
 
                     match verdict with
                     | Completed (violations, treeOpt, sourceText) ->
