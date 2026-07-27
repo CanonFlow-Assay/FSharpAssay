@@ -82,9 +82,21 @@ module Orchestrator =
             let sourceText = SourceText.ofString source
             let! (optionsUnresolved, _) = checker.GetProjectOptionsFromScript(file, sourceText)
             let fsCore = typeof<option<int>>.Assembly.Location
-            let sysLib = typeof<System.Object>.Assembly.Location
-            let sysRuntime = typeof<System.Action>.Assembly.Location
-            let options = { optionsUnresolved with OtherOptions = Array.append optionsUnresolved.OtherOptions [| "-r:" + fsCore; "-r:" + sysLib; "-r:" + sysRuntime |] }
+            let trustedPlatformReferences =
+                match System.AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") with
+                | :? string as assemblies ->
+                    assemblies.Split(Path.PathSeparator, System.StringSplitOptions.RemoveEmptyEntries)
+                    |> Array.map (fun assembly -> "-r:" + assembly)
+                | _ -> [||]
+            let validOriginalOptions =
+                optionsUnresolved.OtherOptions
+                |> Array.filter (fun option ->
+                    if option.StartsWith("-r:") then File.Exists(option.Substring(3))
+                    else true)
+            let references =
+                Array.concat [ validOriginalOptions; trustedPlatformReferences; [| "-r:" + fsCore |] ]
+                |> Array.distinct
+            let options = { optionsUnresolved with OtherOptions = references }
             
             let! (parseResults, checkAnswer) = checker.ParseAndCheckFileInProject(file, 0, sourceText, options)
             match checkAnswer with
