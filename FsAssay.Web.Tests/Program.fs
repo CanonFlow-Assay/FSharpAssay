@@ -47,7 +47,7 @@ let e2eTests =
         testTask "Playwright should be able to initialize" {
             let! (playwright: IPlaywright) = Playwright.CreateAsync()
             let! (browser: IBrowser) = playwright.Chromium.LaunchAsync()
-            let! page = browser.NewPageAsync()
+            let! (page: IPage) = browser.NewPageAsync()
             
             // In a real E2E test, we would start the DevServer and navigate to it:
             // let! _ = page.GotoAsync("http://localhost:5000")
@@ -55,6 +55,9 @@ let e2eTests =
             // Expect.isTrue (title.Contains("Bolero")) "Should load Bolero app"
             
             Expect.isNotNull page "Playwright successfully created a page"
+            do! page.CloseAsync()
+            do! browser.CloseAsync()
+            playwright.Dispose()
         }
     ]
 
