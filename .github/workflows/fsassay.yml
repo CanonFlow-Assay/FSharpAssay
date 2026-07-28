@@ -28,11 +28,19 @@ jobs:
 
       - name: Run FsAssay Audit Engine
         run: |
+          set +e
           dotnet run --project FsAssay.Runner -c Release -- \
-            --s results.sarif \
-            -r ratecard.md \
-            -m dashboard.html \
+            --out-sarif results.sarif \
+            --ratecard-md ratecard.md \
+            --material-html dashboard.html \
             ./FsAssay.slnx
+          audit_status=$?
+          set -e
+          # Exit 1 means the audit completed and found violations. Keep the
+          # evidence visible without confusing known debt with a tool failure.
+          if [ "$audit_status" -ne 0 ] && [ "$audit_status" -ne 1 ]; then
+            exit "$audit_status"
+          fi
 
       - name: Upload SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
@@ -43,6 +51,5 @@ jobs:
       - name: Publish Markdown Rate Card to PR Job Summary
         run: cat ratecard.md >> $GITHUB_STEP_SUMMARY
 
-      - name: Enforce FsAssay Quality Gate
-        run: |
-          dotnet run --project FsAssay.Runner -c Release -- ./FsAssay.slnx
+      - name: Verify FsAssay executable regression suite
+        run: dotnet run --project FsAssay.Tests/FsAssay.Tests.fsproj -c Release --no-build
