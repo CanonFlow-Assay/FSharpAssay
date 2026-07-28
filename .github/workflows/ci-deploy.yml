@@ -73,10 +73,11 @@ jobs:
           node-version: '20'
           
       - name: Install Playwright
+        working-directory: ./e2e
         run: |
-          npm init -y
-          npm install playwright
+          npm ci
           npx playwright install --with-deps chromium
           
       - name: Run E2E Test on Public URL
-        run: node e2e/debug.js
+        working-directory: ./e2e
+        run: node debug.js
