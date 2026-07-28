@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="ObligationPluginTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
@@ -23,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FsAssay.Analyzers\FsAssay.Analyzers.fsproj" />
+    <ProjectReference Include="..\FsAssay.CanonFlow.Plugin\FsAssay.CanonFlow.Plugin.fsproj" />
     <ProjectReference Include="..\FsAssay.Runner\FsAssay.Runner.fsproj" />
   </ItemGroup>
 

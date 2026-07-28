@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="FsAssay.Analyzers/FsAssay.Analyzers.fsproj" />
+  <Project Path="FsAssay.CanonFlow.Plugin/FsAssay.CanonFlow.Plugin.fsproj" />
   <Project Path="FsAssay.Runner/FsAssay.Runner.fsproj" />
   <Project Path="FsAssay.Tests/FsAssay.Tests.fsproj" />
   <Project Path="FsAssay.Desktop/FsAssay.Desktop.fsproj" />

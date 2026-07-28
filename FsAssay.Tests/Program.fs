@@ -374,6 +374,33 @@ let runE2E (projectCode: string) (sourceCode: string) =
     Directory.Delete(tmpDir, true)
     p.ExitCode
 
+let runE2EWithPluginPath (pluginPath: string) =
+    let tmpDir = Path.Combine(Path.GetTempPath(), "FsAssayPluginE2E_" + Guid.NewGuid().ToString())
+    Directory.CreateDirectory(tmpDir) |> ignore
+    let sourcePath = Path.Combine(tmpDir, "Library.fs")
+    File.WriteAllText(sourcePath, "module PluginLoad\nlet value = 1")
+    let runnerAssembly =
+        Path.Combine(
+            __SOURCE_DIRECTORY__,
+            "..",
+            "FsAssay.Runner",
+            "bin",
+            "Release",
+            "net10.0",
+            "FsAssay.Runner.dll")
+    let pi = new System.Diagnostics.ProcessStartInfo("dotnet")
+    pi.ArgumentList.Add(runnerAssembly)
+    pi.ArgumentList.Add("--plugin")
+    pi.ArgumentList.Add(pluginPath)
+    pi.ArgumentList.Add(sourcePath)
+    pi.RedirectStandardOutput <- true
+    pi.RedirectStandardError <- true
+    pi.UseShellExecute <- false
+    use p = System.Diagnostics.Process.Start(pi)
+    p.WaitForExit()
+    Directory.Delete(tmpDir, true)
+    p.ExitCode
+
 let e2eTests =
     testList "Phase 5 Hardening E2E Fault Injection" [
         testCase "Fault Injection 1: Corrupted .fsproj" <| fun _ ->
@@ -392,6 +419,12 @@ let e2eTests =
             let code = "module SyntaxErr\nlet x = "
             let exitCode = runE2E proj code
             Expect.equal exitCode 2 "Expected RequiredEvidenceMissing (2) on unparseable F# file"
+
+        testCase "Fault Injection 4: Missing plugin is ToolFailure" <| fun _ ->
+            let missing =
+                Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "missing-plugin.dll")
+            let exitCode = runE2EWithPluginPath missing
+            Expect.equal exitCode 3 "Expected ToolFailure (3) when the admitted plugin cannot load"
     ]
 
 let perfAndCompTests =
@@ -529,4 +562,4 @@ let getNull () =
 
 [<EntryPoint>]
 let main argv =
-    runTestsWithCLIArgs [] argv (testList "All Tests" [tests; e2eTests; perfAndCompTests; aiEcosystemTests; negativeTests])
+    runTestsWithCLIArgs [] argv (testList "All Tests" [tests; ObligationPluginTests.tests; e2eTests; perfAndCompTests; aiEcosystemTests; negativeTests])

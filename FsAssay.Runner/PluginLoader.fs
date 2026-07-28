@@ -53,5 +53,9 @@ let loadPlugins (pluginPaths: string list) : (Analyzer<CliContext> list * Analyz
                 let msg = $"Error loading plugin '{path}': {ex.Message}"
                 failures.Add(msg) // EXPECT: FSA-F04
                 Console.WriteLine(msg) // EXPECT: FSA-C15
+        else
+            let msg = $"Error loading plugin '{path}': assembly not found."
+            failures.Add(msg) // EXPECT: FSA-F04
+            Console.WriteLine(msg) // EXPECT: FSA-C15
     
     (cliAnalyzers |> Seq.toList, editorAnalyzers |> Seq.toList, failures |> Seq.toList) // EXPECT: FSA-P03
