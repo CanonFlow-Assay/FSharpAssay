@@ -6,9 +6,9 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>fsassay</ToolCommandName>
     <PackageId>FsAssay.Cli</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.0.4</Version>
     <Authors>CanonFlow Foundation</Authors>
-    <Description>Elite functional-only F# TAST anti-pattern analyzer.</Description>
+    <Description>Experimental F# static analyzer with an evidence-bounded production rule set.</Description>
   </PropertyGroup>
 
   <ItemGroup>

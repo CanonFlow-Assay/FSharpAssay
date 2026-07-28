@@ -5,16 +5,12 @@ open System.Text.Json
 
 module Config =
     type PolicyConfig = {
-        severities: Map<string, string>
         exclude: string[]
-        targetGrade: string
         profile: string
     }
 
     let defaultConfig = {
-        severities = Map.empty
         exclude = [| "**/obj/**"; "**/bin/**"; "**/AssemblyAttributes.fs" |]
-        targetGrade = "A"
         profile = "core"
     }
 

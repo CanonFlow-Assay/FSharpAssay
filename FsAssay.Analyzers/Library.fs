@@ -50,11 +50,17 @@ let coreAnalyzer (ctxParseTree: FSharp.Compiler.Syntax.ParsedInput option) (ctxT
             let isTestFile = profile = Profile.Test || topLevelSups |> List.contains "PROFILE:test" || ctxFileName.ToLowerInvariant().Contains("test")
             
             let (astFindings, finalHasProperty) =
-                tree.Declarations
-                |> List.fold (fun (accF, accP) d -> 
-                    let (f, p) = analyzeDecl d topLevelSups ctxSourceText compExprRanges isTestFile accP
-                    (Set.union accF f, p)
-                ) (Set.empty, false)
+                try
+                    tree.Declarations
+                    |> List.fold (fun (accF, accP) d ->
+                        let (f, p) = analyzeDecl d topLevelSups ctxSourceText compExprRanges isTestFile accP
+                        (Set.union accF f, p)
+                    ) (Set.empty, false)
+                with _ ->
+                    // FCS can expose an error-recovery typed tree for incomplete
+                    // matches that throws during expression translation. The
+                    // compiler diagnostic remains authoritative evidence.
+                    Set.empty, false
             
             let additionalFindings = 
                 if isTestFile && not finalHasProperty then

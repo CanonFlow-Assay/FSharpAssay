@@ -60,7 +60,12 @@ let extractDependencies (decl: FSharpImplementationFileDeclaration) : Set<string
         | FSharpExprPatterns.Call(obj, func, _, _, args) ->
             let d1 = try match func.DeclaringEntity with Some e -> Set.singleton e.FullName | None -> Set.empty with _ -> Set.empty
             let declName = try func.DeclaringEntity.Value.FullName with _ -> ""
-            let h1 = declName = "System.Net.Http.HttpClient"
+            let logicalName = try func.LogicalName with _ -> ""
+            let h1 =
+                declName.StartsWith("System.Net")
+                && (logicalName.Contains("Create")
+                    || logicalName.Contains("GetResponse")
+                    || logicalName.Contains("Send"))
             let oDeps, oHttp = match obj with Some o -> visitExpr o | None -> (Set.empty, false)
             let aDeps, aHttp = foldExprs args
             (Set.unionMany [d1; oDeps; aDeps], h1 || oHttp || aHttp)
@@ -149,6 +154,14 @@ let extractDependencies (decl: FSharpImplementationFileDeclaration) : Set<string
             let d1, h1 = visitExpr cond
             let d2, h2 = visitExpr body
             (Set.union d1 d2, h1 || h2)
+
+        | FSharpExprPatterns.Coerce(_, expression)
+        | FSharpExprPatterns.AddressOf(expression)
+        | FSharpExprPatterns.TypeTest(_, expression)
+        | FSharpExprPatterns.UnionCaseTest(expression, _, _)
+        | FSharpExprPatterns.UnionCaseGet(expression, _, _, _)
+        | FSharpExprPatterns.UnionCaseTag(expression, _) ->
+            visitExpr expression
             
         | FSharpExprPatterns.FSharpFieldGet(objOpt, ty, _) ->
             let d1 = try Set.singleton ty.TypeDefinition.FullName with _ -> Set.empty
@@ -195,6 +208,13 @@ let extractDependencies (decl: FSharpImplementationFileDeclaration) : Set<string
                     let h1 = decl.StartsWith("System.Net") || logical.Contains("HttpClient") || logical.Contains("WebRequest")
                     let ah = exprArgs |> List.exists checkHttp
                     h1 || ah
+                | FSharpExprPatterns.Coerce(_, expression)
+                | FSharpExprPatterns.AddressOf(expression)
+                | FSharpExprPatterns.TypeTest(_, expression)
+                | FSharpExprPatterns.UnionCaseTest(expression, _, _)
+                | FSharpExprPatterns.UnionCaseGet(expression, _, _, _)
+                | FSharpExprPatterns.UnionCaseTag(expression, _) ->
+                    checkHttp expression
                 | _ -> false
                 
             let isHttp1 = checkHttp body

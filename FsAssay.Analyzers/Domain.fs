@@ -289,6 +289,37 @@ type Rule =  // EXPECT: FSA-AI17 // EXPECT: FSA-AI11
             |> Array.map (fun case -> FSharp.Reflection.FSharpValue.MakeUnion(case, [||]) :?> Rule)
             |> Array.toList
 
+module Admission =
+    /// Rules admitted to affect the production verdict. Each entry has an
+    /// independently executable positive behavioral specimen in FsAssay.Tests.
+    let ProductionRuleCodes =
+        set [
+            "FSA2022"
+            "FSA2017"
+            "FSA-AI01"
+            "FSA-AI12"
+            "FSA-AI13"
+            "FSA-AI15"
+            "FSA-AI16"
+            "FSA-C02"
+            "FSA-C05"
+            "FSA-P01"
+            "FSA-P02"
+            "FSA-P03"
+            "FSA-P04"
+            "FSA-P05"
+            "FSA-SEC08"
+            "FSA-SEC11"
+            "FSA-SEC12"
+            "FSA-SEC13"
+            "FSA-TDD01"
+            "FSA-TDD02"
+            "FSA-TDD03"
+        ]
+
+    let isProductionAdmitted code =
+        Set.contains code ProductionRuleCodes
+
 
 
 [<CustomEquality; CustomComparison>]

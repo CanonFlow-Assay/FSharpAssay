@@ -1,107 +1,69 @@
-<div align="center">
-  <img src="assets/logo.png" alt="FSharpAssay Logo" width="120" />
-  <h1>FsAssay</h1>
-  <p><strong>The Elite F# Architecture & Code Quality Engine</strong></p>
+# FsAssay
 
-  [![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge)](#)
-  [![Version](https://img.shields.io/badge/version-1.0.0-blue?style=for-the-badge)](#)
-  [![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](#)
-  [![Tests](https://img.shields.io/badge/tests-pass-success?style=for-the-badge)](#)
-</div>
+FsAssay is an experimental .NET 10 static analyzer for F# source. It combines
+FSharp.Compiler.Service typed-tree inspection, syntax/heuristic rules, and
+project-level graph analysis.
 
-<br/>
+It is not a certification system and a clean result is not proof that a program
+is correct, secure, pure, or production-ready.
 
-> [!IMPORTANT]
-> **FsAssay is not a formatter.** It is a highly opinionated **Type Gym** and code quality engine designed to enforce elite-tier functional F# standards. Utilizing Deep Typed Abstract Syntax Tree (TAST) analysis, FsAssay understands the intent, data flow, and architectural boundaries of your entire solution.
+## Evidence-bounded verdicts
 
----
+The catalog currently contains 91 rule identifiers: 35 marked `Implemented`,
+22 `Dummy`, and 34 `Prototype`. Catalog status alone does not admit a rule to
+affect the production verdict.
 
-## ⚡ The Vision: Beyond Linters
+The production boundary admits these 21 implemented rules because each has an
+independently executable positive behavioral specimen:
 
-While conventional tools focus on syntax and formatting, FsAssay operates at the **architectural level**. 
+`FSA2022`, `FSA2017`, `FSA-AI01`, `FSA-AI12`, `FSA-AI13`, `FSA-AI15`,
+`FSA-AI16`, `FSA-C02`, `FSA-C05`, `FSA-P01`, `FSA-P02`, `FSA-P03`,
+`FSA-P04`, `FSA-P05`, `FSA-SEC08`, `FSA-SEC11`, `FSA-SEC12`, `FSA-SEC13`,
+`FSA-TDD01`, `FSA-TDD02`, and `FSA-TDD03`.
 
-**Core Guarantees:**
-- 🛡️ **Zero Mutable State**: Identifies and eradicates unidiomatic `<-` allocations and mutable collections, enforcing pure functional state-passing.
-- 🏗️ **Architectural Purity**: Enforces Domain-Driven Design (DDD). Importing `System.IO` or `HttpClient` in a Domain module triggers a P0 architectural violation.
-- 🤖 **AI Security by Default**: Proactively scans for SSRF, Prompt Injection patterns, and unsafe LLM boundaries.
-- 🧪 **Self-Adjudicating TDD**: Evaluates its own rules recursively, proving stability through the built-in Adjudicator.
+Findings from catalog rules outside that set are informational/inconclusive and
+cannot create a blocking production verdict. External plugin findings are
+reported separately and remain governed by the plugin's declared severity.
 
----
+CLI exit codes:
 
-## 🏗️ The Analysis Pipeline
+- `0`: admitted analysis completed without a blocking finding
+- `1`: an admitted critical or major rule found a blocking issue
+- `2`: required evidence was missing or only non-admitted findings were present
+- `3`: the tool could not complete the requested evaluation
 
-FsAssay leverages a unified evaluation pipeline combining heuristic scanning, TAST extraction, and deep dependency graphing.
+## Build and verify
 
-```mermaid
-graph TD
-    classDef default fill:#1e1e1e,stroke:#333,stroke-width:1px,color:#fff;
-    classDef highlight fill:#0078D7,stroke:#005A9E,stroke-width:2px,color:#fff;
-    
-    A[F# Source Files] -->|Parsed by| B[FSharpChecker]
-    B --> C{Analyzer Engine}
-    
-    C --> D[Regex Heuristics]
-    C --> E[Module Dependency Graph]
-    C --> F[TAST Typed Tree Scanner]
-    
-    D --> H[Violation Mapping]
-    E --> H
-    F --> H
-    
-    H --> I((Violations List))
-    class I highlight
-    I -->|Export| J[JSON / SARIF / CLI]
-    I -->|MCP| K[AI Agents / Claude / GPT]
-```
-
----
-
-## 🚀 Key Capabilities
-
-### 1. The Core Analyzer
-Strict rules tailored to functional programming mastery:
-* **FSA-C10**: Bans `Unchecked.defaultof<_>`.
-* **FSA-F04**: Strict avoidance of implicit unit sequences.
-* **FSA2022**: Absolute ban on impure I/O Operations in Domain modules.
-
-### 2. Model Context Protocol (MCP) Server
-FsAssay acts as a persistent Language Server bridging directly into AI Agents (Claude / GPT).
-* Automatically stream violations as JSON-RPC payloads.
-* Request AI-driven fixes for architectural problems dynamically.
-
-### 3. Precision Adjudicator
-Built-in tooling to evaluate the Precision/Recall of rules against `// EXPECT` comments, guaranteeing 0 false positives during rule tuning.
+The repository expects the SDK selected by `global.json`.
 
 ```bash
-dotnet run --project FsAssay.Runner -- --adjudicate --profile Default .
+dotnet restore --locked-mode
+dotnet build --no-restore
+dotnet test
 ```
 
----
+Run the CLI against a project or directory:
 
-## 💻 Getting Started
-
-### Installation
-
-Clone the repository and build the engine:
 ```bash
-git clone https://github.com/CanonFlowFoundation/FSharpAssay.git
-cd FSharpAssay
-dotnet build
+dotnet run --project FsAssay.Runner/FsAssay.Runner.fsproj -- ./MyProject
 ```
 
-### Running the Engine
-Execute a deep scan on any F# project:
+Run only explicitly declared files:
+
 ```bash
-dotnet run --project FsAssay.Runner/FsAssay.Runner.fsproj -- ./MyAwesomeApp
+fsassay ./MyProject --files ./MyProject/A.fs,./MyProject/B.fs --json result.json
 ```
 
-### Interactive Watch Mode
-Run in watch mode to continually audit your code as you write:
-```bash
-dotnet run --project FsAssay.Runner/FsAssay.Runner.fsproj -- -w ./MyAwesomeApp
-```
+The `.fsassayrc` format supports `profile` and `exclude`. Unknown or malformed
+configuration currently falls back to defaults, so callers that require a
+strict policy should pin the packaged tool and validate their configuration
+before invocation.
 
----
-<div align="center">
-  <i>Built with ❤️ by the CanonFlow Foundation.</i>
-</div>
+## Scope
+
+FsAssay can surface patterns worth review. Some rules are heuristic and may
+produce false positives or false negatives. The behavioral suite establishes
+specific executable examples; it does not establish universal precision or
+recall.
+
+Licensed under Apache-2.0. See `LICENSE`.

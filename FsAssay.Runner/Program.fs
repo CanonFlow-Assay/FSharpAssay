@@ -97,21 +97,27 @@ let main argv =
         | "script" -> FsAssay.Analyzers.Domain.Profile.Script
         | _ -> FsAssay.Analyzers.Domain.Profile.Core
 
+    let explicitFiles = results.TryGetResult(Files)
+
     let executeScan () =
         let optionsList =
-            try
-                ProjectSystem.getTargetProjects path
-            with e ->
-                printfn "💥 Project System Failure: %s" e.Message // EXPECT: FSA-F04
-                Environment.Exit(ExitCodes.ToolFailure) // EXPECT: FSA-F04
-                failwith "unreachable" // EXPECT: FSA-C06
+            match explicitFiles with
+            | Some _ -> []
+            | None ->
+                try
+                    ProjectSystem.getTargetProjects path
+                with e ->
+                    printfn "💥 Project System Failure: %s" e.Message // EXPECT: FSA-F04
+                    Environment.Exit(ExitCodes.ToolFailure) // EXPECT: FSA-F04
+                    failwith "unreachable" // EXPECT: FSA-C06
                 
         let hasProjFiles = 
             path.EndsWith(".sln") || path.EndsWith(".slnx") || path.EndsWith(".fsproj") ||
             (Directory.Exists(path) && Directory.GetFiles(path, "*.fsproj", SearchOption.AllDirectories).Length > 0) // EXPECT: FSA2022
 
         let allDiscoveredFiles =
-            if List.isEmpty optionsList then
+            if explicitFiles.IsSome then []
+            elif List.isEmpty optionsList then
                 if hasProjFiles then // EXPECT: FSA-F04
                     printfn "💥 Project System Failure: F# project files were found but failed to load or contained no source files." // EXPECT: FSA-F04
                     Environment.Exit(ExitCodes.ToolFailure) // EXPECT: FSA-F04
@@ -133,11 +139,17 @@ let main argv =
                 files
 
         let filesToScan =
-            match results.TryGetResult(Files) with
+            match explicitFiles with
             | Some explicitPathsStr ->
-                let explicitPaths = explicitPathsStr.Split(',', StringSplitOptions.RemoveEmptyEntries) |> Array.map (fun p -> p.Trim())
-                allDiscoveredFiles
-                |> List.filter (fun (filePath, _) -> explicitPaths |> Array.exists (fun ep -> filePath.EndsWith(ep) || filePath = ep))
+                explicitPathsStr.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                |> Array.map (fun explicitPath -> explicitPath.Trim() |> Path.GetFullPath)
+                |> Array.distinct
+                |> Array.map (fun explicitPath ->
+                    allDiscoveredFiles
+                    |> List.tryFind (fun (filePath, _) ->
+                        String.Equals(Path.GetFullPath(filePath), explicitPath, StringComparison.Ordinal))
+                    |> Option.defaultValue (explicitPath, None))
+                |> Array.toList
             | None -> allDiscoveredFiles
 
         if List.isEmpty filesToScan then
@@ -356,11 +368,12 @@ let main argv =
         else
             match FsAssay.Analyzers.Domain.Rule.AllRules |> List.tryFind (fun r -> r.Code = v.Code) with
             | Some r ->
-                match r.Status, r.Severity with
-                | (FsAssay.Analyzers.Domain.Implemented | FsAssay.Analyzers.Domain.Delegated _), (FsAssay.Analyzers.Domain.Critical | FsAssay.Analyzers.Domain.Major) -> FsAssay.Runner.Fail
-                | (FsAssay.Analyzers.Domain.Implemented | FsAssay.Analyzers.Domain.Delegated _), FsAssay.Analyzers.Domain.Minor -> FsAssay.Runner.Inconclusive
-                | FsAssay.Analyzers.Domain.Prototype, _ -> FsAssay.Runner.Inconclusive
-                | _ -> FsAssay.Runner.Pass
+                match FsAssay.Analyzers.Domain.Admission.isProductionAdmitted r.Code, r.Status, r.Severity with
+                | false, _, _ -> FsAssay.Runner.Inconclusive
+                | true, (FsAssay.Analyzers.Domain.Implemented | FsAssay.Analyzers.Domain.Delegated _), (FsAssay.Analyzers.Domain.Critical | FsAssay.Analyzers.Domain.Major) -> FsAssay.Runner.Fail
+                | true, (FsAssay.Analyzers.Domain.Implemented | FsAssay.Analyzers.Domain.Delegated _), FsAssay.Analyzers.Domain.Minor -> FsAssay.Runner.Inconclusive
+                | true, FsAssay.Analyzers.Domain.Prototype, _ -> FsAssay.Runner.Inconclusive
+                | true, _, _ -> FsAssay.Runner.Pass
             | None -> FsAssay.Runner.Pass
 
     let maxVerdict a b =

@@ -1,6 +1,5 @@
 {
   "profile": "core",
-  "targetGrade": "A",
   "exclude": [
     "obj",
     "bin",
@@ -11,6 +10,5 @@
     "InspectTAST",
     "FsAssay.TypeGym",
     "docs"
-  ],
-  "severities": {}
+  ]
 }

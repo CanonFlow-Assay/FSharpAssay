@@ -10,32 +10,25 @@ open System
 
 let checker = FSharpChecker.Create(keepAssemblyContents = true)
 
-let runFsAssay (source: string) =
-    let file = Path.Combine(Path.GetTempPath(), "Test_" + Guid.NewGuid().ToString() + ".fs")
+let runFsAssayNamed (filePrefix: string) (source: string) =
+    let file = Path.Combine(Path.GetTempPath(), filePrefix + "_" + Guid.NewGuid().ToString() + ".fs")
     File.WriteAllText(file, source)
-    let sourceText = SourceText.ofString source
-    let optionsUnresolved, _ = checker.GetProjectOptionsFromScript(file, sourceText) |> Async.RunSynchronously
-    let fsCore = typeof<option<int>>.Assembly.Location
-    let sysLib = typeof<System.Object>.Assembly.Location
-    let sysRuntime = typeof<System.Action>.Assembly.Location
-    let options = { optionsUnresolved with OtherOptions = Array.append optionsUnresolved.OtherOptions [| "-r:" + fsCore; "-r:" + sysLib; "-r:" + sysRuntime |] }
-    let parseResults, checkAnswer = checker.ParseAndCheckFileInProject(file, 0, sourceText, options) |> Async.RunSynchronously
-    match checkAnswer with
-    | FSharpCheckFileAnswer.Succeeded(checkResults) ->
-        let context : CliContext = {
-            FileName = file
-            SourceText = sourceText
-            ParseFileResults = parseResults
-            CheckFileResults = checkResults
-            TypedTree = checkResults.ImplementationFile
-            CheckProjectResults = Unchecked.defaultof<_>
-            ProjectOptions = Unchecked.defaultof<_>
-            AnalyzerIgnoreRanges = Map.empty
-        }
-        let parseTree = Some context.ParseFileResults.ParseTree
-        Library.coreAnalyzer parseTree context.TypedTree context.FileName context.SourceText context.CheckFileResults.Diagnostics Domain.Profile.Core |> Async.RunSynchronously
-    | FSharpCheckFileAnswer.Aborted -> 
-        failwith "Failed to parse and check: Aborted"
+    try
+        match
+            FsAssay.Runner.Orchestrator.evaluateSingleFileWithProfile
+                file
+                Domain.Profile.Core
+                []
+            |> Async.RunSynchronously
+        with
+        | FsAssay.Runner.Completed (violations, _, _) -> violations
+        | FsAssay.Runner.Skipped reason -> failwithf "FsAssay skipped behavioral specimen: %A" reason
+        | FsAssay.Runner.Failed failure -> failwithf "FsAssay failed behavioral specimen: %A" failure
+    finally
+        if File.Exists(file) then File.Delete(file)
+
+let runFsAssay source =
+    runFsAssayNamed "Specimen" source
 
 let runFsAssayMulti (sources: (string * string) list) =
     let tmpDir = Path.Combine(Path.GetTempPath(), "FsAssayTest_" + Guid.NewGuid().ToString())
@@ -52,9 +45,23 @@ let runFsAssayMulti (sources: (string * string) list) =
         let sourceText = SourceText.ofString src
         let optionsUnresolved, _ = checker.GetProjectOptionsFromScript(file, sourceText) |> Async.RunSynchronously
         let fsCore = typeof<option<int>>.Assembly.Location
-        let sysLib = typeof<System.Object>.Assembly.Location
-        let sysRuntime = typeof<System.Action>.Assembly.Location
-        let options = { optionsUnresolved with OtherOptions = Array.append optionsUnresolved.OtherOptions [| "-r:" + fsCore; "-r:" + sysLib; "-r:" + sysRuntime |] }
+        let trustedPlatformReferences =
+            match AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") with
+            | :? string as assemblies ->
+                assemblies.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+                |> Array.map (fun assembly -> "-r:" + assembly)
+            | _ -> [||]
+        let validOriginalOptions =
+            optionsUnresolved.OtherOptions
+            |> Array.filter (fun option ->
+                if option.StartsWith("-r:") then File.Exists(option.Substring(3))
+                else true)
+        let options = {
+            optionsUnresolved with
+                OtherOptions =
+                    Array.concat [ validOriginalOptions; trustedPlatformReferences; [| "-r:" + fsCore |] ]
+                    |> Array.distinct
+        }
         let parseResults, checkAnswer = checker.ParseAndCheckFileInProject(file, 0, sourceText, options) |> Async.RunSynchronously
         match checkAnswer with
         | FSharpCheckFileAnswer.Succeeded(checkResults) ->
@@ -76,6 +83,22 @@ let expectNoViolation code (messages: Violation list) =
 
 let tests =
     testList "Elite F# Anti-Pattern Tests" [
+        testCase "Production admission contains exactly the independently exercised rules" <| fun _ ->
+            let expected =
+                set [
+                    "FSA2022"; "FSA2017"; "FSA-AI01"; "FSA-AI12"; "FSA-AI13"
+                    "FSA-AI15"; "FSA-AI16"; "FSA-C02"; "FSA-C05"; "FSA-P01"
+                    "FSA-P02"; "FSA-P03"; "FSA-P04"; "FSA-P05"; "FSA-SEC08"
+                    "FSA-SEC11"; "FSA-SEC12"; "FSA-SEC13"; "FSA-TDD01"
+                    "FSA-TDD02"; "FSA-TDD03"
+                ]
+            Expect.equal Admission.ProductionRuleCodes expected "Production admission drifted from the behavioral suite"
+            Expect.equal Admission.ProductionRuleCodes.Count 21 "Production admission count changed"
+            Admission.ProductionRuleCodes
+            |> Set.iter (fun code ->
+                let rule = Rule.AllRules |> List.find (fun rule -> rule.Code = code)
+                Expect.equal rule.Status Implemented (sprintf "%s must be implemented before admission" code))
+
         testCase "Phase 0: FCS and SDK Compatibility" <| fun _ ->
             let fcsAssembly = typeof<FSharpChecker>.Assembly
             Expect.isNotNull fcsAssembly "FSharpChecker should be loaded from FCS"
@@ -306,7 +329,7 @@ type FactAttribute() = class inherit System.Attribute() end
 [<Fact>]
 let myTest () = ()
 """
-            let results = runFsAssay sourceCode
+            let results = runFsAssayNamed "MyTests" sourceCode
             expectViolation "FSA-TDD02" results
 
         testCase "FSA-TDD03: Multiple assertions trigger FSA-TDD03" <| fun _ ->
@@ -320,7 +343,7 @@ let myTest () =
     Expect.equal 1 1 "first"
     Expect.equal 2 2 "second"
 """
-            let results = runFsAssay sourceCode
+            let results = runFsAssayNamed "MyTests" sourceCode
             expectViolation "FSA-TDD03" results
     ]
 
@@ -331,8 +354,18 @@ let runE2E (projectCode: string) (sourceCode: string) =
     if not (String.IsNullOrWhiteSpace(sourceCode)) then
         File.WriteAllText(Path.Combine(tmpDir, "Library.fs"), sourceCode)
     
-    let runnerDir = Path.Combine(__SOURCE_DIRECTORY__, "..", "FsAssay.Runner")
-    let pi = new System.Diagnostics.ProcessStartInfo("dotnet", sprintf "run --project \"%s\" -- \"%s\"" runnerDir tmpDir)
+    let runnerAssembly =
+        Path.Combine(
+            __SOURCE_DIRECTORY__,
+            "..",
+            "FsAssay.Runner",
+            "bin",
+            "Release",
+            "net10.0",
+            "FsAssay.Runner.dll")
+    let pi = new System.Diagnostics.ProcessStartInfo("dotnet")
+    pi.ArgumentList.Add(runnerAssembly)
+    pi.ArgumentList.Add(tmpDir)
     pi.RedirectStandardOutput <- true
     pi.RedirectStandardError <- true
     pi.UseShellExecute <- false
