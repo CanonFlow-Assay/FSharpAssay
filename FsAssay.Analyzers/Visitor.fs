@@ -4,10 +4,38 @@ open FSharp.Analyzers.SDK
 open FSharp.Compiler.Text
 open FSharp.Compiler.Symbols
 open System
+open System.Text.RegularExpressions
 
 open FsAssay.Analyzers.Domain
 open FsAssay.Analyzers.Suppression
 open FsAssay.Analyzers.AstUtils
+
+let private isExternalIoType (typeName: string) =
+    let isMemoryOnly =
+        typeName.StartsWith("System.IO.MemoryStream", StringComparison.Ordinal)
+
+    not isMemoryOnly
+    && (typeName.StartsWith("System.IO", StringComparison.Ordinal)
+        || typeName.StartsWith("System.Net.Http", StringComparison.Ordinal)
+        || typeName.Contains("HttpClient", StringComparison.Ordinal))
+
+let private semanticNameTokens (name: string) =
+    Regex.Matches(name, "[A-Z]+(?![a-z])|[A-Z]?[a-z]+|[0-9]+")
+    |> Seq.map (fun value -> value.Value.ToLowerInvariant())
+    |> Set.ofSeq
+
+let private isAiOperationName name =
+    let tokens = semanticNameTokens name
+    Set.contains "ai" tokens
+    || Set.contains "llm" tokens
+    || Set.contains "generate" tokens
+
+let isExplicitBoxCall logicalName compilerGenerated =
+    logicalName = "box" && not compilerGenerated
+
+let isExplicitObjectCoercion (text: string) =
+    text.Contains(":> obj", StringComparison.Ordinal)
+    || text.Contains(":> System.Object", StringComparison.Ordinal)
 
 let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string list) (sourceText: ISourceText) (compExprRanges: range list) (isTestFile: bool) (hasProperty: bool) : Set<Located<Rule>> * bool =
     let rec visitExpr (expr: FSharpExpr) (sups: string list) (inAsync: bool) (inTryFinally: bool) (inLiteral: bool) (inLoop: bool) (assertionsCount: int) : Located<Rule> list * int = // EXPECT: FSA-C07
@@ -47,7 +75,12 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
                     if (text.Contains("isNull") || text.Contains("null")) && not (isSuppressed currentSups "FSA-C09") then mkLocated FSAC09 expr.Range |> Option.toList else []
                 else []
                 
-            let f7 = if (declaringEntity.StartsWith("System.IO") || declaringEntity.StartsWith("System.Net.Http") || logicalName.Contains("HttpClient") || declaringEntity.Contains("HttpClient")) && not (isSuppressed currentSups "FSA2022") then mkLocated FSA2022 expr.Range |> Option.toList else []
+            let f7 =
+                if isExternalIoType declaringEntity
+                   && not (isSuppressed currentSups "FSA2022") then
+                    mkLocated FSA2022 expr.Range |> Option.toList
+                else
+                    []
             
             let f8 = 
                 if fullCallName.Contains("OpenAI") || fullCallName.Contains("Anthropic") || fullCallName.Contains("Gemini") || fullCallName.Contains("LLM") then
@@ -97,8 +130,47 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
                     d1 @ d2
                 else []
                 
-            let f14 = if logicalName = "box" && not (isSuppressed currentSups "FSA-P02") then mkLocated FSAP02 expr.Range |> Option.toList else []
-            let f15 = if ((logicalName = "toList" && declaringEntity = "Microsoft.FSharp.Collections.SeqModule") || (logicalName = "toSeq" && declaringEntity = "Microsoft.FSharp.Collections.ListModule")) && not (isSuppressed currentSups "FSA-P03") then mkLocated FSAP03 expr.Range |> Option.toList else []
+            let f14 =
+                let compilerGenerated =
+                    try func.IsCompilerGenerated with _ -> false
+
+                if isExplicitBoxCall logicalName compilerGenerated
+                   && not (isSuppressed currentSups "FSA-P02") then
+                    mkLocated FSAP02 expr.Range |> Option.toList
+                else
+                    []
+
+            let f15 =
+                let text =
+                    try sourceText.GetSubTextFromRange(expr.Range).ToString()
+                    with _ -> ""
+
+                let hasDirectNestedCall expectedName expectedEntity =
+                    args
+                    |> List.exists (function
+                        | FSharpExprPatterns.Call(_, nested, _, _, _) ->
+                            let nestedName =
+                                try nested.LogicalName with _ -> ""
+                            let nestedEntity =
+                                try nested.DeclaringEntity.Value.FullName with _ -> ""
+                            nestedName = expectedName && nestedEntity = expectedEntity
+                        | _ -> false)
+
+                let redundantRoundTrip =
+                    (logicalName = "toSeq"
+                     && declaringEntity = "Microsoft.FSharp.Collections.ListModule"
+                     && (text.Contains("Seq.toList", StringComparison.Ordinal)
+                         || hasDirectNestedCall "toList" "Microsoft.FSharp.Collections.SeqModule"))
+                    || (logicalName = "toList"
+                        && declaringEntity = "Microsoft.FSharp.Collections.SeqModule"
+                        && (text.Contains("List.toSeq", StringComparison.Ordinal)
+                            || hasDirectNestedCall "toSeq" "Microsoft.FSharp.Collections.ListModule"))
+
+                if redundantRoundTrip
+                   && not (isSuppressed currentSups "FSA-P03") then
+                    mkLocated FSAP03 expr.Range |> Option.toList
+                else
+                    []
             
             let findings = f1 @ f2 @ f3 @ f4 @ f5 @ f6 @ f7 @ f8 @ f9 @ f10 @ f11 @ f12 @ f13 @ f14 @ f15
             
@@ -211,7 +283,12 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
             let typeName = try ci.DeclaringEntity.Value.FullName with _ -> ""
             let logicalTypeName = try ci.DeclaringEntity.Value.LogicalName with _ -> ""
             let f1 = if (Catalogue.isMutableCollection typeName || Catalogue.isMutableCollection (typeName.Split('`').[0]) || Catalogue.isMutableCollection logicalTypeName) && not (isSuppressed currentSups "FSA-C16") then mkLocated FSAC16 expr.Range |> Option.toList else []
-            let f2 = if (typeName.StartsWith("System.IO") || typeName.StartsWith("System.Net.Http") || typeName.Contains("HttpClient")) && not (isSuppressed currentSups "FSA2022") then mkLocated FSA2022 expr.Range |> Option.toList else []
+            let f2 =
+                if isExternalIoType typeName
+                   && not (isSuppressed currentSups "FSA2022") then
+                    mkLocated FSA2022 expr.Range |> Option.toList
+                else
+                    []
             let (af, as_) = foldExprs args assertionsCount
             (f1 @ f2 @ af, as_)
             
@@ -253,7 +330,18 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
             (cf @ bf, bs)
             
         | FSharpExprPatterns.Coerce(ty, e) -> 
-            let f = if ty.HasTypeDefinition && ty.TypeDefinition.LogicalName = "obj" && not (isSuppressed currentSups "FSA-P02") then mkLocated FSAP02 expr.Range |> Option.toList else []
+            let text =
+                try sourceText.GetSubTextFromRange(expr.Range).ToString()
+                with _ -> ""
+
+            let f =
+                if ty.HasTypeDefinition
+                   && ty.TypeDefinition.LogicalName = "obj"
+                   && isExplicitObjectCoercion text
+                   && not (isSuppressed currentSups "FSA-P02") then
+                    mkLocated FSAP02 expr.Range |> Option.toList
+                else
+                    []
             let (ef, es) = visitExpr e currentSups inAsync inTryFinally inLiteral inLoop assertionsCount
             (f @ ef, es)
             
@@ -333,9 +421,8 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
                 
                 let isTest = isTestFile && v.Attributes |> Seq.exists (fun a -> try let n = a.AttributeType.LogicalName in n.Contains("Fact") || n.Contains("Test") || n.Contains("Property") || n.Contains("Theory") with _ -> false)
                 
-                let n = v.LogicalName.ToLowerInvariant()
                 let f3 = 
-                    if n.Contains("ai") || n.Contains("llm") || n.Contains("generate") then
+                    if isAiOperationName v.LogicalName then
                         let isStringReturn = try v.ReturnParameter.Type.HasTypeDefinition && v.ReturnParameter.Type.TypeDefinition.LogicalName = "string" with _ -> false
                         let a = if isStringReturn && not (isSuppressed localSups "FSA-AI16") then mkLocated FSAAI16 v.DeclarationLocation |> Option.toList else []
                         let text = try sourceText.GetSubTextFromRange(body.Range).ToString().ToLowerInvariant() with _ -> ""
@@ -355,7 +442,3 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
             
     let (findings, finalHasProp) = visit decl topSups hasProperty
     (findings |> Set.ofList, finalHasProp)
-
-
-
-

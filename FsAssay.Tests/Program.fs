@@ -241,6 +241,25 @@ let doSomething () =
             let results = runFsAssay sourceCode
             expectViolation "FSA2022" results
 
+        testCase "FSA2022 hostile: in-memory serialization is not external IO" <| fun _ ->
+            let sourceCode = """
+module MemoryOnly
+let canonicalBytes () =
+    let stream = new System.IO.MemoryStream()
+    stream.ToArray()
+"""
+            let results = runFsAssay sourceCode
+            expectNoViolation "FSA2022" results
+
+        testCase "FSA-AI16 hostile: retail names are not AI operations" <| fun _ ->
+            let sourceCode = """
+module RetailPolicy
+let retailRulePackDigestText () = "sha256:abc"
+"""
+            let results = runFsAssay sourceCode
+            expectNoViolation "FSA-AI16" results
+            expectNoViolation "FSA-AI17" results
+
         testCase "FSA-AI01: Unvalidated AI output triggers FSA-AI01" <| fun _ ->
             let sourceCode = """
 module BadCode
@@ -448,13 +467,35 @@ let x = box 5
             let results = runFsAssay sourceCode
             expectViolation "FSA-P02" results
 
-        testCase "FSA-P03: Seq.toList triggers P03" <| fun _ ->
+        testCase "FSA-P02 hostile: compiler-generated box is not explicit boxing" <| fun _ ->
+            Expect.isFalse
+                (FsAssay.Analyzers.Visitor.isExplicitBoxCall "box" true)
+                "Compiler-generated resource-management boxing must not trigger P02"
+            Expect.isTrue
+                (FsAssay.Analyzers.Visitor.isExplicitBoxCall "box" false)
+                "An explicit box call must remain detectable"
+            Expect.isFalse
+                (FsAssay.Analyzers.Visitor.isExplicitObjectCoercion "document")
+                "A compiler-generated resource coercion has no explicit source coercion"
+            Expect.isTrue
+                (FsAssay.Analyzers.Visitor.isExplicitObjectCoercion "value :> obj")
+                "An explicit object upcast must remain detectable"
+
+        testCase "FSA-P03: redundant sequence-list-sequence roundtrip triggers P03" <| fun _ ->
             let sourceCode = """
 module P03
-let listify xs = Seq.toList xs
+let bounce xs = List.toSeq (Seq.toList xs)
 """
             let results = runFsAssay sourceCode
             expectViolation "FSA-P03" results
+
+        testCase "FSA-P03 hostile: necessary Seq.toList materialization is allowed" <| fun _ ->
+            let sourceCode = """
+module P03Necessary
+let listify xs = Seq.toList xs
+"""
+            let results = runFsAssay sourceCode
+            expectNoViolation "FSA-P03" results
 
         testCase "FSA-P04: String append in loop triggers P04" <| fun _ ->
             let sourceCode = """
