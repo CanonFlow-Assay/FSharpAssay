@@ -2,7 +2,7 @@
   "schema": "cff.fsassay.full-profile-baseline/v1",
   "generatedAt": "2026-07-29T00:00:00Z",
   "policy": "Current full-profile findings are inventory, not authority. Reject any current fingerprint absent from this baseline; allow missing fingerprints as improvements.",
-  "adjudicationSha256": "sha256:0fcaa9e8860c3191f7979fb056a5aadacf90a5684b9de10f686ee3274835fa11",
+  "adjudicationSha256": "sha256:49d2dec1c2b6de44c45f3238567699c9f7f595af673b2f450ec74a5ac5f3832c",
   "inventoryDigest": "sha256:28323092e876c86b8b4d92d829e744eaedc1e01e084ece3b7fca19a7af7ee049",
   "canonicalScanTargets": [
     {

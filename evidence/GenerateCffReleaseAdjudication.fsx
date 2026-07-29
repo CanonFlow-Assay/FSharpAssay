@@ -127,6 +127,23 @@ let requiredAction (classification: string) =
 let writeString (writer: Utf8JsonWriter) (name: string) (value: string) =
     writer.WriteString(name, value)
 
+let flushCanonicalLf (writer: Utf8JsonWriter) (stream: FileStream) =
+    writer.Flush()
+    writer.Dispose()
+    stream.Flush()
+    stream.Position <- 0L
+    let bytes = Array.zeroCreate<byte> (int stream.Length)
+    stream.ReadExactly(bytes)
+    let canonicalBytes =
+        bytes
+        |> Encoding.UTF8.GetString
+        |> _.Replace("\r\n", "\n")
+        |> Encoding.UTF8.GetBytes
+    stream.Position <- 0L
+    stream.SetLength(0L)
+    stream.Write(canonicalBytes)
+    stream.Flush()
+
 match fsi.CommandLineArgs |> Array.skip 1 with
 | [| contractsPath; ondcPath; outputPath |] ->
     let raw =
@@ -263,6 +280,6 @@ match fsi.CommandLineArgs |> Array.skip 1 with
         writer.WriteEndObject()
     writer.WriteEndArray()
     writer.WriteEndObject()
-    writer.Flush()
+    flushCanonicalLf writer stream
 | _ ->
     failwith "Usage: dotnet fsi GenerateCffReleaseAdjudication.fsx <contracts.json> <ondc.json> <output.json>"
