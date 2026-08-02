@@ -56,9 +56,22 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 release_output/
+public_html/
 
 # FsAssay Generated and Hygiene
 node_modules/
+docs/_content/
+docs/_framework/
+docs/css/
+docs/.nojekyll
+docs/index.html
+docs/main.html
+docs/favicon.ico
+docs/books.json
+docs/FsAssay.Web.Client.styles.css
+adjudicate.log
+out-toolchain.json
+e2e/failure.png
 *.wasm
 *.br
 *.gz

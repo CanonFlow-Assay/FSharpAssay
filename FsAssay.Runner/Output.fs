@@ -80,8 +80,8 @@ module Output =
                     tool = {|
                         driver = {|
                             name = "FsAssay"
-                            informationUri = "https://github.com/CanonFlowFoundation/FSharpAssay"
-                            version = "1.0.0"
+                            informationUri = "https://github.com/CanonFlow-Assay/FSharpAssay"
+                            version = ProductIdentity.Version
                         |}
                     |}
                     results = sarifResults

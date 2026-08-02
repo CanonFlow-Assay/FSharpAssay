@@ -1,0 +1,8 @@
+FsAssay.Analyzers/packages.lock.json
+FsAssay.CanonFlow.Plugin/packages.lock.json
+FsAssay.Desktop/packages.lock.json
+FsAssay.Runner/packages.lock.json
+FsAssay.Tests/packages.lock.json
+FsAssay.TypeGym/packages.lock.json
+FsAssay.Web.Tests/packages.lock.json
+FsAssay.Web/src/FsAssay.Web.Client/packages.lock.json

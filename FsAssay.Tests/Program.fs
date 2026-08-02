@@ -1,3 +1,5 @@
+module FsAssay.Tests.Program
+
 open Expecto
 open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.Symbols
@@ -94,6 +96,10 @@ let tests =
                 ]
             Expect.equal Admission.ProductionRuleCodes expected "Production admission drifted from the behavioral suite"
             Expect.equal Admission.ProductionRuleCodes.Count 21 "Production admission count changed"
+            Expect.equal Rule.AllRules.Length 93 "Catalog rule count changed"
+            Expect.equal (Rule.AllRules |> List.filter (fun rule -> rule.Status = Implemented) |> List.length) 35 "Implemented rule count changed"
+            Expect.equal (Rule.AllRules |> List.filter (fun rule -> rule.Status = Dummy) |> List.length) 22 "Dummy rule count changed"
+            Expect.equal (Rule.AllRules |> List.filter (fun rule -> rule.Status = Prototype) |> List.length) 36 "Prototype rule count changed"
             Admission.ProductionRuleCodes
             |> Set.iter (fun code ->
                 let rule = Rule.AllRules |> List.find (fun rule -> rule.Code = code)
@@ -108,6 +114,7 @@ let tests =
             
             let fcsName = fcsAssembly.GetName().Name
             Expect.equal fcsName "FSharp.Compiler.Service" "FCS assembly name mismatch"
+            Expect.equal FsAssay.Runner.ProductIdentity.Version "1.0.4" "CLI product identity drifted"
 
         testCase "FSA-C01: Unchecked.defaultof Negative & Comment Invariance" <| fun _ ->
             let sourceCode = """
@@ -601,6 +608,6 @@ let getNull () =
             expectNoViolation "FSA-C01" results
     ]
 
-[<EntryPoint>]
-let main argv =
-    runTestsWithCLIArgs [] argv (testList "All Tests" [tests; ObligationPluginTests.tests; e2eTests; perfAndCompTests; aiEcosystemTests; negativeTests])
+[<Tests>]
+let allTests =
+    testList "All Tests" [tests; ObligationPluginTests.tests; e2eTests; perfAndCompTests; aiEcosystemTests; negativeTests]
