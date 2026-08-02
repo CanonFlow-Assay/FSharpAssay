@@ -1,0 +1,3 @@
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)FsAssay.targets" Condition="Exists('$(MSBuildThisFileDirectory)FsAssay.targets')" />
+</Project>

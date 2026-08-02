@@ -1,0 +1,17 @@
+{
+    "FSharp.enableAnalyzers": true,
+    "FSharp.analyzersPath": [
+        "./FsAssay.Analyzers/bin/Debug/net10.0",
+        "./FsAssay.Analyzers/bin/Release/net10.0"
+    ],
+    "FSharp.smartIndent": true,
+    "FSharp.pipelineHints.enabled": true,
+    "FSharp.inlineParameterNameHints.enabled": true,
+    "FSharp.suggestSdkScripts": true,
+    "editor.formatOnSave": true,
+    "[fsharp]": {
+        "editor.defaultFormatter": "Ionide.Ionide-fsharp",
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true
+    }
+}

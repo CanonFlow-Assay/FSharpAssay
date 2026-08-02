@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+        "Ionide.Ionide-fsharp",
+        "ms-dotnettools.csharp",
+        "ms-vscode.hexeditor"
+    ]
+}

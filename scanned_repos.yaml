@@ -1,0 +1,12 @@
+repositories:
+  - url: "https://github.com/gothinkster/fsharp-realworld-example-app"
+  - url: "https://github.com/jbtule/OOP-Patterns-in-FSharp"
+  - url: "https://github.com/efcore/EFCore.FSharp"
+  - url: "https://github.com/dotnet/docs"
+  - url: "https://github.com/osstotalsoft/NBB"
+  - url: "https://github.com/SneakyPeet/EasyEventSourcing"
+  - url: "https://github.com/fsprojects/FSharp.Desktop.UI"
+  - url: "https://github.com/ronnieholm/FSharp-onion-architecture-sample"
+  - url: "https://github.com/fsprojects/FSharp.ViewModule"
+  - url: "https://github.com/akkadotnet/akka.net"
+  - url: "https://github.com/MassTransit/MassTransit"

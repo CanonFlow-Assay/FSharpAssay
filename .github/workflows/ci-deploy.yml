@@ -1,0 +1,83 @@
+name: CI & Deploy Pages
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          
+      - name: Restore dependencies
+        run: dotnet restore
+        
+      - name: Build Web Client
+        run: dotnet publish FsAssay.Web/src/FsAssay.Web.Client/FsAssay.Web.Client.fsproj -c Release -o release_output
+        
+      - name: Update base href for GitHub Pages
+        run: sed -i 's|<base href="/">|<base href="/FSharpAssay/">|g' release_output/wwwroot/index.html
+        
+      - name: Install Playwright
+        run: |
+          dotnet build FsAssay.Web.Tests/FsAssay.Web.Tests.fsproj
+          pwsh FsAssay.Web.Tests/bin/Debug/net10.0/playwright.ps1 install --with-deps
+          
+      - name: Run Web Tests (Expecto + Playwright)
+        run: dotnet run --project FsAssay.Web.Tests/FsAssay.Web.Tests.fsproj
+        
+      - name: Run FsAssay Core Tests
+        run: dotnet run --project FsAssay.Tests/FsAssay.Tests.fsproj --configuration Release
+        
+      - name: Upload artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'release_output/wwwroot'
+
+  deploy:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  verify-online:
+    needs: deploy
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install Playwright
+        working-directory: ./e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          
+      - name: Run E2E Test on Public URL
+        working-directory: ./e2e
+        run: node debug.js

@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>fsassay</ToolCommandName>
+    <PackageId>FsAssay.Cli</PackageId>
+    <Version>1.0.4</Version>
+    <Authors>CanonFlow Foundation</Authors>
+    <Description>Experimental F# static analyzer with an evidence-bounded production rule set.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Domain.fs" />
+    <Compile Include="Config.fs" />
+    <Compile Include="ProjectSystem.fs" />
+    <Compile Include="PluginLoader.fs" />
+    <Compile Include="Orchestrator.fs" />
+    <Compile Include="Output.fs" />
+    <Compile Include="Server.fs" />
+    <Compile Include="McpServer.fs" />
+    <Compile Include="DocsGen.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FsAssay.Analyzers\FsAssay.Analyzers.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Argu" />
+    <PackageReference Include="FSharp.Core" />
+    <PackageReference Include="FSharp.Compiler.Service" />
+    <PackageReference Include="FSharp.Analyzers.SDK" />
+    <PackageReference Include="Ionide.ProjInfo.FCS" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,58 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "dotnet: build",
+            "type": "process",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "${workspaceFolder}/FsAssay.slnx"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "FsAssay: Audit Solution",
+            "type": "process",
+            "command": "dotnet",
+            "args": [
+                "run",
+                "--project",
+                "${workspaceFolder}/FsAssay.Runner",
+                "--",
+                "${workspaceFolder}/FsAssay.slnx"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "FsAssay: Auto-Fix Remediations",
+            "type": "process",
+            "command": "dotnet",
+            "args": [
+                "run",
+                "--project",
+                "${workspaceFolder}/FsAssay.Runner",
+                "--",
+                "${workspaceFolder}/FsAssay.slnx",
+                "--fix"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "FsAssay: Run Expecto Test Suite",
+            "type": "process",
+            "command": "dotnet",
+            "args": [
+                "run",
+                "--project",
+                "${workspaceFolder}/FsAssay.Tests"
+            ],
+            "group": "test",
+            "problemMatcher": []
+        }
+    ]
+}
