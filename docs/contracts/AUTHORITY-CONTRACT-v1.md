@@ -43,9 +43,9 @@ diagnosed.
 
 M2 baseline governance is not established. A loaded M2 policy must use baseline
 identity `none` with no configured findings; wildcard or nonempty baseline debt
-is invalid. The receipt separates `configuredBaselineFindings` from
-`appliedSuppressions`, and `appliedSuppressions` must be empty. Configuration is
-never evidence that a finding was actually suppressed.
+is invalid. The complete policy snapshot retains `baseline.approvedFindings`
+separately from receipt `appliedSuppressions`, and `appliedSuppressions` must be
+empty. Configuration is never evidence that a finding was actually suppressed.
 
 M2 has no Gate-C-approved blocking rules. The inherited catalogue and its 21
 legacy admission entries are not changed, but they are non-authoritative
@@ -56,7 +56,8 @@ rule is diagnosed as incomplete instead of silently inheriting that legacy set.
 
 `--out-json` emits `fsassay-authority-receipt/1.0.0`. It records:
 
-- tool, schema, policy hash, SDK/runtime/FSharp.Compiler.Service identity;
+- tool, schema, complete canonical policy snapshot and its SHA-256,
+  SDK/runtime/FSharp.Compiler.Service identity;
 - analyzed commit, approved PR head, tree, dirty-worktree, synthetic-merge,
   package, and repository-relative target identity as distinct fields;
 - projects discovered, loaded, failed, skipped and unsupported, with project class and target frameworks;
@@ -70,13 +71,27 @@ Arrays use stable ordering and source paths are repository-relative. SARIF uses
 the same normalized findings and receipt identity. Equivalent evidence in two
 different checkout roots must serialize to byte-identical JSON and SARIF.
 
-The strict public validator reconstructs the locked authority requirements and
-itemized facts from the receipt, then calls the same total reducer used by the
-producer. It requires an exact match for outcome, authority and the complete
-sorted reason set. Changing only `outcome`, `authoritative`, or reasons cannot
-turn `notRun`, unsupported, missing, failed, blocking or tool-failure evidence
-into another result. `Pass` is always authoritative; a complete conclusive
-`Fail` is authoritative, while a `Fail` with concurrent incompleteness is not.
+The strict public validator validates the complete embedded policy snapshot,
+canonicalizes it with the producer's policy function, and requires its computed
+SHA-256 to match `policy.sha256` before reconstructing requirements and itemized
+facts. It then calls the same total reducer used by the producer and requires an
+exact match for outcome, authority and the complete sorted reason set. Removing
+tests, project classes, target frameworks, rule classes, baseline records or
+exceptions while retaining the policy hash is rejected. Changing only
+`outcome`, `authoritative`, or reasons cannot turn `notRun`, unsupported,
+missing, failed, blocking or tool-failure evidence into another result. `Pass`
+is always authoritative; a complete conclusive `Fail` is authoritative, while a
+`Fail` with concurrent incompleteness is not.
+
+This SHA-256 is an internal semantic consistency identity, not a signature and
+not proof of origin. An actor able to replace both snapshot and hash can create
+a different internally consistent receipt. Consumers that know the reviewed
+policy identity must use the validator overload that accepts an expected policy
+SHA-256, and CI/human review must independently pin the candidate identity and
+policy SHA. Gate B consumers should use the context validator to pin that policy
+SHA together with the analyzed commit and tree; synthetic-merge receipts also
+require the reviewed head and synthetic merge identities, while package receipts
+require the package SHA-256. Signing and provenance authenticity are outside M2.
 
 Every non-`Pass` reason is also a SARIF `toolExecutionNotification`. SARIF run
 properties repeat the receipt outcome, authority flag, exact counts, finding
@@ -116,13 +131,13 @@ with the versioned receipt object; consumers must validate `schemaVersion`
 before reading it. `--out-sarif` remains SARIF 2.1.0 but now uses relative URIs,
 stable fingerprints, and run properties for outcome/policy/candidate identity.
 
-M2 does not ingest test evidence. CI may run 84 tests, but the CLI does not infer
+M2 does not ingest test evidence. CI may run 85 tests, but the CLI does not infer
 that ambient success and records policy-required tests as `notRun`. The full
 self-audit consequently remains `Inconclusive`/non-authoritative. A reviewed
 consumer evidence-ingestion surface belongs to a later milestone.
 
 The full audit includes frozen Desktop and TypeGym projects. Their unsupported
-status is explicit and prevents authority. The 546 current observations require
+status is explicit and prevents authority. The 559 current observations require
 human adjudication and are not proof of product success. Advisory/prototype
 findings must not be automatically refactored by humans or agents.
 

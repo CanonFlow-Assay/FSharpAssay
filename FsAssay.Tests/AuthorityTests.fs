@@ -60,12 +60,16 @@ let private candidate = ({
 }: Authority.CandidateIdentity)
 
 let private receiptForCandidate root candidateIdentity facts =
+    let policyHash =
+        match Authority.canonicalPolicyIdentity policy with
+        | Ok(_, hash) -> hash
+        | Error errors -> failwithf "invalid test policy: %A" errors
     Authority.createReceipt
         root
         candidateIdentity
         policy
         (Path.Combine(root, "fsassay-policy.lock.json"))
-        (String.replicate 64 "c")
+        policyHash
         facts
 
 let private receipt root facts = receiptForCandidate root candidate facts
@@ -130,6 +134,16 @@ let tests =
                 Expect.isFalse cleanIdentity.dirty "committed candidate must begin clean"
                 Expect.isEmpty cleanMissing "clean Git identity must be complete"
                 Expect.isEmpty cleanErrors "clean Git identity must be consistent"
+                let cleanReceipt = receiptForCandidate root cleanIdentity (completeFacts root)
+                let cleanContext = ({
+                    expectedPolicySha256 = cleanReceipt.policy.sha256
+                    expectedCommitSha = cleanIdentity.commitSha
+                    expectedTreeSha = cleanIdentity.treeSha
+                    expectedApprovedHeadSha = Some cleanIdentity.approvedHeadSha
+                    expectedSyntheticMergeSha = None
+                    expectedPackageSha256 = None
+                }: Authority.ReceiptValidationContext)
+                Expect.isOk (Authority.deserializeAndValidateReceiptForContext cleanContext (Output.canonicalJsonBytes cleanReceipt)) "actual local commit and tree must validate against caller pins"
 
                 File.AppendAllText(tracked, "let trackedChange = 1\n")
                 let trackedDirty, _, _ = localCandidateIdentity root tracked
@@ -166,10 +180,20 @@ let tests =
                 let wrongApproved = readProcess root "git" [ "rev-parse"; "HEAD" ]
                 runProcess root "git" [ "merge"; "--quiet"; "--no-ff"; "feature"; "-m"; "synthetic merge" ]
                 let mergeSha = readProcess root "git" [ "rev-parse"; "HEAD" ]
-                let _, completePrMissing, completePrErrors =
+                let completePrIdentity, completePrMissing, completePrErrors =
                     Authority.candidateIdentityWithEnvironment root tracked mergeSha "pull_request" approvedFeature mergeSha null
                 Expect.isEmpty completePrMissing "reviewed head and synthetic merge evidence must be complete"
                 Expect.isEmpty completePrErrors "reviewed head must equal the synthetic merge second parent"
+                let completePrReceipt = receiptForCandidate root completePrIdentity (completeFacts root)
+                let completePrContext = ({
+                    expectedPolicySha256 = completePrReceipt.policy.sha256
+                    expectedCommitSha = mergeSha
+                    expectedTreeSha = completePrIdentity.treeSha
+                    expectedApprovedHeadSha = Some approvedFeature
+                    expectedSyntheticMergeSha = Some mergeSha
+                    expectedPackageSha256 = None
+                }: Authority.ReceiptValidationContext)
+                Expect.isOk (Authority.deserializeAndValidateReceiptForContext completePrContext (Output.canonicalJsonBytes completePrReceipt)) "actual synthetic merge, reviewed head and tree must validate together"
                 let _, _, mismatchedPrErrors =
                     Authority.candidateIdentityWithEnvironment root tracked mergeSha "pull_request" wrongApproved mergeSha null
                 Expect.contains mismatchedPrErrors "approved head identity does not match the synthetic merge second parent" "wrong reviewed head must be rejected"
@@ -381,7 +405,7 @@ let tests =
                 let completeReceipt = receipt root (completeFacts root)
                 Expect.equal completeReceipt.outcome "Pass" "complete fixture must pass"
                 Expect.isTrue completeReceipt.authoritative "Pass fixture must be authoritative"
-                Expect.isEmpty completeReceipt.configuredBaselineFindings "M2 has no configured baseline governance"
+                Expect.isEmpty completeReceipt.policy.snapshot.baseline.approvedFindings "M2 has no configured baseline governance"
                 Expect.isEmpty completeReceipt.appliedSuppressions "configured debt must never be reported as applied suppression"
                 expectRejected "M2 cannot forge applied suppressions" { completeReceipt with appliedSuppressions = [| "*" |] }
                 expectRejected "Pass false contradicts complete evidence" { completeReceipt with authoritative = false }
@@ -409,6 +433,99 @@ let tests =
                 let honestToolFailure = receipt root { completeFacts root with ToolFailures = [ "plugin crashed" ] }
                 Expect.equal honestToolFailure.outcome "ToolFailure" "itemized tool failure is ToolFailure"
                 Expect.isOk (Authority.deserializeAndValidateReceipt (serialize honestToolFailure)) "honest ToolFailure must validate")
+
+        testCase "complete policy snapshot is hash-bound and can be caller-pinned" <| fun _ ->
+            withTempRoot (fun root ->
+                let serialize value = JsonSerializer.SerializeToUtf8Bytes(value)
+                let honest = receipt root (completeFacts root)
+                let expectedHash = honest.policy.sha256
+                let expectRejected label snapshot =
+                    let mutated = { honest with policy = { honest.policy with snapshot = snapshot } }
+                    Expect.isError (Authority.deserializeAndValidateReceipt (serialize mutated)) label
+
+                expectRejected "removing required tests without changing the hash must fail" { honest.policy.snapshot with requiredTests = [||] }
+                expectRejected "removing project classes without changing the hash must fail" { honest.policy.snapshot with requiredProjectClasses = [||] }
+                expectRejected "removing target frameworks without changing the hash must fail" { honest.policy.snapshot with requiredTargetFrameworks = [||] }
+                expectRejected "changing rule authority without changing the hash must fail" { honest.policy.snapshot with experimentalRules = [| "PROTO001" |] }
+                expectRejected "changing profiles without changing the hash must fail" { honest.policy.snapshot with enabledProfiles = [| "alternate" |] }
+                expectRejected "changing baseline configuration without changing the hash must fail" {
+                    honest.policy.snapshot with baseline = { identity = "configured"; approvedFindings = [| "*" |] }
+                }
+                let exceptionEvidence = ({
+                    id = "reviewed-exception"
+                    owner = "human@example.invalid"
+                    reason = "bounded test mutation"
+                    expiresOn = "2099-01-01"
+                }: Authority.PolicyException)
+                let alternatePolicy = { honest.policy.snapshot with exceptions = [| exceptionEvidence |] }
+                expectRejected "changing exceptions without changing the hash must fail" alternatePolicy
+
+                match Authority.canonicalPolicyIdentity alternatePolicy with
+                | Error errors -> failtestf "alternate policy fixture must be valid: %A" errors
+                | Ok(alternateSnapshot, alternateHash) ->
+                    let internallyConsistentReplacement = {
+                        honest with
+                            policy = { honest.policy with snapshot = alternateSnapshot; sha256 = alternateHash }
+                    }
+                    let replacementBytes = serialize internallyConsistentReplacement
+                    Expect.isOk (Authority.deserializeAndValidateReceipt replacementBytes) "internal policy consistency is not a signature"
+                    Expect.isError (Authority.deserializeAndValidateReceiptForPolicy expectedHash replacementBytes) "caller pin must reject a jointly replaced snapshot and hash"
+
+                let honestBytes = serialize honest
+                Expect.isOk (Authority.deserializeAndValidateReceiptForPolicy expectedHash honestBytes) "caller pin must accept the expected policy identity"
+                Expect.isError (Authority.deserializeAndValidateReceiptForPolicy (String.replicate 64 "f") honestBytes) "wrong caller pin must be rejected"
+                let honestContext = ({
+                    expectedPolicySha256 = expectedHash
+                    expectedCommitSha = candidate.commitSha
+                    expectedTreeSha = candidate.treeSha
+                    expectedApprovedHeadSha = Some candidate.approvedHeadSha
+                    expectedSyntheticMergeSha = None
+                    expectedPackageSha256 = None
+                }: Authority.ReceiptValidationContext)
+                Expect.isOk (Authority.deserializeAndValidateReceiptForContext honestContext honestBytes) "honest commit receipt must validate against reviewed context"
+
+                let alternateCandidate = {
+                    candidate with
+                        commitSha = String.replicate 40 "d"
+                        approvedHeadSha = String.replicate 40 "d"
+                        treeSha = String.replicate 40 "e"
+                }
+                let coherentCandidateReplacement = { honest with candidate = alternateCandidate }
+                let coherentCandidateBytes = serialize coherentCandidateReplacement
+                Expect.isOk (Authority.deserializeAndValidateReceipt coherentCandidateBytes) "context-free validation proves consistency, not candidate authenticity"
+                Expect.isError (Authority.deserializeAndValidateReceiptForContext honestContext coherentCandidateBytes) "reviewed commit and tree pins must reject coherent candidate replacement"
+
+                let syntheticSha = String.replicate 40 "f"
+                let approvedHead = String.replicate 40 "d"
+                let syntheticCandidate = {
+                    candidate with
+                        kind = "synthetic-merge"
+                        commitSha = syntheticSha
+                        approvedHeadSha = approvedHead
+                        treeSha = String.replicate 40 "e"
+                        syntheticMergeSha = syntheticSha
+                }
+                let syntheticReceipt = receiptForCandidate root syntheticCandidate (completeFacts root)
+                let syntheticContext = {
+                    honestContext with
+                        expectedCommitSha = syntheticSha
+                        expectedTreeSha = syntheticCandidate.treeSha
+                        expectedApprovedHeadSha = Some approvedHead
+                        expectedSyntheticMergeSha = Some syntheticSha
+                }
+                let syntheticBytes = serialize syntheticReceipt
+                Expect.isOk (Authority.deserializeAndValidateReceiptForContext syntheticContext syntheticBytes) "reviewed PR head, synthetic merge and tree must validate together"
+                Expect.isError (Authority.deserializeAndValidateReceiptForContext { syntheticContext with expectedApprovedHeadSha = None } syntheticBytes) "synthetic receipt requires the reviewed head pin"
+
+                let repositoryRoot = Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, ".."))
+                let actualPolicyPath = Path.Combine(repositoryRoot, "fsassay-policy.lock.json")
+                match Authority.loadPolicy actualPolicyPath with
+                | Authority.PolicyLoaded(actualPolicy, actualHash, _) ->
+                    let actualReceipt = Authority.createReceipt repositoryRoot candidate actualPolicy actualPolicyPath actualHash Authority.emptyFacts
+                    Expect.equal actualReceipt.policy.snapshot actualPolicy "receipt snapshot must equal the actual canonical lock policy"
+                    Expect.equal actualReceipt.policy.sha256 actualHash "receipt hash must equal the actual lock policy identity"
+                    Expect.isOk (Authority.deserializeAndValidateReceiptForPolicy actualHash (serialize actualReceipt)) "actual policy receipt must validate against its pinned identity"
+                | other -> failtestf "repository policy lock must load: %A" other)
 
         testCase "failed evidence write removes stale requested artifacts" <| fun _ ->
             withTempRoot (fun root ->

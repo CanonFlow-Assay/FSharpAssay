@@ -56,7 +56,7 @@ jobs:
             grep -q '^Files scanned: 25$' "artifacts/audit/run-${suffix}.log"
             grep -q '^Skipped: 0$' "artifacts/audit/run-${suffix}.log"
             grep -q '^Failed: 0$' "artifacts/audit/run-${suffix}.log"
-            grep -q '^Total Violations: 546$' "artifacts/audit/run-${suffix}.log"
+            grep -q '^Total Violations: 559$' "artifacts/audit/run-${suffix}.log"
             grep -q '^Authority outcome: Inconclusive$' "artifacts/audit/run-${suffix}.log"
             grep -q '^Authoritative: false$' "artifacts/audit/run-${suffix}.log"
             jq -e '
@@ -66,27 +66,27 @@ jobs:
               .counts.projectsUnsupported == 2 and .counts.eligibleFiles == 25 and
               .counts.analyzedFiles == 25 and .counts.compilerIncompleteFiles == 0 and
               (.tests | length) == 1 and .tests[0].status == "notRun" and
-              (.findings | length) == 546 and
+              (.findings | length) == 559 and
               (.reasons | length) == 2 and
               ([.reasons[] | select(.code == "project-unsupported")] | length) == 1 and
               ([.reasons[] | select(.code == "required-test-not-run")] | length) == 1 and
               ([.reasons[] | select(.code | startswith("required-rule-"))] | length) == 0 and
               ([.rules[] | select(.status == "completed")] | length) == 35 and
               ([.rules[] | select(.status == "unavailable")] | length) == 58 and
-              (.policy.status == "loaded") and (.policy.shapeContractVersion == "not-established") and
-              (.policy.approvedBlockingRules | length) == 0 and
-              (.policy.requiredProjectClasses | length) == 4 and
-              .policy.requiredTests[0].minimumPassed == 84 and
+              (.policy.status == "loaded") and (.policy.snapshot.shapeContractVersion == "not-established") and
+              (.policy.snapshot.approvedBlockingRules | length) == 0 and
+              (.policy.snapshot.requiredProjectClasses | length) == 4 and
+              .policy.snapshot.requiredTests[0].minimumPassed == 85 and
               (.policyErrors | length) == 0 and (.evidenceErrors | length) == 0 and
-              .baselineIdentity == "none" and
-              (.configuredBaselineFindings | length) == 0 and (.appliedSuppressions | length) == 0 and
+              .policy.snapshot.baseline.identity == "none" and
+              (.policy.snapshot.baseline.approvedFindings | length) == 0 and (.appliedSuppressions | length) == 0 and
               (.toolchain.sdkVersion == "10.0.301") and
               ([.findings[].path] | all(startswith("/") | not))
             ' "artifacts/audit/results-${suffix}.json"
             jq -e '
               .runs[0].properties.outcome == "Inconclusive" and
               .runs[0].properties.authoritative == false and
-              .runs[0].properties.findingCount == 546 and
+              .runs[0].properties.findingCount == 559 and
               (.runs[0].properties.reasons | length) == 2 and
               (.runs[0].invocations[0].toolExecutionNotifications | length) == 2 and
               .runs[0].invocations[0].executionSuccessful == true

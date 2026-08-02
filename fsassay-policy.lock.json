@@ -34,7 +34,7 @@
     {
       "id": "stable-expecto-suite",
       "project": "FsAssay.Tests/FsAssay.Tests.fsproj",
-      "minimumPassed": 84
+      "minimumPassed": 85
     }
   ],
   "baseline": { "identity": "none", "approvedFindings": [] },

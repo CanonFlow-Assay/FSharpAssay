@@ -9,7 +9,7 @@ esac
 
 mkdir -p artifacts/test-results
 log="artifacts/test-results/stable-${mode}.log"
-common=(--minimum-expected-tests 84 --zero-tests-policy strict --ansi off --progress off --output Normal)
+common=(--minimum-expected-tests 85 --zero-tests-policy strict --ansi off --progress off --output Normal)
 
 if [[ "$mode" == ordinary ]]; then
   dotnet test --project FsAssay.Tests/FsAssay.Tests.fsproj --configuration Release --no-build -- "${common[@]}" | tee "$log"
@@ -17,6 +17,6 @@ else
   dotnet run --project FsAssay.Tests/FsAssay.Tests.fsproj --configuration Release --no-build -- "${common[@]}" | tee "$log"
 fi
 
-grep -Eq 'total:[[:space:]]+84' "$log"
+grep -Eq 'total:[[:space:]]+85' "$log"
 grep -Eq 'failed:[[:space:]]+0' "$log"
-grep -Eq 'succeeded:[[:space:]]+84' "$log"
+grep -Eq 'succeeded:[[:space:]]+85' "$log"

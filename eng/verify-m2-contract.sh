@@ -13,7 +13,7 @@ jq empty "$policy" \
   docs/contracts/fsassay-authority-receipt.schema.json \
   "$manifest"
 
-for definition in candidate policyIdentity requiredTestPolicy toolchain reason counts project source test rule finding exception; do
+for definition in candidate policyIdentity policySnapshot baselinePolicy requiredTestPolicy toolchain reason counts project source test rule finding exception; do
   jq -e --arg definition "$definition" '."$defs"[$definition].type == "object" and ."$defs"[$definition].additionalProperties == false' \
     docs/contracts/fsassay-authority-receipt.schema.json >/dev/null
 done
@@ -27,7 +27,7 @@ test "$(jq '.advisoryRules | length' "$policy")" -eq 0
 test "$(jq '.experimentalRules | length' "$policy")" -eq 93
 test "$(jq '([.advisoryRules[], .experimentalRules[]] | unique | length)' "$policy")" -eq 93
 test "$(jq '.requiredTests | length' "$policy")" -eq 1
-test "$(jq -r '.requiredTests[0].minimumPassed' "$policy")" -eq 84
+test "$(jq -r '.requiredTests[0].minimumPassed' "$policy")" -eq 85
 test "$(jq -r '.baseline.identity' "$policy")" = "none"
 test "$(jq '.baseline.approvedFindings | length' "$policy")" -eq 0
 
@@ -43,7 +43,7 @@ grep -q '| 4 | `Pass` |' docs/contracts/AUTHORITY-CONTRACT-v1.md
 grep -q 'Gate C approval; none are approved in M2' FsAssay.Runner/Authority.fs
 grep -q 'receipt reason set does not reconcile with itemized evidence' FsAssay.Runner/Authority.fs
 grep -q 'M2 cannot claim applied suppressions' FsAssay.Runner/Authority.fs
-grep -q 'common=(--minimum-expected-tests 84 ' eng/run-stable-tests.sh
+grep -q 'common=(--minimum-expected-tests 85 ' eng/run-stable-tests.sh
 ! grep -q 'pull_request.merge_commit_sha' .github/workflows/fsassay.yml
 grep -q 'FSASSAY_APPROVED_HEAD_SHA:' .github/workflows/fsassay.yml
 grep -q '<FsAssayBaselineVersion>1.0.4</FsAssayBaselineVersion>' Directory.Build.props

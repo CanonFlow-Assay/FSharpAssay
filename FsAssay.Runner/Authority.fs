@@ -2,6 +2,7 @@ namespace FsAssay.Runner
 
 open System
 open System.Diagnostics
+open System.Globalization
 open System.IO
 open System.Security.Cryptography
 open System.Text
@@ -228,6 +229,8 @@ module Authority =
                 let repeated = duplicates values
                 if not repeated.IsEmpty then
                     sprintf "%s contain duplicates: %s" name (String.concat "," repeated)
+                if values |> Array.exists String.IsNullOrWhiteSpace then
+                    sprintf "%s contain blank values" name
             let ruleSets = [ policy.approvedBlockingRules; policy.advisoryRules; policy.experimentalRules ]
             let ruleConflicts = ruleSets |> Array.concat |> duplicates
             if not ruleConflicts.IsEmpty then
@@ -242,12 +245,35 @@ module Authority =
             if not duplicateExceptionIds.IsEmpty then
                 sprintf "exception IDs contain duplicates: %s" (String.concat "," duplicateExceptionIds)
             for test in policy.requiredTests do
-                if String.IsNullOrWhiteSpace(test.id) || String.IsNullOrWhiteSpace(test.project) || test.minimumPassed < 1 then
+                let project = if isNull test.project then "" else test.project.Replace('\\', '/')
+                if String.IsNullOrWhiteSpace(test.id)
+                   || String.IsNullOrWhiteSpace(project)
+                   || Path.IsPathRooted(project)
+                   || project.StartsWith("../", StringComparison.Ordinal)
+                   || test.minimumPassed < 1 then
                     $"invalid required test '{test.id}'"
             for item in policy.exceptions do
                 if String.IsNullOrWhiteSpace(item.id) || String.IsNullOrWhiteSpace(item.owner) || String.IsNullOrWhiteSpace(item.reason) || String.IsNullOrWhiteSpace(item.expiresOn) then
                     $"invalid exception '{item.id}'"
+                else
+                    match DateOnly.TryParseExact(item.expiresOn, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None) with
+                    | false, _ -> $"invalid exception expiry '{item.id}'"
+                    | _ -> ()
         ]
+
+    let private canonicalPolicyBytes policy =
+        policy
+        |> normalizePolicy
+        |> fun normalized -> JsonSerializer.SerializeToUtf8Bytes(normalized, jsonOptions ())
+
+    /// Validates and canonicalizes the complete policy authority input.
+    /// The returned digest is a consistency identity, not a cryptographic signature.
+    let canonicalPolicyIdentity policy =
+        match validatePolicy policy with
+        | [] ->
+            let normalized = normalizePolicy policy
+            Ok(normalized, canonicalPolicyBytes normalized |> sha256Bytes)
+        | errors -> Error errors
 
     let loadPolicy path =
         if not (File.Exists(path)) then
@@ -259,12 +285,10 @@ module Authority =
                 if isNull (box parsed) then
                     PolicyInvalid(path, "policy JSON was null")
                 else
-                    match validatePolicy parsed with
-                    | [] ->
-                        let normalized = normalizePolicy parsed
-                        let canonical = JsonSerializer.Serialize(normalized, jsonOptions ())
-                        PolicyLoaded(normalized, sha256Text canonical, path)
-                    | errors -> PolicyInvalid(path, String.concat "; " errors)
+                    match canonicalPolicyIdentity parsed with
+                    | Ok(normalized, hash) ->
+                        PolicyLoaded(normalized, hash, path)
+                    | Error errors -> PolicyInvalid(path, String.concat "; " errors)
             with ex ->
                 PolicyInvalid(path, ex.Message)
 
@@ -471,13 +495,7 @@ module Authority =
         status: string
         path: string
         sha256: string
-        schemaVersion: string
-        authorityContractVersion: string
-        shapeContractVersion: string
-        approvedBlockingRules: string[]
-        requiredProjectClasses: string[]
-        requiredTargetFrameworks: string[]
-        requiredTests: RequiredTestPolicy[]
+        snapshot: PolicyLock
         error: string
     }
 
@@ -560,14 +578,20 @@ module Authority =
         tests: TestReceipt[]
         rules: RuleReceipt[]
         findings: FindingReceipt[]
-        baselineIdentity: string
-        configuredBaselineFindings: string[]
         appliedSuppressions: string[]
-        exceptions: PolicyException[]
         policyErrors: string[]
         evidenceErrors: string[]
         missingEvidence: string[]
         toolFailures: string[]
+    }
+
+    type ReceiptValidationContext = {
+        expectedPolicySha256: string
+        expectedCommitSha: string
+        expectedTreeSha: string
+        expectedApprovedHeadSha: string option
+        expectedSyntheticMergeSha: string option
+        expectedPackageSha256: string option
     }
 
     let private verdictName = function
@@ -741,13 +765,7 @@ module Authority =
                 status = if isHex 64 policyHash then "loaded" else policyHash
                 path = relative policyPath
                 sha256 = policyHash
-                schemaVersion = if isHex 64 policyHash then policy.policySchemaVersion else "unavailable"
-                authorityContractVersion = if isHex 64 policyHash then policy.authorityContractVersion else "unavailable"
-                shapeContractVersion = if isHex 64 policyHash then policy.shapeContractVersion else "unavailable"
-                approvedBlockingRules = policy.approvedBlockingRules |> Array.distinct |> Array.sort
-                requiredProjectClasses = policy.requiredProjectClasses |> Array.distinct |> Array.sort
-                requiredTargetFrameworks = policy.requiredTargetFrameworks |> Array.distinct |> Array.sort
-                requiredTests = policy.requiredTests |> Array.sortBy (fun test -> test.id, test.project)
+                snapshot = normalizePolicy policy
                 error = if isHex 64 policyHash then "" else String.concat "; " facts.PolicyErrors
             }
             toolchain = {
@@ -773,10 +791,7 @@ module Authority =
             tests = testReceipts
             rules = normalizedRules
             findings = normalizedFindings
-            baselineIdentity = policy.baseline.identity
-            configuredBaselineFindings = policy.baseline.approvedFindings |> Array.distinct |> Array.sort
             appliedSuppressions = [||]
-            exceptions = policy.exceptions |> Array.sortBy _.id
             policyErrors = decisionFacts.PolicyErrors |> List.distinct |> List.sort |> List.toArray
             evidenceErrors = decisionFacts.EvidenceErrors |> List.distinct |> List.sort |> List.toArray
             missingEvidence = decisionFacts.MissingEvidence |> List.distinct |> List.sort |> List.toArray
@@ -792,6 +807,8 @@ module Authority =
             let projectCount status = receipt.projects |> Array.filter (fun project -> project.status = status) |> Array.length
             let sourceCount status = receipt.sources |> Array.filter (fun source -> source.disposition = status) |> Array.length
             let sortedDistinct (values: string[]) = values |> Array.distinct |> Array.sort
+            let snapshotValidation = canonicalPolicyIdentity receipt.policy.snapshot
+            let snapshotHash = canonicalPolicyBytes receipt.policy.snapshot |> sha256Bytes
             let structuralErrors = [
                 if receipt.schemaVersion <> EvidenceSchemaVersion then "receipt schema version is unsupported"
                 if receipt.tool <> "FsAssay" || receipt.toolVersion <> ProductIdentity.Version then "receipt tool identity is invalid"
@@ -812,22 +829,22 @@ module Authority =
                 if receipt.candidate.kind = "commit" && receipt.candidate.dirty then "commit candidate kind contradicts dirty flag"
                 if not (relativePath receipt.candidate.repositoryRelativeTarget) then "candidate target is not repository-relative"
                 if not (relativePath receipt.policy.path) then "policy path is not repository-relative"
+                if not (Set.contains receipt.policy.status (set [ "loaded"; "invalid"; "unavailable" ])) then "policy status is invalid"
                 if receipt.policy.status = "loaded" && not (isHex 64 receipt.policy.sha256) then "loaded policy lacks a SHA-256 identity"
                 if receipt.policy.status <> "loaded" && String.IsNullOrWhiteSpace(receipt.policy.error) then "unavailable or invalid policy lacks an error"
                 if receipt.policy.status = "loaded" && (not (String.IsNullOrEmpty(receipt.policy.error)) || not (Array.isEmpty receipt.policyErrors)) then "loaded policy cannot carry policy errors"
                 if receipt.policy.status <> "loaded" && (Array.isEmpty receipt.policyErrors || receipt.policy.error <> String.concat "; " receipt.policyErrors) then "policy error summary does not reconcile"
-                if receipt.policy.status = "loaded" && (receipt.policy.schemaVersion <> PolicySchemaVersion || receipt.policy.authorityContractVersion <> ContractVersion || receipt.policy.shapeContractVersion <> "not-established") then "loaded policy versions are incompatible"
-                if receipt.configuredBaselineFindings <> sortedDistinct receipt.configuredBaselineFindings then "configured baseline findings are duplicated or unsorted"
-                if receipt.policy.status = "loaded" && (receipt.baselineIdentity <> "none" || not (Array.isEmpty receipt.configuredBaselineFindings)) then "baseline governance is not established in M2"
+                if receipt.policy.snapshot <> normalizePolicy receipt.policy.snapshot then "policy snapshot is not in canonical order"
+                if receipt.policy.status = "loaded" then
+                    match snapshotValidation with
+                    | Error errors -> yield! errors |> List.map (fun error -> "policy snapshot is invalid: " + error)
+                    | Ok _ when receipt.policy.sha256 <> snapshotHash -> "policy snapshot SHA-256 does not match the recorded policy identity"
+                    | Ok _ -> ()
+                elif receipt.policy.snapshot <> normalizePolicy unapprovedPolicy then
+                    "unavailable or invalid policy must carry the exact fail-closed fallback snapshot"
                 if not (Array.isEmpty receipt.appliedSuppressions) then "M2 cannot claim applied suppressions"
-                if receipt.policy.approvedBlockingRules <> sortedDistinct receipt.policy.approvedBlockingRules then "blocking policy identities are duplicated or unsorted"
-                if receipt.policy.requiredProjectClasses <> sortedDistinct receipt.policy.requiredProjectClasses then "required project classes are duplicated or unsorted"
-                if receipt.policy.requiredTargetFrameworks <> sortedDistinct receipt.policy.requiredTargetFrameworks then "required target frameworks are duplicated or unsorted"
-                if receipt.policy.requiredTests <> (receipt.policy.requiredTests |> Array.sortBy (fun test -> test.id, test.project)) then "required test policy ordering is unstable"
-                let duplicatePolicyTests = receipt.policy.requiredTests |> Array.countBy _.id |> Array.filter (fun (_, count) -> count > 1)
-                if not (Array.isEmpty duplicatePolicyTests) then "required test policy contains duplicate IDs"
-                for requiredTest in receipt.policy.requiredTests do
-                    if String.IsNullOrWhiteSpace(requiredTest.id) || not (relativePath requiredTest.project) || requiredTest.minimumPassed < 1 then "required test policy is invalid"
+                for requiredTest in receipt.policy.snapshot.requiredTests do
+                    if not (relativePath requiredTest.project) then "required test policy project is not repository-relative"
                 if receipt.counts.projectsDiscovered <> receipt.projects.Length then "project discovery count does not reconcile"
                 if receipt.counts.projectsLoaded <> projectCount "loaded" then "loaded project count does not reconcile"
                 if receipt.counts.projectsFailed <> projectCount "failed" then "failed project count does not reconcile"
@@ -856,7 +873,8 @@ module Authority =
                 if not (Array.isEmpty duplicateRuleIds) then "rule receipts contain duplicates"
                 for rule in receipt.rules do
                     if not (Set.contains rule.authorityClass (set [ "blocking"; "advisory"; "experimental" ])) then $"rule authority class is invalid: {rule.ruleId}"
-                    if (rule.authorityClass = "blocking") <> Array.contains rule.ruleId receipt.policy.approvedBlockingRules then $"rule blocking authority does not reconcile with policy: {rule.ruleId}"
+                    let expectedClass = authorityClass receipt.policy.snapshot rule.ruleId
+                    if rule.authorityClass <> expectedClass then $"rule authority class does not reconcile with policy: {rule.ruleId}"
                     if not (Set.contains rule.status (set [ "completed"; "incomplete"; "unavailable" ])) then $"rule status is invalid: {rule.ruleId}"
                     if (rule.status = "completed") <> rule.evidenceAvailable then $"rule evidence status contradicts availability: {rule.ruleId}"
                     let actual = receipt.findings |> Array.filter (fun finding -> finding.ruleId = rule.ruleId) |> Array.length
@@ -883,8 +901,6 @@ module Authority =
                     "tool failures", receipt.toolFailures
                 ] do
                     if values <> sortedDistinct values then $"{name} are duplicated or unsorted"
-                for item in receipt.exceptions do
-                    if String.IsNullOrWhiteSpace(item.id) || String.IsNullOrWhiteSpace(item.owner) || String.IsNullOrWhiteSpace(item.reason) || String.IsNullOrWhiteSpace(item.expiresOn) then "exception evidence is incomplete"
             ]
             if not structuralErrors.IsEmpty then structuralErrors
             else
@@ -903,23 +919,7 @@ module Authority =
                     | "failed" -> TestStatus.Failed
                     | "notRun" -> TestStatus.NotRun
                     | _ -> TestStatus.Skipped
-                let advisoryRules = receipt.rules |> Array.filter (fun rule -> rule.authorityClass = "advisory") |> Array.map _.ruleId
-                let experimentalRules = receipt.rules |> Array.filter (fun rule -> rule.authorityClass = "experimental") |> Array.map _.ruleId
-                let receiptPolicy = {
-                    unapprovedPolicy with
-                        policySchemaVersion = receipt.policy.schemaVersion
-                        evidenceSchemaVersion = receipt.schemaVersion
-                        authorityContractVersion = receipt.policy.authorityContractVersion
-                        shapeContractVersion = receipt.policy.shapeContractVersion
-                        approvedBlockingRules = receipt.policy.approvedBlockingRules
-                        advisoryRules = advisoryRules
-                        experimentalRules = experimentalRules
-                        requiredProjectClasses = receipt.policy.requiredProjectClasses
-                        requiredTargetFrameworks = receipt.policy.requiredTargetFrameworks
-                        requiredTests = receipt.policy.requiredTests
-                        baseline = { identity = receipt.baselineIdentity; approvedFindings = receipt.configuredBaselineFindings }
-                        exceptions = receipt.exceptions
-                }
+                let receiptPolicy = receipt.policy.snapshot
                 let reconstructedFacts = {
                     PolicyErrors = receipt.policyErrors |> Array.toList
                     EvidenceErrors = receipt.evidenceErrors |> Array.toList
@@ -995,6 +995,64 @@ module Authority =
                 | [] -> Ok receipt
                 | errors -> Error errors
         with ex -> Error [ ex.Message ]
+
+    /// Strict receipt validation with a caller-pinned policy identity. This closes the
+    /// unsigned replacement gap for consumers that already trust an expected SHA-256.
+    let deserializeAndValidateReceiptForPolicy expectedPolicySha256 (bytes: byte[]) =
+        match deserializeAndValidateReceipt bytes with
+        | Error errors -> Error errors
+        | Ok receipt when not (isHex 64 expectedPolicySha256) ->
+            Error [ "expected policy identity is not a SHA-256 digest" ]
+        | Ok receipt when receipt.policy.status <> "loaded" ->
+            Error [ "receipt does not contain a loaded policy identity" ]
+        | Ok receipt when receipt.policy.sha256 <> expectedPolicySha256 ->
+            Error [ $"receipt policy identity '{receipt.policy.sha256}' does not match expected '{expectedPolicySha256}'" ]
+        | Ok receipt -> Ok receipt
+
+    /// Strict receipt validation against the identities already reviewed by the
+    /// caller. This provides external pinning, not signature-based authenticity.
+    let deserializeAndValidateReceiptForContext context (bytes: byte[]) =
+        match deserializeAndValidateReceipt bytes with
+        | Error errors -> Error errors
+        | Ok receipt ->
+            let optionalMismatch label length expected actual =
+                match expected with
+                | None -> None
+                | Some value when not (isHex length value) -> Some $"expected {label} is malformed"
+                | Some value when value <> actual -> Some $"receipt {label} '{actual}' does not match expected '{value}'"
+                | Some _ -> None
+            let errors = [
+                if not (isHex 64 context.expectedPolicySha256) then
+                    "expected policy identity is not a SHA-256 digest"
+                elif receipt.policy.status <> "loaded" then
+                    "receipt does not contain a loaded policy identity"
+                elif receipt.policy.sha256 <> context.expectedPolicySha256 then
+                    $"receipt policy identity '{receipt.policy.sha256}' does not match expected '{context.expectedPolicySha256}'"
+                if not (isHex 40 context.expectedCommitSha) then
+                    "expected candidate commit is not a 40-character Git object ID"
+                elif receipt.candidate.commitSha <> context.expectedCommitSha then
+                    $"receipt candidate commit '{receipt.candidate.commitSha}' does not match expected '{context.expectedCommitSha}'"
+                if not (isHex 40 context.expectedTreeSha) then
+                    "expected candidate tree is not a 40-character Git object ID"
+                elif receipt.candidate.treeSha <> context.expectedTreeSha then
+                    $"receipt candidate tree '{receipt.candidate.treeSha}' does not match expected '{context.expectedTreeSha}'"
+                match optionalMismatch "approved head" 40 context.expectedApprovedHeadSha receipt.candidate.approvedHeadSha with
+                | Some error -> error
+                | None -> ()
+                match optionalMismatch "synthetic merge" 40 context.expectedSyntheticMergeSha receipt.candidate.syntheticMergeSha with
+                | Some error -> error
+                | None -> ()
+                match optionalMismatch "package SHA-256" 64 context.expectedPackageSha256 receipt.candidate.packageSha256 with
+                | Some error -> error
+                | None -> ()
+                if receipt.candidate.kind = "synthetic-merge" && context.expectedApprovedHeadSha.IsNone then
+                    "synthetic-merge validation requires an expected approved head"
+                if receipt.candidate.kind = "synthetic-merge" && context.expectedSyntheticMergeSha.IsNone then
+                    "synthetic-merge validation requires an expected synthetic merge identity"
+                if receipt.candidate.kind = "package" && context.expectedPackageSha256.IsNone then
+                    "package validation requires an expected package SHA-256"
+            ]
+            if errors.IsEmpty then Ok receipt else Error errors
 
     let private authorityInputPath (path: string) =
         let normalized = path.Replace('\\', '/')
