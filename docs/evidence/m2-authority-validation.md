@@ -23,15 +23,21 @@ dotnet pack FsAssay.Stable.slnx --configuration Release --no-build \
 ```
 
 The audit is expected to exit `2`, not `0`: 25 files analyze successfully and
-545 observations remain visible, but Desktop and TypeGym are outside the locked
+546 observations remain visible, but Desktop and TypeGym are outside the locked
 project classes and the required stable tests are deliberately `notRun` in CLI
 evidence. Therefore the receipt is `Inconclusive` and `authoritative: false`.
 
-CI runs all 83 stable tests separately but does not inject or infer that result in
+CI runs all 84 stable tests separately but does not inject or infer that result in
 the CLI receipt. Pass behavior is proved by typed reducer/serializer fixtures
 with explicit nonzero test evidence. This is not consumer release authority.
 
-The full 545-finding payload is generated in ignored CI/local artifacts and is
+Strict-validator mutation fixtures rewrite outcome/authority over `notRun` and
+unsupported evidence, forge every other verdict over complete facts, and remove
+or add reasons. Every mutation is rejected by receipt-to-facts reconstruction
+through the production reducer. A configured wildcard baseline is rejected, and
+the receipt cannot claim any applied suppression in M2.
+
+The full 546-finding payload is generated in ignored CI/local artifacts and is
 not committed. Its increase from the inherited 436 observations is disclosed;
 neither count is a success metric. The manifest binds contract/policy/schema
 hashes but deliberately does not bind a self-referential candidate commit or a

@@ -51,8 +51,8 @@
       "additionalProperties": false,
       "required": ["identity", "approvedFindings"],
       "properties": {
-        "identity": { "type": "string", "minLength": 1 },
-        "approvedFindings": { "$ref": "#/$defs/uniqueStrings" }
+        "identity": { "const": "none" },
+        "approvedFindings": { "type": "array", "maxItems": 0 }
       }
     },
     "exceptions": {

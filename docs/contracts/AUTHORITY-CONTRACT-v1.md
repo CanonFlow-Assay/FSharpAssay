@@ -37,8 +37,15 @@ outcome an authority gap. M2 has no such rule.
 `fsassay-policy.lock.json` binds the policy schema, receipt schema, authority
 contract, explicitly absent Shape contract, tool identity, profiles, Gate-C
 approved blocking rules, advisory/experimental observations, required project
-classes and target frameworks, tests, baseline identity, suppressions, and
-reviewed exceptions. Unknown fields and unsupported versions are diagnosed.
+classes and target frameworks, tests, baseline identity, configured baseline
+records, and reviewed exceptions. Unknown fields and unsupported versions are
+diagnosed.
+
+M2 baseline governance is not established. A loaded M2 policy must use baseline
+identity `none` with no configured findings; wildcard or nonempty baseline debt
+is invalid. The receipt separates `configuredBaselineFindings` from
+`appliedSuppressions`, and `appliedSuppressions` must be empty. Configuration is
+never evidence that a finding was actually suppressed.
 
 M2 has no Gate-C-approved blocking rules. The inherited catalogue and its 21
 legacy admission entries are not changed, but they are non-authoritative
@@ -56,11 +63,20 @@ rule is diagnosed as incomplete instead of silently inheriting that legacy set.
 - source disposition, including generated and policy-excluded sources;
 - required tests and their exact `passed`, `failed`, `skipped`, or `notRun` evidence;
 - rule evidence availability, findings, stable fingerprints, authority class;
-- baseline, suppressions, exceptions, missing evidence, tool failures, outcome and every reason.
+- baseline configuration, empty applied-suppression evidence, exceptions,
+  itemized policy/evidence errors, missing evidence, tool failures, outcome and every reason.
 
 Arrays use stable ordering and source paths are repository-relative. SARIF uses
 the same normalized findings and receipt identity. Equivalent evidence in two
 different checkout roots must serialize to byte-identical JSON and SARIF.
+
+The strict public validator reconstructs the locked authority requirements and
+itemized facts from the receipt, then calls the same total reducer used by the
+producer. It requires an exact match for outcome, authority and the complete
+sorted reason set. Changing only `outcome`, `authoritative`, or reasons cannot
+turn `notRun`, unsupported, missing, failed, blocking or tool-failure evidence
+into another result. `Pass` is always authoritative; a complete conclusive
+`Fail` is authoritative, while a `Fail` with concurrent incompleteness is not.
 
 Every non-`Pass` reason is also a SARIF `toolExecutionNotification`. SARIF run
 properties repeat the receipt outcome, authority flag, exact counts, finding
@@ -100,13 +116,13 @@ with the versioned receipt object; consumers must validate `schemaVersion`
 before reading it. `--out-sarif` remains SARIF 2.1.0 but now uses relative URIs,
 stable fingerprints, and run properties for outcome/policy/candidate identity.
 
-M2 does not ingest test evidence. CI may run 83 tests, but the CLI does not infer
+M2 does not ingest test evidence. CI may run 84 tests, but the CLI does not infer
 that ambient success and records policy-required tests as `notRun`. The full
 self-audit consequently remains `Inconclusive`/non-authoritative. A reviewed
 consumer evidence-ingestion surface belongs to a later milestone.
 
 The full audit includes frozen Desktop and TypeGym projects. Their unsupported
-status is explicit and prevents authority. The 545 current observations require
+status is explicit and prevents authority. The 546 current observations require
 human adjudication and are not proof of product success. Advisory/prototype
 findings must not be automatically refactored by humans or agents.
 

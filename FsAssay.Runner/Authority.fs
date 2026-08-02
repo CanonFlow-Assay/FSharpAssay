@@ -214,6 +214,8 @@ module Authority =
                 "at least one required test must be locked"
             if String.IsNullOrWhiteSpace(policy.baseline.identity) then
                 "baseline identity must not be blank"
+            if policy.baseline.identity <> "none" || not (Array.isEmpty policy.baseline.approvedFindings) then
+                "baseline governance is not established in M2; identity must be 'none' and configured findings must be empty"
             for name, values in [
                 "enabled profiles", policy.enabledProfiles
                 "blocking rules", policy.approvedBlockingRules
@@ -472,6 +474,10 @@ module Authority =
         schemaVersion: string
         authorityContractVersion: string
         shapeContractVersion: string
+        approvedBlockingRules: string[]
+        requiredProjectClasses: string[]
+        requiredTargetFrameworks: string[]
+        requiredTests: RequiredTestPolicy[]
         error: string
     }
 
@@ -555,8 +561,11 @@ module Authority =
         rules: RuleReceipt[]
         findings: FindingReceipt[]
         baselineIdentity: string
-        suppressions: string[]
+        configuredBaselineFindings: string[]
+        appliedSuppressions: string[]
         exceptions: PolicyException[]
+        policyErrors: string[]
+        evidenceErrors: string[]
         missingEvidence: string[]
         toolFailures: string[]
     }
@@ -585,7 +594,7 @@ module Authority =
         | SourceDisposition.GeneratedExcluded -> "generated-excluded"
         | SourceDisposition.PolicyExcluded -> "policy-excluded"
 
-    let private authorityClass policy ruleId =
+    let private authorityClass (policy: PolicyLock) ruleId =
         if Array.contains ruleId policy.approvedBlockingRules then "blocking"
         elif Array.contains ruleId policy.advisoryRules then "advisory"
         else "experimental"
@@ -651,10 +660,11 @@ module Authority =
 
     let createReceipt repositoryRoot candidate policy policyPath policyHash facts =
         let candidateMissing, candidateErrors = candidateAuthorityEvidence candidate
+        let derivedEvidenceErrors = validateFacts policy facts
         let decisionFacts = {
             facts with
                 MissingEvidence = facts.MissingEvidence @ candidateMissing
-                EvidenceErrors = facts.EvidenceErrors @ candidateErrors
+                EvidenceErrors = facts.EvidenceErrors @ candidateErrors @ derivedEvidenceErrors
         }
         let decision = decide policy decisionFacts
         let relative value = repositoryRelativePath repositoryRoot value
@@ -734,6 +744,10 @@ module Authority =
                 schemaVersion = if isHex 64 policyHash then policy.policySchemaVersion else "unavailable"
                 authorityContractVersion = if isHex 64 policyHash then policy.authorityContractVersion else "unavailable"
                 shapeContractVersion = if isHex 64 policyHash then policy.shapeContractVersion else "unavailable"
+                approvedBlockingRules = policy.approvedBlockingRules |> Array.distinct |> Array.sort
+                requiredProjectClasses = policy.requiredProjectClasses |> Array.distinct |> Array.sort
+                requiredTargetFrameworks = policy.requiredTargetFrameworks |> Array.distinct |> Array.sort
+                requiredTests = policy.requiredTests |> Array.sortBy (fun test -> test.id, test.project)
                 error = if isHex 64 policyHash then "" else String.concat "; " facts.PolicyErrors
             }
             toolchain = {
@@ -760,8 +774,11 @@ module Authority =
             rules = normalizedRules
             findings = normalizedFindings
             baselineIdentity = policy.baseline.identity
-            suppressions = policy.baseline.approvedFindings |> Array.distinct |> Array.sort
+            configuredBaselineFindings = policy.baseline.approvedFindings |> Array.distinct |> Array.sort
+            appliedSuppressions = [||]
             exceptions = policy.exceptions |> Array.sortBy _.id
+            policyErrors = decisionFacts.PolicyErrors |> List.distinct |> List.sort |> List.toArray
+            evidenceErrors = decisionFacts.EvidenceErrors |> List.distinct |> List.sort |> List.toArray
             missingEvidence = decisionFacts.MissingEvidence |> List.distinct |> List.sort |> List.toArray
             toolFailures = decisionFacts.ToolFailures |> List.distinct |> List.sort |> List.toArray
         }
@@ -774,12 +791,11 @@ module Authority =
                 && not (value.Replace('\\', '/').StartsWith("../", StringComparison.Ordinal))
             let projectCount status = receipt.projects |> Array.filter (fun project -> project.status = status) |> Array.length
             let sourceCount status = receipt.sources |> Array.filter (fun source -> source.disposition = status) |> Array.length
-            [
+            let sortedDistinct (values: string[]) = values |> Array.distinct |> Array.sort
+            let structuralErrors = [
                 if receipt.schemaVersion <> EvidenceSchemaVersion then "receipt schema version is unsupported"
                 if receipt.tool <> "FsAssay" || receipt.toolVersion <> ProductIdentity.Version then "receipt tool identity is invalid"
                 if not (Set.contains receipt.outcome (set [ "Pass"; "Fail"; "Inconclusive"; "ToolFailure" ])) then "receipt outcome is invalid"
-                if receipt.authoritative && (receipt.outcome = "Inconclusive" || receipt.outcome = "ToolFailure") then "incomplete or failed tool evidence cannot be authoritative"
-                if receipt.outcome <> "Pass" && Array.isEmpty receipt.reasons then "non-Pass receipt requires at least one reason"
                 if not (isHex 40 receipt.candidate.commitSha || receipt.candidate.commitSha = "unavailable") then "candidate commit identity is invalid"
                 if not (isHex 40 receipt.candidate.approvedHeadSha || receipt.candidate.approvedHeadSha = "unavailable") then "approved head identity is invalid"
                 if not (isHex 40 receipt.candidate.treeSha || receipt.candidate.treeSha = "unavailable") then "candidate tree identity is invalid"
@@ -798,9 +814,20 @@ module Authority =
                 if not (relativePath receipt.policy.path) then "policy path is not repository-relative"
                 if receipt.policy.status = "loaded" && not (isHex 64 receipt.policy.sha256) then "loaded policy lacks a SHA-256 identity"
                 if receipt.policy.status <> "loaded" && String.IsNullOrWhiteSpace(receipt.policy.error) then "unavailable or invalid policy lacks an error"
+                if receipt.policy.status = "loaded" && (not (String.IsNullOrEmpty(receipt.policy.error)) || not (Array.isEmpty receipt.policyErrors)) then "loaded policy cannot carry policy errors"
+                if receipt.policy.status <> "loaded" && (Array.isEmpty receipt.policyErrors || receipt.policy.error <> String.concat "; " receipt.policyErrors) then "policy error summary does not reconcile"
                 if receipt.policy.status = "loaded" && (receipt.policy.schemaVersion <> PolicySchemaVersion || receipt.policy.authorityContractVersion <> ContractVersion || receipt.policy.shapeContractVersion <> "not-established") then "loaded policy versions are incompatible"
-                if String.IsNullOrWhiteSpace(receipt.toolchain.sdkVersion) || receipt.toolchain.sdkVersion = "unavailable" then "SDK identity is unavailable"
-                if String.IsNullOrWhiteSpace(receipt.toolchain.runtimeVersion) || String.IsNullOrWhiteSpace(receipt.toolchain.fsharpCompilerServiceVersion) then "compiler toolchain identity is unavailable"
+                if receipt.configuredBaselineFindings <> sortedDistinct receipt.configuredBaselineFindings then "configured baseline findings are duplicated or unsorted"
+                if receipt.policy.status = "loaded" && (receipt.baselineIdentity <> "none" || not (Array.isEmpty receipt.configuredBaselineFindings)) then "baseline governance is not established in M2"
+                if not (Array.isEmpty receipt.appliedSuppressions) then "M2 cannot claim applied suppressions"
+                if receipt.policy.approvedBlockingRules <> sortedDistinct receipt.policy.approvedBlockingRules then "blocking policy identities are duplicated or unsorted"
+                if receipt.policy.requiredProjectClasses <> sortedDistinct receipt.policy.requiredProjectClasses then "required project classes are duplicated or unsorted"
+                if receipt.policy.requiredTargetFrameworks <> sortedDistinct receipt.policy.requiredTargetFrameworks then "required target frameworks are duplicated or unsorted"
+                if receipt.policy.requiredTests <> (receipt.policy.requiredTests |> Array.sortBy (fun test -> test.id, test.project)) then "required test policy ordering is unstable"
+                let duplicatePolicyTests = receipt.policy.requiredTests |> Array.countBy _.id |> Array.filter (fun (_, count) -> count > 1)
+                if not (Array.isEmpty duplicatePolicyTests) then "required test policy contains duplicate IDs"
+                for requiredTest in receipt.policy.requiredTests do
+                    if String.IsNullOrWhiteSpace(requiredTest.id) || not (relativePath requiredTest.project) || requiredTest.minimumPassed < 1 then "required test policy is invalid"
                 if receipt.counts.projectsDiscovered <> receipt.projects.Length then "project discovery count does not reconcile"
                 if receipt.counts.projectsLoaded <> projectCount "loaded" then "loaded project count does not reconcile"
                 if receipt.counts.projectsFailed <> projectCount "failed" then "failed project count does not reconcile"
@@ -828,6 +855,8 @@ module Authority =
                 let duplicateRuleIds = receipt.rules |> Array.countBy _.ruleId |> Array.filter (fun (_, count) -> count > 1)
                 if not (Array.isEmpty duplicateRuleIds) then "rule receipts contain duplicates"
                 for rule in receipt.rules do
+                    if not (Set.contains rule.authorityClass (set [ "blocking"; "advisory"; "experimental" ])) then $"rule authority class is invalid: {rule.ruleId}"
+                    if (rule.authorityClass = "blocking") <> Array.contains rule.ruleId receipt.policy.approvedBlockingRules then $"rule blocking authority does not reconcile with policy: {rule.ruleId}"
                     if not (Set.contains rule.status (set [ "completed"; "incomplete"; "unavailable" ])) then $"rule status is invalid: {rule.ruleId}"
                     if (rule.status = "completed") <> rule.evidenceAvailable then $"rule evidence status contradicts availability: {rule.ruleId}"
                     let actual = receipt.findings |> Array.filter (fun finding -> finding.ruleId = rule.ruleId) |> Array.length
@@ -835,16 +864,126 @@ module Authority =
                 for finding in receipt.findings do
                     if not (relativePath finding.path) then $"finding path is not repository-relative: {finding.path}"
                     if finding.line < 1 || finding.column < 0 then $"finding location is invalid: {finding.ruleId}"
+                    match receipt.rules |> Array.tryFind (fun rule -> rule.ruleId = finding.ruleId) with
+                    | None -> $"finding has no rule outcome: {finding.ruleId}"
+                    | Some rule when finding.authorityClass <> rule.authorityClass -> $"finding authority class does not reconcile: {finding.ruleId}"
+                    | _ -> ()
                     if not (isHex 64 finding.fingerprint) then $"finding fingerprint is invalid: {finding.ruleId}"
                     if finding.fingerprint <> findingFingerprint finding.ruleId finding.path finding.line finding.column finding.message then $"finding fingerprint does not reconcile: {finding.ruleId}"
                 if receipt.reasons <> (receipt.reasons |> Array.sortBy (fun reason -> reason.code, reason.detail)) then "reason ordering is unstable"
+                if receipt.reasons.Length <> (receipt.reasons |> Array.distinct).Length then "reason evidence contains duplicates"
                 if receipt.projects <> (receipt.projects |> Array.sortBy (fun project -> project.path, project.status)) then "project ordering is unstable"
                 if receipt.sources <> (receipt.sources |> Array.sortBy (fun source -> source.path, source.disposition)) then "source ordering is unstable"
                 if receipt.rules <> (receipt.rules |> Array.sortBy _.ruleId) then "rule ordering is unstable"
                 if receipt.findings <> (receipt.findings |> Array.sortBy (fun finding -> finding.ruleId, finding.path, finding.line, finding.column, finding.message)) then "finding ordering is unstable"
+                for name, values in [
+                    "policy errors", receipt.policyErrors
+                    "evidence errors", receipt.evidenceErrors
+                    "missing evidence", receipt.missingEvidence
+                    "tool failures", receipt.toolFailures
+                ] do
+                    if values <> sortedDistinct values then $"{name} are duplicated or unsorted"
                 for item in receipt.exceptions do
                     if String.IsNullOrWhiteSpace(item.id) || String.IsNullOrWhiteSpace(item.owner) || String.IsNullOrWhiteSpace(item.reason) || String.IsNullOrWhiteSpace(item.expiresOn) then "exception evidence is incomplete"
             ]
+            if not structuralErrors.IsEmpty then structuralErrors
+            else
+                let projectDisposition = function
+                    | "loaded" -> ProjectDisposition.Loaded
+                    | "failed" -> ProjectDisposition.LoadFailed
+                    | "skipped" -> ProjectDisposition.ProjectSkipped
+                    | _ -> ProjectDisposition.Unsupported
+                let sourceDisposition = function
+                    | "analyzed" -> SourceDisposition.Analyzed
+                    | "compiler-incomplete" -> SourceDisposition.CompilerIncomplete
+                    | "generated-excluded" -> SourceDisposition.GeneratedExcluded
+                    | _ -> SourceDisposition.PolicyExcluded
+                let testStatus = function
+                    | "passed" -> TestStatus.Passed
+                    | "failed" -> TestStatus.Failed
+                    | "notRun" -> TestStatus.NotRun
+                    | _ -> TestStatus.Skipped
+                let advisoryRules = receipt.rules |> Array.filter (fun rule -> rule.authorityClass = "advisory") |> Array.map _.ruleId
+                let experimentalRules = receipt.rules |> Array.filter (fun rule -> rule.authorityClass = "experimental") |> Array.map _.ruleId
+                let receiptPolicy = {
+                    unapprovedPolicy with
+                        policySchemaVersion = receipt.policy.schemaVersion
+                        evidenceSchemaVersion = receipt.schemaVersion
+                        authorityContractVersion = receipt.policy.authorityContractVersion
+                        shapeContractVersion = receipt.policy.shapeContractVersion
+                        approvedBlockingRules = receipt.policy.approvedBlockingRules
+                        advisoryRules = advisoryRules
+                        experimentalRules = experimentalRules
+                        requiredProjectClasses = receipt.policy.requiredProjectClasses
+                        requiredTargetFrameworks = receipt.policy.requiredTargetFrameworks
+                        requiredTests = receipt.policy.requiredTests
+                        baseline = { identity = receipt.baselineIdentity; approvedFindings = receipt.configuredBaselineFindings }
+                        exceptions = receipt.exceptions
+                }
+                let reconstructedFacts = {
+                    PolicyErrors = receipt.policyErrors |> Array.toList
+                    EvidenceErrors = receipt.evidenceErrors |> Array.toList
+                    ToolFailures = receipt.toolFailures |> Array.toList
+                    MissingEvidence = receipt.missingEvidence |> Array.toList
+                    Toolchain = {
+                        SdkVersion = receipt.toolchain.sdkVersion
+                        RuntimeVersion = receipt.toolchain.runtimeVersion
+                        FSharpCompilerServiceVersion = receipt.toolchain.fsharpCompilerServiceVersion
+                    }
+                    Projects = receipt.projects |> Array.map (fun project -> {
+                        Path = project.path
+                        ProjectClass = project.projectClass
+                        TargetFrameworks = project.targetFrameworks |> Array.toList
+                        Disposition = projectDisposition project.status
+                        Reason = project.reason
+                    }) |> Array.toList
+                    Sources = receipt.sources |> Array.map (fun source -> {
+                        Path = source.path
+                        Disposition = sourceDisposition source.disposition
+                        Reason = source.reason
+                    }) |> Array.toList
+                    RequiredTests = receipt.tests |> Array.map (fun test -> {
+                        Id = test.id
+                        Project = test.project
+                        Status = testStatus test.status
+                        Passed = test.passed
+                        Failed = test.failed
+                        Skipped = test.skipped
+                    }) |> Array.toList
+                    Rules = receipt.rules |> Array.map (fun rule -> {
+                        RuleId = rule.ruleId
+                        Status = rule.status
+                        EvidenceAvailable = rule.evidenceAvailable
+                        FindingCount = rule.findingCount
+                    }) |> Array.toList
+                    Findings = receipt.findings |> Array.map (fun finding -> {
+                        RuleId = finding.ruleId
+                        Path = finding.path
+                        Line = finding.line
+                        Column = finding.column
+                        Message = finding.message
+                        Fingerprint = finding.fingerprint
+                    }) |> Array.toList
+                }
+                let candidateMissing, candidateErrors = candidateAuthorityEvidence receipt.candidate
+                let semanticFacts = {
+                    reconstructedFacts with
+                        MissingEvidence = reconstructedFacts.MissingEvidence @ candidateMissing
+                        EvidenceErrors = reconstructedFacts.EvidenceErrors @ candidateErrors
+                }
+                let expectedDecision = decide receiptPolicy semanticFacts
+                let expectedReasons =
+                    expectedDecision.Reasons
+                    |> List.map (fun (code, detail) -> { code = code; detail = detail })
+                    |> List.toArray
+                [
+                    if receipt.outcome <> verdictName expectedDecision.Outcome then
+                        $"receipt outcome '{receipt.outcome}' does not reconcile with evidence outcome '{verdictName expectedDecision.Outcome}'"
+                    if receipt.authoritative <> expectedDecision.Authoritative then
+                        $"receipt authoritative={receipt.authoritative} does not reconcile with evidence authority={expectedDecision.Authoritative}"
+                    if receipt.reasons <> expectedReasons then
+                        "receipt reason set does not reconcile with itemized evidence"
+                ]
         with ex -> [ "receipt graph is incomplete: " + ex.Message ]
 
     let deserializeAndValidateReceipt (bytes: byte[]) =

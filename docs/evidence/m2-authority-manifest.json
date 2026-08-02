@@ -10,9 +10,9 @@
   "gate": "Human Gate B pending",
   "gateCApprovedBlockingRules": 0,
   "stableTests": {
-    "expected": 83,
+    "expected": 84,
     "m1Inherited": 54,
-    "m2Added": 29,
+    "m2Added": 30,
     "zeroTestPolicy": "strict-failure"
   },
   "repositoryAudit": {
@@ -25,7 +25,7 @@
     "filesScanned": 25,
     "filesSkipped": 0,
     "filesFailed": 0,
-    "findings": 545,
+    "findings": 546,
     "reasons": 2,
     "rulesCompleted": 35,
     "rulesUnavailable": 58,
@@ -35,11 +35,11 @@
     "sarifByteDeterministic": true
   },
   "hashes": {
-    "policyFileSha256": "a302b39c1efcfe3d6b9e9e1b1d9a02d1b49a026ad9460540cc930679b04ca584",
-    "canonicalPolicyIdentitySha256": "ef19e00cce619b983b0a3e2fe16efa1ccba135fdfbe2aab3fdde5329b7c25745",
-    "policySchemaSha256": "e4ce2fcb91f85591058b70c1284cdbbd4e58f11255828c8162693bce52a138ca",
-    "receiptSchemaSha256": "2413cf75ca86de501688f9eaec44d27cdf66af4b55d39dbc22d10cc1f90fa54f",
-    "contractSha256": "ef28068dc31d86729f044df5319900f7c996a86f46a8ac52e6627e5565e7e574"
+    "policyFileSha256": "d2f3e8bd9d3a4e601c845d5fd15685302d39d3655438be0eface98718dee12da",
+    "canonicalPolicyIdentitySha256": "d2b6185b6401208ffac8c23deb3c924644848e151eff16850a7da28ed82a3813",
+    "policySchemaSha256": "db0cae0c6bf54dcff9602245670cffb85f8e80823e5ceeea9e10db8aa5010810",
+    "receiptSchemaSha256": "10e43fd252a00ae0c24dfa437304eeb20d2b1c8ca90e45ef05af527028bc4f42",
+    "contractSha256": "3568ee592dec153ef39897665d0b4e0739eaac86a5f6bd9b004c894658808522"
   },
   "committedReceipt": false,
   "fullFindingDatasetCommitted": false,

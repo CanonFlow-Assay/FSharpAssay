@@ -4,7 +4,11 @@
 - Read `outcome` and `authoritative` separately. `Fail` can be non-authoritative
   when a conclusive failure coexists with missing evidence.
 - Never infer `Pass` from `findings.length == 0`.
-- Treat every `reasons`, `missingEvidence`, and `toolFailures` entry as evidence.
+- Treat every `reasons`, `policyErrors`, `evidenceErrors`, `missingEvidence`, and
+  `toolFailures` entry as evidence, and require public semantic validation rather
+  than trusting those top-level labels.
+- Do not interpret `configuredBaselineFindings` as suppression evidence.
+  `appliedSuppressions` is separately itemized and is empty in M2.
 - Read findings from `findings`; the top-level pre-M2 file array no longer exists.
 - Use repository-relative `path`/SARIF URIs and `fingerprint` for stable matching.
 - Do not equate `candidate.commitSha`, `approvedHeadSha`, `treeSha`,

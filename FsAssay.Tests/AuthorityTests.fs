@@ -359,6 +359,57 @@ let tests =
                 Expect.isError (Authority.deserializeAndValidateReceipt badHash) "malformed identities must be rejected"
                 Expect.isError (Authority.deserializeAndValidateReceipt badCount) "counts must reconcile with itemized evidence")
 
+        testCase "semantic receipt mutations cannot forge outcome authority or reasons" <| fun _ ->
+            withTempRoot (fun root ->
+                let serialize value = JsonSerializer.SerializeToUtf8Bytes(value)
+                let expectRejected label value =
+                    Expect.isError (Authority.deserializeAndValidateReceipt (serialize value)) label
+
+                let unsupported = ({ Path = Path.Combine(root, "ui", "Ui.fsproj"); ProjectClass = "other"; TargetFrameworks = [ "net10.0" ]; Disposition = Authority.ProjectDisposition.Unsupported; Reason = "outside policy" }: Authority.ProjectEvidence)
+                let notRun = { passedTest root with Status = Authority.TestStatus.NotRun; Passed = 0 }
+                let incompleteFacts = {
+                    completeFacts root with
+                        Projects = (completeFacts root).Projects @ [ unsupported ]
+                        RequiredTests = [ notRun ]
+                }
+                let incompleteReceipt = receipt root incompleteFacts
+                Expect.equal incompleteReceipt.outcome "Inconclusive" "fixture must contain honest incompleteness"
+                Expect.isFalse incompleteReceipt.authoritative "fixture must not be authoritative"
+                expectRejected "Pass true cannot hide notRun and unsupported evidence" { incompleteReceipt with outcome = "Pass"; authoritative = true }
+                expectRejected "Pass false is never a valid semantic outcome" { incompleteReceipt with outcome = "Pass"; authoritative = false }
+
+                let completeReceipt = receipt root (completeFacts root)
+                Expect.equal completeReceipt.outcome "Pass" "complete fixture must pass"
+                Expect.isTrue completeReceipt.authoritative "Pass fixture must be authoritative"
+                Expect.isEmpty completeReceipt.configuredBaselineFindings "M2 has no configured baseline governance"
+                Expect.isEmpty completeReceipt.appliedSuppressions "configured debt must never be reported as applied suppression"
+                expectRejected "M2 cannot forge applied suppressions" { completeReceipt with appliedSuppressions = [| "*" |] }
+                expectRejected "Pass false contradicts complete evidence" { completeReceipt with authoritative = false }
+                expectRejected "Inconclusive cannot be forged over complete evidence" { completeReceipt with outcome = "Inconclusive"; authoritative = false }
+                let forgedFailureReason = ({ code = "required-test-failed"; detail = "forged failure" }: Authority.ReasonReceipt)
+                expectRejected "Fail requires an itemized required failure or blocking finding" { completeReceipt with outcome = "Fail"; reasons = [| forgedFailureReason |] }
+                let forgedToolReason = ({ code = "tool-failure"; detail = "forged tool failure" }: Authority.ReasonReceipt)
+                expectRejected "ToolFailure requires itemized tool or invalid evidence" { completeReceipt with outcome = "ToolFailure"; authoritative = false; reasons = [| forgedToolReason |] }
+
+                let removedReason = { incompleteReceipt with reasons = incompleteReceipt.reasons |> Array.tail }
+                expectRejected "removing a required reason must fail reconciliation" removedReason
+                let forgedReason = ({ code = "evidence-missing"; detail = "forged extra reason" }: Authority.ReasonReceipt)
+                let forgedReasons = Array.append incompleteReceipt.reasons [| forgedReason |] |> Array.sortBy (fun reason -> reason.code, reason.detail)
+                expectRejected "adding a forged reason must fail reconciliation" { incompleteReceipt with reasons = forgedReasons }
+
+                let failedTest = { passedTest root with Status = Authority.TestStatus.Failed; Passed = 1; Failed = 1 }
+                let conclusiveFail = receipt root { completeFacts root with RequiredTests = [ failedTest ] }
+                Expect.equal conclusiveFail.outcome "Fail" "real required failure is Fail"
+                Expect.isTrue conclusiveFail.authoritative "complete conclusive failure is authoritative"
+                Expect.isOk (Authority.deserializeAndValidateReceipt (serialize conclusiveFail)) "complete Fail must validate"
+                let incompleteFail = receipt root { incompleteFacts with RequiredTests = [ failedTest ] }
+                Expect.equal incompleteFail.outcome "Fail" "known failure outranks incompleteness"
+                Expect.isFalse incompleteFail.authoritative "concurrent incompleteness removes Fail authority"
+                Expect.isOk (Authority.deserializeAndValidateReceipt (serialize incompleteFail)) "Fail false is valid only with reconciled incompleteness"
+                let honestToolFailure = receipt root { completeFacts root with ToolFailures = [ "plugin crashed" ] }
+                Expect.equal honestToolFailure.outcome "ToolFailure" "itemized tool failure is ToolFailure"
+                Expect.isOk (Authority.deserializeAndValidateReceipt (serialize honestToolFailure)) "honest ToolFailure must validate")
+
         testCase "failed evidence write removes stale requested artifacts" <| fun _ ->
             withTempRoot (fun root ->
                 let stale = Path.Combine(root, "receipt.json")
@@ -386,6 +437,12 @@ let tests =
                 match Authority.loadPolicy duplicatePath with
                 | Authority.PolicyInvalid _ -> ()
                 | other -> failtestf "duplicate policy values must be invalid, got %A" other
+                let wildcardBaselinePath = Path.Combine(root, "wildcard-baseline-policy.json")
+                let wildcardBaseline = { policy with baseline = { identity = "configured"; approvedFindings = [| "*" |] } }
+                File.WriteAllText(wildcardBaselinePath, JsonSerializer.Serialize(wildcardBaseline))
+                match Authority.loadPolicy wildcardBaselinePath with
+                | Authority.PolicyInvalid _ -> ()
+                | other -> failtestf "wildcard baseline must remain invalid until baseline governance exists, got %A" other
                 let countMismatch = ({ RuleId = "LEGACY001"; Status = "completed"; EvidenceAvailable = true; FindingCount = 1 }: Authority.RuleEvidence)
                 let countDecision = Authority.decide policy { completeFacts root with Rules = [ countMismatch; (completeFacts root).Rules.[1] ] }
                 Expect.equal countDecision.Outcome ToolFailure "declared rule counts must match findings"
