@@ -40,6 +40,8 @@ grep -q '| 3 | `Inconclusive` |' docs/contracts/AUTHORITY-CONTRACT-v1.md
 grep -q '| 4 | `Pass` |' docs/contracts/AUTHORITY-CONTRACT-v1.md
 grep -q 'Gate C approval; none are approved in M2' FsAssay.Runner/Authority.fs
 grep -q 'common=(--minimum-expected-tests 83 ' eng/run-stable-tests.sh
+! grep -q 'pull_request.merge_commit_sha' .github/workflows/fsassay.yml
+grep -q 'FSASSAY_APPROVED_HEAD_SHA:' .github/workflows/fsassay.yml
 grep -q '<FsAssayBaselineVersion>1.0.4</FsAssayBaselineVersion>' Directory.Build.props
 
 echo "M2 authority contract verified"

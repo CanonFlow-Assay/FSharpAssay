@@ -79,10 +79,12 @@ change plus untracked authority inputs: F# source/signature/script, project and
 solution files, MSBuild props/targets, `global.json`, NuGet configuration,
 package locks, and FsAssay policy/configuration JSON. Generated non-input paths
 such as `artifacts/`, build outputs, and the workspace-local `.dotnet/` SDK are
-excluded. CI supplies the
-reviewed head as `FSASSAY_APPROVED_HEAD_SHA` and, for pull requests, the merge
-object as `FSASSAY_SYNTHETIC_MERGE_SHA`. These environment identities are
-recorded separately and validated against actual HEAD; they never replace it.
+excluded. CI supplies the reviewed head as `FSASSAY_APPROVED_HEAD_SHA`. For a
+pull request, the runtime `GITHUB_SHA` identifies the synthesized commit that
+was actually checked out; the potentially stale event `merge_commit_sha` field
+is not trusted. An explicit `FSASSAY_SYNTHETIC_MERGE_SHA`, when used outside the
+repository workflow, must still equal actual HEAD. These environment identities
+are recorded separately and validated against actual HEAD; they never replace it.
 Dirty tracked or untracked input, a non-Git target, or an unavailable commit,
 tree, or reviewed head is incomplete candidate evidence: it forces
 `Inconclusive` and `authoritative: false` unless a higher-precedence conclusive

@@ -16,7 +16,6 @@ jobs:
     env:
       DOTNET_INSTALL_DIR: ${{ github.workspace }}/.dotnet
       FSASSAY_APPROVED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-      FSASSAY_SYNTHETIC_MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha || '' }}
     steps:
       - uses: actions/checkout@v4
         with:

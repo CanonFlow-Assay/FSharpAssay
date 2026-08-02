@@ -173,6 +173,9 @@ let tests =
                 let _, _, mismatchedPrErrors =
                     Authority.candidateIdentityWithEnvironment root tracked mergeSha "pull_request" wrongApproved mergeSha null
                 Expect.contains mismatchedPrErrors "approved head identity does not match the synthetic merge second parent" "wrong reviewed head must be rejected"
+                let _, _, staleSyntheticErrors =
+                    Authority.candidateIdentityWithEnvironment root tracked mergeSha "pull_request" approvedFeature wrongApproved null
+                Expect.contains staleSyntheticErrors "synthetic merge identity does not match the analyzed HEAD" "stale event merge identity must not replace actual HEAD"
 
                 let unavailable = {
                     candidate with
