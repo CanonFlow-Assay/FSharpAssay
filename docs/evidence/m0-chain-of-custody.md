@@ -31,7 +31,7 @@ The independent tester used a fresh disposable source clone at the exact source 
 | Exact command | Exit | Duration | Evidence |
 | --- | ---: | ---: | --- |
 | `dotnet --info` | 0 | 0.276 s | Expected SDK selected |
-| `dotnet restore --locked-mode` | 0 | 6.429 s | Restore completed, but zero package lock files exist |
+| `dotnet restore --locked-mode` | 0 | 6.429 s | Restore completed, but zero NuGet `packages.lock.json` files exist |
 | `dotnet build --no-restore` | 0 | 24.223 s | Build completed |
 | `dotnet test` | 0 | 6.343 s | **Zero tests executed**; runner reported `No test is available` |
 | `dotnet build --no-restore --configuration Release` | 0 | 26.800 s | 0 warnings, 0 errors |
@@ -39,7 +39,7 @@ The independent tester used a fresh disposable source clone at the exact source 
 | `dotnet run --project FsAssay.Tests/FsAssay.Tests.fsproj -c Release --no-build` | 0 | 77.807 s | Expecto: 54 run, 54 passed, 0 ignored, 0 failed, 0 errored |
 | Existing workflow self-audit command | 1 | 58.230 s | 24 files scanned, 0 skipped, 0 failed, 436 findings |
 
-The build baseline is healthy and the directly executed Expecto suite is healthy. Ordinary `dotnet test` is a false-green, zero-test gate and is a repository/test-adapter integration defect. It must not be described as passing tests. Successful `--locked-mode` restore does not prove locked dependencies because the repository tracks no `packages.lock.json` files.
+The build baseline is healthy and the directly executed Expecto suite is healthy. Ordinary `dotnet test` is a false-green, zero-test gate and is a repository/test-adapter integration defect. It must not be described as passing tests. Successful `--locked-mode` restore does not prove locked NuGet dependencies because the repository tracks no NuGet `packages.lock.json` files. Separate npm lock files exist under `e2e`.
 
 The self-audit exit 1 follows the current CLI contract for admitted blocking findings. It is not a tool crash and is not a clean result. The independent artifact hashes were:
 
@@ -56,7 +56,7 @@ The source tracked tree remained byte-clean after baseline execution. The self-a
 - Root `FsAssay.slnx` includes six .NET 10 projects: analyzers, CanonFlow plugin, runner, tests, desktop, and TypeGym.
 - `FsAssay.Web/FsAssay.Web.sln` contains the Web client, which targets .NET 8.
 - Other projects include Web tests, `InspectTAST`, and `Specimens`.
-- 43 tracked `.fs` files, eight `.fsx` files, and no package lock files.
+- 43 tracked `.fs` files, eight `.fsx` files, and no NuGet `packages.lock.json` files.
 - Global warnings-as-errors is enabled. `NU1608` is explicitly treated as an error. NuGet audit is disabled.
 - Unit/regression tests use Expecto with `YoloDev.Expecto.TestSdk`; Web tests use Expecto and Playwright.
 

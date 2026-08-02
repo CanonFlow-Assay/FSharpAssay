@@ -26,7 +26,7 @@
     "fsharpScriptFiles": 8,
     "projects": 10,
     "rootSolutionProjects": 6,
-    "packageLockFiles": 0,
+    "nugetPackageLockFiles": 0,
     "catalogueRules": 93,
     "implementedRules": 35,
     "dummyRules": 22,
