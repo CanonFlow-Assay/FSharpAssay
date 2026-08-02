@@ -1,0 +1,14 @@
+{
+  "profile": "core",
+  "exclude": [
+    "obj",
+    "bin",
+    "AssemblyAttributes.fs",
+    "Specimens",
+    "FsAssay.Tests",
+    "FsAssay.Scanner",
+    "InspectTAST",
+    "FsAssay.TypeGym",
+    "docs"
+  ]
+}

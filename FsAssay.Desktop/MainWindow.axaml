@@ -1,0 +1,24 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="FsAssay.Desktop.MainWindow"
+        Title="FsAssay F# Code Quality Analyzer"
+        Width="900" Height="600"
+        Background="#1e1e1e"
+        Foreground="White">
+    <Grid RowDefinitions="Auto,*,Auto" Margin="20">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="Target Path:" VerticalAlignment="Center" FontSize="16" />
+            <TextBox Name="PathTextBox" Width="400" Text="/root/FSharpAssay" />
+            <Button Name="ScanButton" Content="Run Scan" Background="#007acc" Foreground="White" />
+            <Button Name="FixButton" Content="Auto-Fix Code" Background="#d08770" Foreground="White" />
+        </StackPanel>
+        
+        <Border Grid.Row="1" Margin="0,20" Background="#2d2d2d" CornerRadius="8" Padding="10">
+            <ScrollViewer>
+                <TextBlock Name="OutputText" FontFamily="Consolas" TextWrapping="Wrap" Text="Ready to scan F# code for Elite Functional idioms..." />
+            </ScrollViewer>
+        </Border>
+
+        <TextBlock Grid.Row="2" Text="Powered by FsAssay AOT Avalonia UI" Foreground="Gray" HorizontalAlignment="Right" />
+    </Grid>
+</Window>

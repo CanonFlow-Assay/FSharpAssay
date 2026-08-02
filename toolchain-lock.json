@@ -1,0 +1,9 @@
+{
+  "sdk": "10.0.301",
+  "packages": {
+    "FSharp.Core": "10.1.201",
+    "FSharp.Compiler.Service": "43.12.201",
+    "FSharp.Analyzers.SDK": "0.37.2",
+    "Ionide.ProjInfo.FCS": "0.74.2"
+  }
+}

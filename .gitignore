@@ -55,3 +55,16 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+release_output/
+
+# FsAssay Generated and Hygiene
+node_modules/
+*.wasm
+*.br
+*.gz
+out.json
+out.sarif
+ratecard.md
+dashboard.html
+material.html
+Demonstration.md
