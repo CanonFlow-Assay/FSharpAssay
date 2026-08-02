@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "1.0.0",
+  "milestone": "M0",
+  "source": {
+    "repository": "CanonFlowFoundation/FSharpAssay",
+    "branch": "main",
+    "commit": "1f25f3088a4a6fb7db980410bc5a2a767de57f2e",
+    "rootCommit": "a57f0c292067441d41a4a28e7b2aa14f8272dc3a",
+    "commitCount": 141,
+    "readOnly": true
+  },
+  "target": {
+    "repository": "CanonFlow-Assay/FSharpAssay",
+    "branch": "main",
+    "commit": "8e246100cc8e1e0047bf1353c238ef4869317c04"
+  },
+  "ancestryBeforeMigration": {
+    "mergeBase": null,
+    "sourceIsAncestorOfTarget": false,
+    "targetIsAncestorOfSource": false
+  },
+  "inventory": {
+    "trackedFiles": 2514,
+    "trackedBytes": 194969198,
+    "fsharpImplementationFiles": 43,
+    "fsharpScriptFiles": 8,
+    "projects": 10,
+    "rootSolutionProjects": 6,
+    "packageLockFiles": 0,
+    "catalogueRules": 93,
+    "implementedRules": 35,
+    "dummyRules": 22,
+    "prototypeRules": 36,
+    "admittedRules": 21,
+    "trackedNodeModulesFiles": 823,
+    "trackedDocsFiles": 1097,
+    "trackedPublicHtmlFiles": 475,
+    "trackedWasmBrotliGzipFiles": 936
+  },
+  "baseline": {
+    "sdk": "10.0.301",
+    "runtime": "10.0.9",
+    "restore": {
+      "command": "dotnet restore --locked-mode",
+      "exitCode": 0,
+      "packageGraphLocked": false
+    },
+    "releaseBuild": {
+      "command": "dotnet build --no-restore --configuration Release",
+      "exitCode": 0,
+      "warnings": 0,
+      "errors": 0
+    },
+    "ordinaryTest": {
+      "command": "dotnet test --no-build --configuration Release --verbosity normal",
+      "exitCode": 0,
+      "executed": 0,
+      "status": "missing-evidence"
+    },
+    "expectoTest": {
+      "command": "dotnet run --project FsAssay.Tests/FsAssay.Tests.fsproj -c Release --no-build",
+      "exitCode": 0,
+      "executed": 54,
+      "passed": 54,
+      "failed": 0,
+      "errored": 0
+    },
+    "selfAudit": {
+      "exitCode": 1,
+      "filesScanned": 24,
+      "filesSkipped": 0,
+      "filesFailed": 0,
+      "findings": 436,
+      "sarifSha256": "a9190b99a60babf1c44c89f71bf99fd2e378f57897978f7831b19aeb7f05addb",
+      "ratecardSha256": "5c97eb66deb02f5368a7fa3804df68a7db32a71f3a7db8bb24e83908bd004415",
+      "dashboardSha256": "9245c08b0cdc0507717fa9e4883d61f018d48d0794f67dee14caff8bfe605f6d"
+    }
+  },
+  "humanGateARequired": false,
+  "nextAction": "Create a normal two-parent merge on the target feature branch, preserving both unrelated histories without rewriting target main."
+}
