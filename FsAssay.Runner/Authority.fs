@@ -631,8 +631,8 @@ module Authority =
                 "package identity is not a SHA-256 digest"
             if candidate.kind = "dirty-worktree" && not candidate.dirty then
                 "dirty-worktree candidate kind contradicts the clean worktree flag"
-            if candidate.kind <> "dirty-worktree" && candidate.kind <> "unversioned" && candidate.dirty then
-                "clean candidate kind contradicts the dirty worktree flag"
+            if candidate.kind = "commit" && candidate.dirty then
+                "commit candidate kind contradicts the dirty worktree flag"
             if candidate.kind = "unversioned" && (candidate.commitSha <> "unavailable" || candidate.treeSha <> "unavailable") then
                 "unversioned candidate kind contradicts available Git identities"
             if (candidate.kind = "commit" || candidate.kind = "dirty-worktree")
@@ -793,7 +793,7 @@ module Authority =
                 if receipt.candidate.kind = "package" && receipt.candidate.packageSha256 = "not-applicable" then "package candidate lacks package identity"
                 if (receipt.candidate.kind = "commit" || receipt.candidate.kind = "dirty-worktree") && receipt.candidate.commitSha <> "unavailable" && receipt.candidate.approvedHeadSha <> "unavailable" && receipt.candidate.commitSha <> receipt.candidate.approvedHeadSha then "approved head does not match analyzed commit"
                 if receipt.candidate.kind = "dirty-worktree" && not receipt.candidate.dirty then "dirty-worktree kind contradicts dirty flag"
-                if receipt.candidate.kind <> "dirty-worktree" && receipt.candidate.kind <> "unversioned" && receipt.candidate.dirty then "clean candidate kind contradicts dirty flag"
+                if receipt.candidate.kind = "commit" && receipt.candidate.dirty then "commit candidate kind contradicts dirty flag"
                 if not (relativePath receipt.candidate.repositoryRelativeTarget) then "candidate target is not repository-relative"
                 if not (relativePath receipt.policy.path) then "policy path is not repository-relative"
                 if receipt.policy.status = "loaded" && not (isHex 64 receipt.policy.sha256) then "loaded policy lacks a SHA-256 identity"
@@ -857,13 +857,33 @@ module Authority =
                 | errors -> Error errors
         with ex -> Error [ ex.Message ]
 
+    let private authorityInputPath (path: string) =
+        let normalized = path.Replace('\\', '/')
+        let fileName = Path.GetFileName(normalized)
+        let extension = Path.GetExtension(fileName)
+        Set.contains extension (set [ ".fs"; ".fsi"; ".fsx"; ".fsproj"; ".csproj"; ".props"; ".targets"; ".sln"; ".slnx" ])
+        || fileName.Equals("global.json", StringComparison.OrdinalIgnoreCase)
+        || fileName.Equals("NuGet.Config", StringComparison.OrdinalIgnoreCase)
+        || fileName.Equals("packages.lock.json", StringComparison.OrdinalIgnoreCase)
+        || fileName.EndsWith(".lock.json", StringComparison.OrdinalIgnoreCase)
+        || (fileName.StartsWith("fsassay", StringComparison.OrdinalIgnoreCase) && fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+        || (fileName.StartsWith(".fsassay", StringComparison.OrdinalIgnoreCase) && fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+
     let candidateIdentityWithEnvironment repositoryRoot targetPath environmentSha eventName approvedEnvironmentSha explicitSyntheticSha packageSha =
         let commit = tryGit repositoryRoot [ "rev-parse"; "HEAD" ] |> Option.defaultValue "unavailable"
         let tree = tryGit repositoryRoot [ "rev-parse"; "HEAD^{tree}" ] |> Option.defaultValue "unavailable"
-        let dirty =
-            tryGit repositoryRoot [ "status"; "--porcelain"; "--untracked-files=all" ]
+        let trackedDirty =
+            tryGit repositoryRoot [ "status"; "--porcelain"; "--untracked-files=no" ]
             |> Option.map (String.IsNullOrWhiteSpace >> not)
-            |> Option.defaultValue true
+        let untrackedAuthorityInputs =
+            tryGit repositoryRoot [ "ls-files"; "--others"; "--exclude-standard" ]
+            |> Option.map (fun output ->
+                output.Split([| '\r'; '\n' |], StringSplitOptions.RemoveEmptyEntries)
+                |> Array.exists authorityInputPath)
+        let dirty =
+            match trackedDirty, untrackedAuthorityInputs with
+            | Some tracked, Some untracked -> tracked || untracked
+            | _ -> true
         let isPullRequest = not (String.IsNullOrWhiteSpace(eventName)) && eventName.StartsWith("pull_request", StringComparison.Ordinal)
         let synthetic =
             if commit <> "unavailable" && not (String.IsNullOrWhiteSpace(explicitSyntheticSha)) then explicitSyntheticSha

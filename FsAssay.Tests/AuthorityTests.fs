@@ -139,6 +139,13 @@ let tests =
 
                 runProcess root "git" [ "add"; "candidate.fs" ]
                 runProcess root "git" [ "commit"; "--quiet"; "-m"; "tracked change" ]
+                let generatedSdk = Path.Combine(root, ".dotnet", "sdk")
+                Directory.CreateDirectory(generatedSdk) |> ignore
+                File.WriteAllText(Path.Combine(generatedSdk, "host"), "generated toolchain")
+                let generatedOnly, generatedMissing, generatedErrors = localCandidateIdentity root tracked
+                Expect.isFalse generatedOnly.dirty "untracked generated non-inputs must not dirty candidate evidence"
+                Expect.isEmpty generatedMissing "generated non-inputs must not remove candidate identity"
+                Expect.isEmpty generatedErrors "generated non-inputs must not contradict candidate identity"
                 File.WriteAllText(Path.Combine(root, "fsassay-policy.local.json"), "{}")
                 let untrackedDirty, _, _ = localCandidateIdentity root tracked
                 let untrackedReceipt = receiptForCandidate root untrackedDirty (completeFacts root)

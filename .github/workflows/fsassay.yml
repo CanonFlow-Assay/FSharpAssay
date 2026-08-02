@@ -57,7 +57,7 @@ jobs:
             grep -q '^Files scanned: 25$' "artifacts/audit/run-${suffix}.log"
             grep -q '^Skipped: 0$' "artifacts/audit/run-${suffix}.log"
             grep -q '^Failed: 0$' "artifacts/audit/run-${suffix}.log"
-            grep -q '^Total Violations: 535$' "artifacts/audit/run-${suffix}.log"
+            grep -q '^Total Violations: 545$' "artifacts/audit/run-${suffix}.log"
             grep -q '^Authority outcome: Inconclusive$' "artifacts/audit/run-${suffix}.log"
             grep -q '^Authoritative: false$' "artifacts/audit/run-${suffix}.log"
             jq -e '
@@ -67,7 +67,7 @@ jobs:
               .counts.projectsUnsupported == 2 and .counts.eligibleFiles == 25 and
               .counts.analyzedFiles == 25 and .counts.compilerIncompleteFiles == 0 and
               (.tests | length) == 1 and .tests[0].status == "notRun" and
-              (.findings | length) == 535 and
+              (.findings | length) == 545 and
               (.reasons | length) == 2 and
               ([.reasons[] | select(.code == "project-unsupported")] | length) == 1 and
               ([.reasons[] | select(.code == "required-test-not-run")] | length) == 1 and
@@ -81,7 +81,7 @@ jobs:
             jq -e '
               .runs[0].properties.outcome == "Inconclusive" and
               .runs[0].properties.authoritative == false and
-              .runs[0].properties.findingCount == 535 and
+              .runs[0].properties.findingCount == 545 and
               (.runs[0].properties.reasons | length) == 2 and
               (.runs[0].invocations[0].toolExecutionNotifications | length) == 2 and
               .runs[0].invocations[0].executionSuccessful == true

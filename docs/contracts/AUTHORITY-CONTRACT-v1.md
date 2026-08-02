@@ -74,8 +74,12 @@ Candidate identity is runtime evidence. No committed artifact embeds its own
 future commit SHA. A branch commit, tree, dirty worktree, GitHub synthetic merge,
 and package payload are not interchangeable identities.
 
-Actual HEAD and tree always come from Git. Dirty detection includes tracked and
-untracked files (ignored build/artifact paths remain ignored). CI supplies the
+Actual HEAD and tree always come from Git. Dirty detection includes every tracked
+change plus untracked authority inputs: F# source/signature/script, project and
+solution files, MSBuild props/targets, `global.json`, NuGet configuration,
+package locks, and FsAssay policy/configuration JSON. Generated non-input paths
+such as `artifacts/`, build outputs, and the workspace-local `.dotnet/` SDK are
+excluded. CI supplies the
 reviewed head as `FSASSAY_APPROVED_HEAD_SHA` and, for pull requests, the merge
 object as `FSASSAY_SYNTHETIC_MERGE_SHA`. These environment identities are
 recorded separately and validated against actual HEAD; they never replace it.
@@ -100,7 +104,7 @@ self-audit consequently remains `Inconclusive`/non-authoritative. A reviewed
 consumer evidence-ingestion surface belongs to a later milestone.
 
 The full audit includes frozen Desktop and TypeGym projects. Their unsupported
-status is explicit and prevents authority. The 535 current observations require
+status is explicit and prevents authority. The 545 current observations require
 human adjudication and are not proof of product success. Advisory/prototype
 findings must not be automatically refactored by humans or agents.
 

@@ -25,7 +25,7 @@
     "filesScanned": 25,
     "filesSkipped": 0,
     "filesFailed": 0,
-    "findings": 535,
+    "findings": 545,
     "reasons": 2,
     "rulesCompleted": 35,
     "rulesUnavailable": 58,
@@ -39,7 +39,7 @@
     "canonicalPolicyIdentitySha256": "ef19e00cce619b983b0a3e2fe16efa1ccba135fdfbe2aab3fdde5329b7c25745",
     "policySchemaSha256": "e4ce2fcb91f85591058b70c1284cdbbd4e58f11255828c8162693bce52a138ca",
     "receiptSchemaSha256": "2413cf75ca86de501688f9eaec44d27cdf66af4b55d39dbc22d10cc1f90fa54f",
-    "contractSha256": "d61b6eacd3a523a7aac842e84399cb10f8bed3fe65dcc20cd850b75acc3b2dd8"
+    "contractSha256": "c152962c9ff2894613562c0ec21b7903018753b671d18517146af67f1874e26d"
   },
   "committedReceipt": false,
   "fullFindingDatasetCommitted": false,
