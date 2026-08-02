@@ -19,6 +19,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify required locks before restore
+        run: bash eng/assert-required-locks.sh
+
+      - name: Prove a missing required lock fails policy
+        run: bash eng/assert-missing-lock-fails.sh
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.301'
@@ -49,6 +55,11 @@ jobs:
 
       - name: Pack inherited baseline identity
         run: dotnet pack FsAssay.Runner/FsAssay.Runner.fsproj --configuration Release --no-build --no-restore --output artifacts/package
+
+      - name: Verify final tracked-source integrity
+        run: |
+          bash eng/assert-required-locks.sh
+          test -z "$(git status --porcelain --untracked-files=no)"
 
       - uses: actions/upload-artifact@v4
         with:

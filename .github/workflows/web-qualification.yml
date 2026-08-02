@@ -17,6 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Verify required locks before restore
+        run: bash eng/assert-required-locks.sh
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.301'
@@ -35,3 +38,8 @@ jobs:
 
       - name: Run browser exercise
         run: dotnet run --project FsAssay.Web.Tests/FsAssay.Web.Tests.fsproj --configuration Release --no-build
+
+      - name: Verify final tracked-source integrity
+        run: |
+          bash eng/assert-required-locks.sh
+          test -z "$(git status --porcelain --untracked-files=no)"

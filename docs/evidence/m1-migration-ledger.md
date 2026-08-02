@@ -24,7 +24,7 @@ the plugin into core authority or promote the plugin contract.
 | Concern | Before M1 | M1 invariant |
 |---|---|---|
 | Stable tests | `dotnet test` returned success without executing tests | ordinary and direct entry points each execute exactly 54; zero tests fail |
-| Restore | package graph was not truthfully locked | maintained stable, audit, and Web projects carry `packages.lock.json`; CI uses `--locked-mode`; drift is rejected |
+| Restore | package graph was not truthfully locked | eight required lock paths are tracked and blob-bound before any restore; CI uses `--locked-mode`; missing locks and dependency drift are rejected |
 | Deployment | inherited workflow held deployment permissions and actions | workflow files contain no deployment tokens, actions, environments, or permissions |
 | Stable boundary | full experimental tree was treated as one product surface | analyzer and runner are bounded by `FsAssay.Stable.slnx`; frozen surfaces are documented separately |
 | Repository audit | duplicated test responsibility and root outputs | audit owns only the 24-file self-scan and writes under ignored `artifacts/audit/` |
@@ -77,10 +77,18 @@ deletion entry against Git object identity and byte size, compares the manifest
 to the candidate deletion diff, validates lock-file coverage, rejects tracked
 generated debt, and rejects deployment capability in workflow files.
 
+`eng/required-locks.txt` is the sorted lock-file policy.
+`eng/assert-required-locks.sh` requires its eight paths to be tracked, present,
+byte-identical to their candidate Git blobs, and schema-valid before restore.
+It also rejects an unlisted tracked lock. `eng/assert-missing-lock-fails.sh`
+constructs a disposable Git fixture and proves that a tracked-but-absent lock
+fails policy, so restore cannot self-heal the evidence gap.
+
 `eng/run-stable-tests.sh`, `eng/assert-zero-test-fails.sh`, and
 `eng/assert-locked-restore.sh` keep all runtime evidence below ignored
-`artifacts/`. CI artifacts are supporting review material; the committed
-manifest and scripts are the reproducible contract.
+`artifacts/`. Final gates rerun lock integrity and require no tracked worktree
+changes. CI artifacts are supporting review material; the committed manifest
+and scripts are the reproducible contract.
 
 ## Limitations
 

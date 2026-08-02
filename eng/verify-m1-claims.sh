@@ -49,15 +49,16 @@ if ! diff -u <(printf '%s\n' "${recorded[@]}") <(printf '%s\n' "${deleted[@]}");
   exit 1
 fi
 
-for project in \
-  FsAssay.Analyzers FsAssay.CanonFlow.Plugin FsAssay.Runner FsAssay.Tests \
-  FsAssay.Desktop FsAssay.TypeGym FsAssay.Web.Tests \
-  FsAssay.Web/src/FsAssay.Web.Client; do
-  test -f "$project/packages.lock.json"
-done
+bash eng/assert-required-locks.sh
 
 if git ls-files | grep -E '(^|/)(node_modules|public_html)/|^docs/(_content|_framework|css)/|^adjudicate\.log$|^out-toolchain\.json$|^e2e/failure\.png$'; then
   echo "tracked generated or machine-local debt remains" >&2
+  exit 1
+fi
+
+if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+  echo "tracked worktree changes remain after M1 qualification" >&2
+  git status --short --untracked-files=no >&2
   exit 1
 fi
 

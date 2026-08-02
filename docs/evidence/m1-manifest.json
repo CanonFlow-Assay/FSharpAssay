@@ -25,6 +25,13 @@
     "expectedSkipped": 0,
     "expectedFailed": 0
   },
+  "lockedRestore": {
+    "requiredManifest": "eng/required-locks.txt",
+    "requiredTrackedFiles": 8,
+    "preRestoreBlobIntegrity": true,
+    "missingLockMustFail": true,
+    "finalTrackedWorktreeClean": true
+  },
   "deletions": {
     "path": "docs/evidence/m1-deletions.tsv",
     "sha256": "9995b05c921816bf431727560f454c04972d8b64f8eb1f12602ec2224e6df22d",
