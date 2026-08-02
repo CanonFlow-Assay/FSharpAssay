@@ -40,7 +40,7 @@ let handleInitialize (id: JsonNode) =
     result.Add("capabilities", capabilities) // EXPECT: FSA-F04
     let serverInfo = JsonObject()
     serverInfo.Add("name", JsonValue.Create("fsassay-mcp")) // EXPECT: FSA-F04
-    serverInfo.Add("version", JsonValue.Create("1.0.0")) // EXPECT: FSA-F04
+    serverInfo.Add("version", JsonValue.Create(ProductIdentity.Version)) // EXPECT: FSA-F04
     result.Add("serverInfo", serverInfo) // EXPECT: FSA-F04
     sendResponse id result
 

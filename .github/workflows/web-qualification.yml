@@ -1,0 +1,37 @@
+name: Frozen Web Qualification
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  browser-exercise:
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_INSTALL_DIR: ${{ github.workspace }}/.dotnet
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.301'
+
+      - name: Verify exact SDK
+        run: test "$(dotnet --version)" = "10.0.301"
+
+      - name: Restore locked browser graph
+        run: dotnet restore FsAssay.Web.Tests/FsAssay.Web.Tests.fsproj --locked-mode
+
+      - name: Build browser exercise
+        run: dotnet build FsAssay.Web.Tests/FsAssay.Web.Tests.fsproj --configuration Release --no-restore
+
+      - name: Install browser runtime
+        run: pwsh FsAssay.Web.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+
+      - name: Run browser exercise
+        run: dotnet run --project FsAssay.Web.Tests/FsAssay.Web.Tests.fsproj --configuration Release --no-build

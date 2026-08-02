@@ -29,6 +29,11 @@ type AssayVerdict = // EXPECT: FSA-AI17 // EXPECT: FSA-AI11
     | Inconclusive
     | ToolFailure
 
+module ProductIdentity =
+    let Version =
+        let version = typeof<AssayVerdict>.Assembly.GetName().Version
+        $"{version.Major}.{version.Minor}.{version.Build}"
+
 module ExitCodes =
     let Success = 0
     let BlockingFinding = 1

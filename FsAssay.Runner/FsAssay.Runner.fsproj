@@ -6,7 +6,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>fsassay</ToolCommandName>
     <PackageId>FsAssay.Cli</PackageId>
-    <Version>1.0.4</Version>
+    <Version>$(FsAssayBaselineVersion)</Version>
     <Authors>CanonFlow Foundation</Authors>
     <Description>Experimental F# static analyzer with an evidence-bounded production rule set.</Description>
   </PropertyGroup>

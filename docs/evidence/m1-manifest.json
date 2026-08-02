@@ -1,0 +1,34 @@
+{
+  "schema": "fsassay-m1-manifest/1",
+  "sourceBaselineCommit": "1f25f3088a4a6fb7db980410bc5a2a767de57f2e",
+  "targetBaseCommit": "f773b3090ffd86cb5600fdaf3aca20ec9cc19606",
+  "baseTree": "417d216dd00d7d8f082627f1f859f413044a8c6d",
+  "analyzerSourceBaselineTree": "bbd34a4fe89f692347f6f5706258252ffa69c32e",
+  "analyzerOnlyAddedPath": "FsAssay.Analyzers/packages.lock.json",
+  "inheritedVersion": "1.0.4",
+  "releaseCreated": false,
+  "rules": {
+    "total": 93,
+    "implemented": 35,
+    "dummy": 22,
+    "prototype": 36,
+    "productionAdmitted": 21
+  },
+  "stableTests": {
+    "expected": 54,
+    "ordinaryEntryPoint": 54,
+    "directEntryPoint": 54,
+    "zeroTestPolicy": "strict-failure"
+  },
+  "repositoryAudit": {
+    "expectedScanned": 24,
+    "expectedSkipped": 0,
+    "expectedFailed": 0
+  },
+  "deletions": {
+    "path": "docs/evidence/m1-deletions.tsv",
+    "sha256": "9995b05c921816bf431727560f454c04972d8b64f8eb1f12602ec2224e6df22d",
+    "entries": 2296,
+    "bytes": 193488195
+  }
+}

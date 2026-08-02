@@ -72,7 +72,7 @@ let main argv =
     let activeProfile = results.GetResult(Profile, defaultValue = rawConfig.profile)
     let config = { rawConfig with profile = activeProfile }
 
-    printfn "🧪 FsAssay Engine v0.1.0 — Scanning target: %s [Profile: %s]" path config.profile // EXPECT: FSA-F04
+    printfn "🧪 FsAssay Engine v%s — Scanning target: %s [Profile: %s]" ProductIdentity.Version path config.profile // EXPECT: FSA-F04
     
     let pluginPaths =
         match results.TryGetResult(Plugin) with

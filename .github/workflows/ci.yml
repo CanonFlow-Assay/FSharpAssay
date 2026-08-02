@@ -1,37 +1,59 @@
-name: CI
+name: Stable CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
+
+permissions:
+  contents: read
 
 jobs:
-  build-and-test:
+  stable:
     runs-on: ubuntu-latest
-
+    env:
+      DOTNET_INSTALL_DIR: ${{ github.workspace }}/.dotnet
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '10.0.x'
-        
-    - name: Restore dependencies
-      run: dotnet restore
-      
-    - name: Build
-      run: dotnet build --no-restore --configuration Release
-      
-    - name: Test
-      run: dotnet test --no-build --configuration Release --verbosity normal
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Pack
-      run: dotnet pack FsAssay.Runner/FsAssay.Runner.fsproj --configuration Release --no-build -o ./artifacts
-      
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: FsAssay.Cli
-        path: ./artifacts/*.nupkg
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.301'
+
+      - name: Verify exact SDK
+        run: test "$(dotnet --version)" = "10.0.301"
+
+      - name: Restore locked stable graph
+        run: dotnet restore FsAssay.Stable.slnx --locked-mode
+
+      - name: Build stable surface
+        run: dotnet build FsAssay.Stable.slnx --no-restore --configuration Release
+
+      - name: Run ordinary test entry point
+        run: bash eng/run-stable-tests.sh ordinary
+
+      - name: Run direct executable entry point
+        run: bash eng/run-stable-tests.sh direct
+
+      - name: Prove zero tests fail
+        run: bash eng/assert-zero-test-fails.sh
+
+      - name: Prove locked restore rejects drift
+        run: bash eng/assert-locked-restore.sh
+
+      - name: Verify M1 claims
+        run: bash eng/verify-m1-claims.sh
+
+      - name: Pack inherited baseline identity
+        run: dotnet pack FsAssay.Runner/FsAssay.Runner.fsproj --configuration Release --no-build --no-restore --output artifacts/package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stable-qualification
+          path: |
+            artifacts/package/*.nupkg
+            artifacts/test-results/*.log
+            artifacts/restore/*.log

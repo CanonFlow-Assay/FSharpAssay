@@ -3,5 +3,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors>NU1608</WarningsAsErrors>
     <NuGetAudit>false</NuGetAudit>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <FsAssayBaselineVersion>1.0.4</FsAssayBaselineVersion>
   </PropertyGroup>
 </Project>

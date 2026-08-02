@@ -9,9 +9,9 @@ is correct, secure, pure, or production-ready.
 
 ## Evidence-bounded verdicts
 
-The catalog currently contains 91 rule identifiers: 35 marked `Implemented`,
-22 `Dummy`, and 34 `Prototype`. Catalog status alone does not admit a rule to
-affect the production verdict.
+The catalog contains 93 rule identifiers: 35 marked `Implemented`, 22 `Dummy`,
+and 36 `Prototype`. Catalog status alone does not admit a rule to affect the
+production verdict.
 
 The production boundary admits these 21 implemented rules because each has an
 independently executable positive behavioral specimen:
@@ -31,15 +31,17 @@ CLI exit codes:
 - `1`: an admitted critical or major rule found a blocking issue
 - `2`: required evidence was missing or only non-admitted findings were present
 - `3`: the tool could not complete the requested evaluation
+- `64`: the command line was invalid
 
 ## Build and verify
 
-The repository expects the SDK selected by `global.json`.
+The repository expects the SDK selected by `global.json`. Stable qualification
+uses the bounded solution and locked package graph:
 
 ```bash
-dotnet restore --locked-mode
-dotnet build --no-restore
-dotnet test
+dotnet restore FsAssay.Stable.slnx --locked-mode
+dotnet build FsAssay.Stable.slnx --no-restore --configuration Release
+bash eng/run-stable-tests.sh ordinary
 ```
 
 Run the CLI against a project or directory:
@@ -48,16 +50,29 @@ Run the CLI against a project or directory:
 dotnet run --project FsAssay.Runner/FsAssay.Runner.fsproj -- ./MyProject
 ```
 
-Run only explicitly declared files:
+Run only explicitly declared files and write canonical JSON:
 
 ```bash
-fsassay ./MyProject --files ./MyProject/A.fs,./MyProject/B.fs --json result.json
+fsassay ./MyProject --files ./MyProject/A.fs,./MyProject/B.fs --out-json artifacts/result.json
 ```
 
 The `.fsassayrc` format supports `profile` and `exclude`. Unknown or malformed
 configuration currently falls back to defaults, so callers that require a
 strict policy should pin the packaged tool and validate their configuration
 before invocation.
+
+## Product identity and boundaries
+
+The inherited baseline identity is `1.0.4`. The read-only source baseline is
+`1f25f3088a4a6fb7db980410bc5a2a767de57f2e`; M1 begins from migrated target
+`main` at `f773b3090ffd86cb5600fdaf3aca20ec9cc19606`. M1 is a repository truth and
+qualification repair; it is not a package publication or new release claim.
+
+The analyzer and CLI runner are the stable qualification surface. The stable
+tests transitively build the external CanonFlow plugin solely as frozen
+regression evidence; that plugin is not admitted core authority. Desktop, Web,
+MCP, TypeGym, and external plugin surfaces are frozen experimental work and are
+not promoted by M1. See [product boundaries](docs/PRODUCT-BOUNDARIES.md).
 
 ## Scope
 
