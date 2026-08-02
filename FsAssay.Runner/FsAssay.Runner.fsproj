@@ -14,6 +14,7 @@
   <ItemGroup>
     <Compile Include="Domain.fs" />
     <Compile Include="Config.fs" />
+    <Compile Include="Authority.fs" />
     <Compile Include="ProjectSystem.fs" />
     <Compile Include="PluginLoader.fs" />
     <Compile Include="Orchestrator.fs" />

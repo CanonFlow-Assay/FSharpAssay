@@ -72,6 +72,32 @@ let main argv =
     let activeProfile = results.GetResult(Profile, defaultValue = rawConfig.profile)
     let config = { rawConfig with profile = activeProfile }
 
+    let rec findAuthorityPolicy (directory: string) =
+        let candidate = Path.Combine(directory, "fsassay-policy.lock.json")
+        if File.Exists(candidate) then Some candidate
+        else
+            match Directory.GetParent(directory) with
+            | null -> None
+            | parent -> findAuthorityPolicy parent.FullName
+
+    let policySearchDirectory =
+        if Directory.Exists(path) then Path.GetFullPath(path)
+        elif String.IsNullOrWhiteSpace(Path.GetDirectoryName(Path.GetFullPath(path))) then Directory.GetCurrentDirectory()
+        else Path.GetDirectoryName(Path.GetFullPath(path))
+
+    let policyPath = findAuthorityPolicy policySearchDirectory |> Option.defaultValue (Path.Combine(policySearchDirectory, "fsassay-policy.lock.json"))
+    let policy, policyHash, policyErrors =
+        match Authority.loadPolicy policyPath with
+        | Authority.PolicyLoaded (loaded, hash, _) -> loaded, hash, []
+        | Authority.PolicyUnavailable message -> Authority.unapprovedPolicy, "unavailable", [ message ]
+        | Authority.PolicyInvalid (_, message) -> Authority.unapprovedPolicy, "invalid", [ message ]
+    let repositoryRoot =
+        if File.Exists(policyPath) then Path.GetDirectoryName(policyPath)
+        else policySearchDirectory
+    let discoveredProjects = ProjectSystem.discoverProjectPaths path
+    let mutable loadedProjectPaths = Set.empty<string>
+    let mutable projectLoadFailures: string list = []
+
     printfn "🧪 FsAssay Engine v%s — Scanning target: %s [Profile: %s]" ProductIdentity.Version path config.profile // EXPECT: FSA-F04
     
     let pluginPaths =
@@ -105,11 +131,13 @@ let main argv =
             | Some _ -> []
             | None ->
                 try
-                    ProjectSystem.getTargetProjects path
+                    let loaded = ProjectSystem.getTargetProjects path
+                    loadedProjectPaths <- loaded |> List.map (fun options -> Path.GetFullPath(options.ProjectFileName)) |> Set.ofList
+                    loaded
                 with e ->
                     printfn "💥 Project System Failure: %s" e.Message // EXPECT: FSA-F04
-                    Environment.Exit(ExitCodes.ToolFailure) // EXPECT: FSA-F04
-                    failwith "unreachable" // EXPECT: FSA-C06
+                    projectLoadFailures <- [ e.Message ]
+                    []
                 
         let hasProjFiles = 
             path.EndsWith(".sln") || path.EndsWith(".slnx") || path.EndsWith(".fsproj") ||
@@ -120,8 +148,6 @@ let main argv =
             elif List.isEmpty optionsList then
                 if hasProjFiles then // EXPECT: FSA-F04
                     printfn "💥 Project System Failure: F# project files were found but failed to load or contained no source files." // EXPECT: FSA-F04
-                    Environment.Exit(ExitCodes.ToolFailure) // EXPECT: FSA-F04
-                    failwith "unreachable" // EXPECT: FSA-C06
 
                 if File.Exists(path) && path.EndsWith(".fs") then [ (path, None) ] // EXPECT: FSA2022
                 elif Directory.Exists(path) then // EXPECT: FSA2022
@@ -134,8 +160,6 @@ let main argv =
                 let files = optionsList |> List.collect (fun opts -> opts.SourceFiles |> Array.map (fun f -> (f, Some opts)) |> Array.toList)
                 if List.isEmpty files && hasProjFiles then // EXPECT: FSA-F04
                     printfn "💥 Project System Failure: F# project files were found but contained no source files." // EXPECT: FSA-F04
-                    Environment.Exit(ExitCodes.ToolFailure) // EXPECT: FSA-F04
-                    failwith "unreachable" // EXPECT: FSA-C06
                 files
 
         let filesToScan =
@@ -255,7 +279,7 @@ let main argv =
                 let lines = File.ReadAllLines(file) // EXPECT: FSA2022
                 for i = 0 to lines.Length - 1 do
                     let line = lines.[i]
-                    let m = System.Text.RegularExpressions.Regex.Match(line, @"//\s*EXPECT:\s*(FSA[A-Z0-9]+)")
+                    let m = System.Text.RegularExpressions.Regex.Match(line, @"//\s*EXPECT:\s*(FSA[A-Z0-9-]+)")
                     if m.Success then
                         let code = m.Groups.[1].Value
                         expectedCodes.Add((file, code, i + 1)) // 1-indexed
@@ -306,17 +330,134 @@ let main argv =
         printfn "Failed: %d" failedFiles // EXPECT: FSA-F04
         printfn "Total Violations: %d" totalViolations
 
-    match results.TryGetResult(Out_Json) with // EXPECT: FSA-F04
-    | Some outPath ->
-        Output.writeCanonicalJson allResults outPath // EXPECT: FSA-F04
-        printfn "Wrote JSON output to %s" outPath
-    | None -> ()
+    let projectEvidence =
+        discoveredProjects
+        |> List.map (fun project ->
+            let fullPath = Path.GetFullPath(project)
+            let projectClass = ProjectSystem.projectClass fullPath
+            let frameworks = ProjectSystem.projectTargetFrameworks fullPath
+            let supportedClass = Array.contains projectClass policy.requiredProjectClasses
+            let supportedFramework = not (Array.isEmpty frameworks) && frameworks |> Array.forall (fun framework -> Array.contains framework policy.requiredTargetFrameworks)
+            ({
+                Path = fullPath
+                ProjectClass = projectClass
+                TargetFrameworks = frameworks |> Array.toList
+                Disposition =
+                    if not (loadedProjectPaths.Contains fullPath) then Authority.ProjectDisposition.LoadFailed
+                    elif not supportedClass || not supportedFramework then Authority.ProjectDisposition.Unsupported
+                    else Authority.ProjectDisposition.Loaded
+                Reason =
+                    if not (loadedProjectPaths.Contains fullPath) then "workspace did not load the discovered project"
+                    elif not supportedClass || not supportedFramework then "project class or target framework is outside the locked authority policy"
+                    else ""
+            }: Authority.ProjectEvidence)
+        )
 
-    match results.TryGetResult(Out_Sarif) with // EXPECT: FSA-F04
-    | Some outPath ->
-        Output.writeSarif allResults outPath // EXPECT: FSA-F04
-        printfn "Wrote SARIF output to %s" outPath
-    | None -> ()
+    let supportedLoadedProjects = projectEvidence |> List.filter (fun project -> project.Disposition = Authority.ProjectDisposition.Loaded) |> List.length
+    let unsupportedProjects = projectEvidence |> List.filter (fun project -> project.Disposition = Authority.ProjectDisposition.Unsupported) |> List.length
+    let completedPaths = allResults |> List.map fst |> Set.ofList
+    let sourceEvidence =
+        scannedFiles
+        |> List.distinct
+        |> List.map (fun file ->
+            let policyExcluded = config.exclude |> Array.exists (fun pattern -> file.Contains(pattern.Replace("*", "")))
+            ({
+                Path = file
+                Disposition =
+                    if policyExcluded then Authority.SourceDisposition.PolicyExcluded
+                    elif file.Contains("AssemblyAttributes.fs") || file.Contains("AssemblyInfo.fs") || file.Contains("MicrosoftTestingPlatformEntryPoint.fs") || file.Contains("SelfRegisteredExtensions.fs") then Authority.SourceDisposition.GeneratedExcluded
+                    elif completedPaths.Contains file then Authority.SourceDisposition.Analyzed
+                    else Authority.SourceDisposition.CompilerIncomplete
+                Reason =
+                    if policyExcluded then "source matched the locked scan configuration"
+                    elif file.Contains("AssemblyAttributes.fs") || file.Contains("AssemblyInfo.fs") || file.Contains("MicrosoftTestingPlatformEntryPoint.fs") || file.Contains("SelfRegisteredExtensions.fs") then "compiler-generated source is not analyzed"
+                    elif completedPaths.Contains file then ""
+                    else "compiler/workspace evidence was unavailable"
+            }: Authority.SourceEvidence)
+        )
+
+    let requiredTests =
+        policy.requiredTests
+        |> Array.map (fun test ->
+            ({
+                Id = test.id
+                Project = Path.Combine(repositoryRoot, test.project)
+                Status = Authority.TestStatus.NotRun
+                Passed = 0
+                Failed = 0
+                Skipped = 0
+            }: Authority.TestEvidence))
+        |> Array.toList
+
+    let findings =
+        allResults
+        |> List.collect (fun (file, violations) ->
+            violations
+            |> List.map (fun violation ->
+                ({
+                    RuleId = violation.Code
+                    Path = file
+                    Line = violation.Range.StartLine
+                    Column = violation.Range.StartColumn
+                    Message = violation.Message
+                    Fingerprint = ""
+                }: Authority.FindingEvidence)))
+
+    let evidenceComplete = projectLoadFailures.IsEmpty && failedFiles = 0 && skippedFiles = 0 && totalFiles > 0 && supportedLoadedProjects > 0
+    let policyRules =
+        let locked = Array.concat [| policy.approvedBlockingRules; policy.advisoryRules; policy.experimentalRules |]
+        if policyErrors.IsEmpty then locked |> Array.sort
+        else findings |> List.map _.RuleId |> List.distinct |> List.sort |> List.toArray
+    let rules =
+        policyRules
+        |> Array.map (fun ruleId ->
+            let catalogueRule = FsAssay.Analyzers.Domain.Rule.AllRules |> List.tryFind (fun rule -> rule.Code = ruleId)
+            let status, available =
+                match catalogueRule with
+                | Some rule ->
+                    match rule.Status with
+                    | FsAssay.Analyzers.Domain.Implemented | FsAssay.Analyzers.Domain.Delegated _ when evidenceComplete -> "completed", true
+                    | FsAssay.Analyzers.Domain.Implemented | FsAssay.Analyzers.Domain.Delegated _ -> "incomplete", false
+                    | FsAssay.Analyzers.Domain.Dummy | FsAssay.Analyzers.Domain.Prototype | FsAssay.Analyzers.Domain.Proposed -> "unavailable", false
+                | None -> "unavailable", false
+            ({
+                RuleId = ruleId
+                Status = status
+                EvidenceAvailable = available
+                FindingCount = findings |> List.filter (fun finding -> finding.RuleId = ruleId) |> List.length
+            }: Authority.RuleEvidence))
+        |> Array.toList
+
+    let candidate, candidateMissingEvidence, candidateEvidenceErrors = Authority.candidateIdentity repositoryRoot path
+    let authorityFacts = {
+        Authority.emptyFacts with
+            PolicyErrors = policyErrors
+            EvidenceErrors = candidateEvidenceErrors
+            ToolFailures = if pluginLoadFailures.IsEmpty && failedFiles = 0 then [] else pluginLoadFailures @ [ if failedFiles > pluginLoadFailures.Length then $"{failedFiles - pluginLoadFailures.Length} analyzer evaluation(s) failed" ]
+            MissingEvidence = projectLoadFailures @ candidateMissingEvidence
+            Toolchain = Authority.currentToolchain repositoryRoot
+            Projects = projectEvidence
+            Sources = sourceEvidence
+            RequiredTests = requiredTests
+            Rules = rules
+            Findings = findings
+    }
+
+    let authorityReceipt = Authority.createReceipt repositoryRoot candidate policy policyPath policyHash authorityFacts
+    printfn "Authority outcome: %s" authorityReceipt.outcome
+    printfn "Authoritative: %b" authorityReceipt.authoritative
+
+    let jsonOutput = results.TryGetResult(Out_Json)
+    let sarifOutput = results.TryGetResult(Out_Sarif)
+    let evidenceWriteFailure =
+        match Output.writeRequestedEvidence authorityReceipt jsonOutput sarifOutput with
+        | Ok () ->
+            jsonOutput |> Option.iter (printfn "Wrote JSON output to %s")
+            sarifOutput |> Option.iter (printfn "Wrote SARIF output to %s")
+            None
+        | Error message ->
+            eprintfn "Evidence output ToolFailure: %s. Requested evidence targets were removed to prevent stale-current confusion." message
+            Some message
 
     match results.TryGetResult(Out_Toolchain) with // EXPECT: FSA-F04
     | Some outPath ->
@@ -359,41 +500,11 @@ let main argv =
         )
         System.Threading.Thread.Sleep(System.Threading.Timeout.Infinite)
 
-    let contributes (v: FsAssay.Analyzers.Domain.Violation) =
-        let isPlugin = v.Explanation.Contains("external")
-        if isPlugin then
-            match v.Severity with
-            | FsAssay.Analyzers.Domain.Critical | FsAssay.Analyzers.Domain.Major -> FsAssay.Runner.Fail
-            | FsAssay.Analyzers.Domain.Minor -> FsAssay.Runner.Inconclusive
-        else
-            match FsAssay.Analyzers.Domain.Rule.AllRules |> List.tryFind (fun r -> r.Code = v.Code) with
-            | Some r ->
-                match FsAssay.Analyzers.Domain.Admission.isProductionAdmitted r.Code, r.Status, r.Severity with
-                | false, _, _ -> FsAssay.Runner.Inconclusive
-                | true, (FsAssay.Analyzers.Domain.Implemented | FsAssay.Analyzers.Domain.Delegated _), (FsAssay.Analyzers.Domain.Critical | FsAssay.Analyzers.Domain.Major) -> FsAssay.Runner.Fail
-                | true, (FsAssay.Analyzers.Domain.Implemented | FsAssay.Analyzers.Domain.Delegated _), FsAssay.Analyzers.Domain.Minor -> FsAssay.Runner.Inconclusive
-                | true, FsAssay.Analyzers.Domain.Prototype, _ -> FsAssay.Runner.Inconclusive
-                | true, _, _ -> FsAssay.Runner.Pass
-            | None -> FsAssay.Runner.Pass
-
-    let maxVerdict a b =
-        match a, b with
-        | FsAssay.Runner.ToolFailure, _ | _, FsAssay.Runner.ToolFailure -> FsAssay.Runner.ToolFailure
-        | FsAssay.Runner.Fail, _ | _, FsAssay.Runner.Fail -> FsAssay.Runner.Fail
-        | FsAssay.Runner.Inconclusive, _ | _, FsAssay.Runner.Inconclusive -> FsAssay.Runner.Inconclusive
-        | FsAssay.Runner.Pass, FsAssay.Runner.Pass -> FsAssay.Runner.Pass
-
-    let finalVerdict =
-        allResults
-        |> Seq.collect snd
-        |> Seq.map contributes
-        |> Seq.fold maxVerdict FsAssay.Runner.Pass
-        |> fun v -> if failedFiles > 0 || not pluginLoadFailures.IsEmpty then maxVerdict v FsAssay.Runner.ToolFailure elif skippedFiles > 0 then maxVerdict v FsAssay.Runner.Inconclusive else v
-
-    if results.Contains(Adjudicate) then ExitCodes.Success
+    if evidenceWriteFailure.IsSome then ExitCodes.ToolFailure
     else
-        match finalVerdict with
-        | FsAssay.Runner.ToolFailure -> ExitCodes.ToolFailure
-        | FsAssay.Runner.Fail -> ExitCodes.BlockingFinding
-        | FsAssay.Runner.Inconclusive -> ExitCodes.RequiredEvidenceMissing
-        | FsAssay.Runner.Pass -> ExitCodes.Success
+        match authorityReceipt.outcome with
+        | "ToolFailure" -> ExitCodes.ToolFailure
+        | "Fail" -> ExitCodes.BlockingFinding
+        | "Inconclusive" -> ExitCodes.RequiredEvidenceMissing
+        | "Pass" -> ExitCodes.Success
+        | _ -> ExitCodes.ToolFailure

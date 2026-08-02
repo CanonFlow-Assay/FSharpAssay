@@ -1,10 +1,55 @@
 namespace FsAssay.Runner
 
 open System.IO
+open System.Xml.Linq
 open Ionide.ProjInfo
 open FSharp.Compiler.CodeAnalysis
 
 module ProjectSystem =
+
+    let discoverProjectPaths (path: string) =
+        if path.EndsWith(".fsproj") then
+            [ Path.GetFullPath(path) ]
+        elif path.EndsWith(".slnx") && File.Exists(path) then
+            let baseDirectory = Path.GetDirectoryName(Path.GetFullPath(path))
+            XDocument.Load(path).Descendants(XName.Get("Project"))
+            |> Seq.choose (fun element ->
+                match element.Attribute(XName.Get("Path")) with
+                | null -> None
+                | attribute when attribute.Value.EndsWith(".fsproj") -> Some(Path.GetFullPath(Path.Combine(baseDirectory, attribute.Value)))
+                | _ -> None)
+            |> Seq.distinct
+            |> Seq.sort
+            |> Seq.toList
+        elif Directory.Exists(path) then
+            Directory.GetFiles(path, "*.fsproj", SearchOption.AllDirectories) // EXPECT: FSA2022
+            |> Array.filter (fun project -> not (project.Contains("/obj/") || project.Contains("\\obj\\")))
+            |> Array.map Path.GetFullPath
+            |> Array.distinct
+            |> Array.sort
+            |> Array.toList
+        else []
+
+    let projectTargetFrameworks (projectPath: string) =
+        try
+            let document = XDocument.Load(projectPath)
+            document.Descendants()
+            |> Seq.filter (fun element -> element.Name.LocalName = "TargetFramework" || element.Name.LocalName = "TargetFrameworks")
+            |> Seq.collect (fun element -> element.Value.Split(';'))
+            |> Seq.map _.Trim()
+            |> Seq.filter (System.String.IsNullOrWhiteSpace >> not)
+            |> Seq.distinct
+            |> Seq.sort
+            |> Seq.toArray
+        with _ -> [||]
+
+    let projectClass (projectPath: string) =
+        let name = Path.GetFileNameWithoutExtension(projectPath).ToLowerInvariant()
+        if name.Contains("test") then "test"
+        elif name.Contains("analyzer") then "analyzer"
+        elif name.Contains("plugin") then "plugin"
+        elif name.Contains("runner") then "cli"
+        else "other"
 
     let loadProjects (paths: string list) =
         let toolsPath = None |> Init.init (Directory.GetCurrentDirectory() |> DirectoryInfo) // EXPECT: FSA2022

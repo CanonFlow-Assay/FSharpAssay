@@ -1,0 +1,49 @@
+{
+  "schema": "fsassay-m2-authority-manifest/1",
+  "authorizedBaseCommit": "13e2314ec8676aaf224440d6a46d3196ac84d2ef",
+  "branch": "uplift/m2-authority-contract",
+  "toolVersion": "1.0.4",
+  "policySchemaVersion": "fsassay-policy/1.0.0",
+  "evidenceSchemaVersion": "fsassay-authority-receipt/1.0.0",
+  "authorityContractVersion": "authority-contract/1.0.0",
+  "shapeContractVersion": "not-established",
+  "gate": "Human Gate B pending",
+  "gateCApprovedBlockingRules": 0,
+  "stableTests": {
+    "expected": 83,
+    "m1Inherited": 54,
+    "m2Added": 29,
+    "zeroTestPolicy": "strict-failure"
+  },
+  "repositoryAudit": {
+    "expectedExitCode": 2,
+    "expectedOutcome": "Inconclusive",
+    "expectedAuthoritative": false,
+    "projectsDiscovered": 6,
+    "projectsLoadedWithinPolicy": 4,
+    "projectsUnsupported": 2,
+    "filesScanned": 25,
+    "filesSkipped": 0,
+    "filesFailed": 0,
+    "findings": 535,
+    "reasons": 2,
+    "rulesCompleted": 35,
+    "rulesUnavailable": 58,
+    "inheritedM1Findings": 436,
+    "requiredTestStatus": "notRun",
+    "jsonByteDeterministic": true,
+    "sarifByteDeterministic": true
+  },
+  "hashes": {
+    "policyFileSha256": "a302b39c1efcfe3d6b9e9e1b1d9a02d1b49a026ad9460540cc930679b04ca584",
+    "canonicalPolicyIdentitySha256": "ef19e00cce619b983b0a3e2fe16efa1ccba135fdfbe2aab3fdde5329b7c25745",
+    "policySchemaSha256": "e4ce2fcb91f85591058b70c1284cdbbd4e58f11255828c8162693bce52a138ca",
+    "receiptSchemaSha256": "2413cf75ca86de501688f9eaec44d27cdf66af4b55d39dbc22d10cc1f90fa54f",
+    "contractSha256": "d61b6eacd3a523a7aac842e84399cb10f8bed3fe65dcc20cd850b75acc3b2dd8"
+  },
+  "committedReceipt": false,
+  "fullFindingDatasetCommitted": false,
+  "candidateSelfReferenceCommitted": false,
+  "packagePublished": false,
+  "releaseCreated": false
+}
