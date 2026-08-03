@@ -16,4 +16,4 @@ export DOTNET_ROOT=/root/.cache/fsassay-m5-dotnet
 bash eng/qualify-m5-playground.sh "$(git rev-parse HEAD)" artifacts/m5
 ```
 
-The local package is not a public NuGet release. A successful script run is still expected to return an **Inconclusive, non-authoritative** FsAssay receipt because 1.0.4 does not ingest the separately executed test result and the test project currently has incomplete workspace evidence. Deterministic compiler and test evidence outrank any LLM judgment.
+The local package is not a public NuGet release. A successful script run is still expected to return an **Inconclusive, non-authoritative** FsAssay receipt because 1.0.4 does not ingest the separately executed test result. Deterministic compiler and test evidence outrank any LLM judgment.
