@@ -1,0 +1,24 @@
+{
+  "schema": "fsassay-m5-expected-findings/1",
+  "expected": [
+    { "ruleId": "FSA-AI10", "path": "Shape.Application/PlaceOrder.fs", "fingerprint": "88fb39c813f50d28a0688b505fcea38c5af875f4678621833405988f94951cb8", "disposition": "retained prototype advisory: the business limit is explicit and tested" },
+    { "ruleId": "FSA-AI10", "path": "Shape.Domain/Order.fs", "fingerprint": "943d329a81819bba3c587464a75d57c0ea249ee0757bebdff5af042129bf00b7", "disposition": "retained prototype advisory: the named limit contains the literal" },
+    { "ruleId": "FSA-C16", "path": "Shape.Tests/Program.fs", "fingerprint": "d1aa15817f76d304fe20a5afeddabd2e5553316affb696d339ef8d40b73dd483", "disposition": "retained prototype advisory: architecture test inspects references" },
+    { "ruleId": "FSA-C16", "path": "Shape.Tests/Program.fs", "fingerprint": "0e529f6ab6adb4214f81a9c8693fcab38bc6563112beafb75b5f86ae70e31494", "disposition": "retained prototype advisory: architecture test inspects references" },
+    { "ruleId": "FSA-C16", "path": "Shape.Tests/Program.fs", "fingerprint": "e955c98ccc5ddaae9deb734ca4590fae2db7e1023ba00daafabf356165d83b51", "disposition": "retained prototype advisory: architecture test inspects references" },
+    { "ruleId": "FSA-TDD01", "path": "Architecture", "fingerprint": "e12dd6d214fcd23b116a3f9d9f79cca0a84dd115c0c50c094b42790bb6f4b757", "disposition": "retained experimental architecture heuristic" },
+    { "ruleId": "FSA-TDD01", "path": "Architecture", "fingerprint": "20a442e9c792307fa550ac86b1bc58605abaa285fcecd06165927c881f1e14ea", "disposition": "retained experimental architecture heuristic" },
+    { "ruleId": "FSA-TDD01", "path": "Architecture", "fingerprint": "95516b00d872a1edd6830f749d17fb66aa9f5de5dd2bbbd8cc70370cc0de30be", "disposition": "retained experimental architecture heuristic" },
+    { "ruleId": "FSA-TDD01", "path": "Architecture", "fingerprint": "42bb98c4260b9f3720f5170acbe981ce06e0ea2de110807fb609c0a70e215a04", "disposition": "retained experimental architecture heuristic" },
+    { "ruleId": "FSA-TDD01", "path": "Architecture", "fingerprint": "de8f6cfd569f2a3bc0642e497ea3ac03009e4a614f5d0bd6cbf187790a5736cb", "disposition": "retained experimental architecture heuristic" },
+    { "ruleId": "FSA-TDD01", "path": "Architecture", "fingerprint": "4f8a8d0594ca8c397eb62eeb196a46e7a9d048d685e74e304b79bf06b529d712", "disposition": "retained experimental architecture heuristic" },
+    { "ruleId": "FSA-TDD01", "path": "Architecture", "fingerprint": "5aecf0fcedce1fa141a4444aa901f2fa97769231040b57a738ae265beeb5dcce", "disposition": "retained experimental architecture heuristic" },
+    { "ruleId": "FSA-TDD01", "path": "Architecture", "fingerprint": "783cdb44553f28f243739ea7c072c1f6280fdfa889ed89b52b75648c9bacf0b2", "disposition": "retained experimental architecture heuristic" },
+    { "ruleId": "FSA-TDD01", "path": "Architecture", "fingerprint": "1c56cc821c13f48373da6f3e3748eb779d6fa048125b590d1d0b0c88942575ec", "disposition": "retained experimental architecture heuristic" },
+    { "ruleId": "FSA-TDD01", "path": "Architecture", "fingerprint": "a8155c06a870974d74aa620778899f2efa36e5f474cb58864386619f353d5410", "disposition": "retained experimental architecture heuristic" },
+    { "ruleId": "FSA-TDD01", "path": "Architecture", "fingerprint": "cce62054680fa506440a7407adb5a201132ef4cad165d908ed1f907e1ba7e99b", "disposition": "retained experimental architecture heuristic" },
+    { "ruleId": "FSA-TDD01", "path": "Architecture", "fingerprint": "78d0d97de22186b87d965a0976b926dc96636d3d6547c98a69077a27e2394780", "disposition": "retained experimental architecture heuristic" },
+    { "ruleId": "FSA-TDD01", "path": "Architecture", "fingerprint": "fd0aff973c4ac4e63b7c3b16d7a52b7b838db01a9ee8beb4c2617acbe0e824eb", "disposition": "retained experimental architecture heuristic" },
+    { "ruleId": "FSA-TDD02", "path": "Shape.Tests/Program.fs", "fingerprint": "2108bde18f0fdad75b9f371eb176f1d7d48eab6c4c7f0a646064c163d6e5d845", "disposition": "retained experimental advisory: examples are bounded, not property-qualified" }
+  ]
+}

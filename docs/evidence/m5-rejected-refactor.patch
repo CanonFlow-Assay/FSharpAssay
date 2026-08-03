@@ -1,0 +1,13 @@
+diff --git a/src/Alma.EnvironmentModel/EnvironmentDefinition.fs b/src/Alma.EnvironmentModel/EnvironmentDefinition.fs
+--- a/src/Alma.EnvironmentModel/EnvironmentDefinition.fs
++++ b/src/Alma.EnvironmentModel/EnvironmentDefinition.fs
+@@
+-[<CustomEquality; CustomComparison>]
++// Proposed: rely on structural equality/comparison to reduce custom-shape findings.
+ type Environment =
+@@
+-    override this.Equals(other) =
+-        // Existing domain-specific equality implementation retained.
++    // Rejected: removing the implementation changes observable equality and ordering semantics.
+
+This is a deliberately non-applicable review excerpt, not a patch to run. The proposal was rejected before any target change was retained.
