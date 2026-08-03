@@ -71,6 +71,8 @@ rule is diagnosed as incomplete instead of silently inheriting that legacy set.
 - source disposition, including generated and policy-excluded sources;
 - required tests and their exact `passed`, `failed`, `skipped`, or `notRun` evidence;
 - rule evidence availability, findings, source symbols, stable fingerprints and all seven maturity classes;
+- `unclassified` rule and finding classes when the policy lock is absent or invalid.
+  This is explicit non-authoritative evidence and is never equivalent to `removed`;
 - typed baseline configuration, actually applied baseline IDs, empty applied-suppression evidence, bounded framework exceptions,
   itemized policy/evidence errors, missing evidence, tool failures, outcome and every reason.
 

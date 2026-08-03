@@ -1,15 +1,33 @@
 namespace FsAssay.Runner
 
 open System.IO
+open System.Text.RegularExpressions
 open System.Xml.Linq
 open Ionide.ProjInfo
 open FSharp.Compiler.CodeAnalysis
 
 module ProjectSystem =
 
+    let private legacySolutionProjectPaths (path: string) =
+        let baseDirectory = Path.GetDirectoryName(Path.GetFullPath(path))
+        let projectPattern = Regex("^\\s*Project\\(\"[^\"]+\"\\)\\s*=\\s*\"[^\"]+\",\\s*\"([^\"]+\\.fsproj)\"", RegexOptions.Compiled ||| RegexOptions.IgnoreCase)
+        File.ReadLines(path)
+        |> Seq.choose (fun line ->
+            let matchResult = projectPattern.Match(line)
+            if matchResult.Success then
+                let projectPath = matchResult.Groups.[1].Value.Replace('\\', Path.DirectorySeparatorChar)
+                let fullPath = Path.GetFullPath(Path.Combine(baseDirectory, projectPath))
+                if File.Exists(fullPath) then Some fullPath else None
+            else None)
+        |> Seq.distinct
+        |> Seq.sort
+        |> Seq.toList
+
     let discoverProjectPaths (path: string) =
         if path.EndsWith(".fsproj") then
             [ Path.GetFullPath(path) ]
+        elif path.EndsWith(".sln") && File.Exists(path) then
+            legacySolutionProjectPaths path
         elif path.EndsWith(".slnx") && File.Exists(path) then
             let baseDirectory = Path.GetDirectoryName(Path.GetFullPath(path))
             XDocument.Load(path).Descendants(XName.Get("Project"))
@@ -71,7 +89,8 @@ module ProjectSystem =
 
     let getTargetProjects (path: string) =
         match path with
-        | _ when path.EndsWith(".sln") || path.EndsWith(".slnx") -> loadSolution path
+        | _ when path.EndsWith(".sln") -> discoverProjectPaths path |> loadProjects
+        | _ when path.EndsWith(".slnx") -> loadSolution path
         | _ when path.EndsWith(".fsproj") -> loadProjects [path]
         | _ when File.Exists(path) -> [] // EXPECT: FSA2022
         | _ -> 

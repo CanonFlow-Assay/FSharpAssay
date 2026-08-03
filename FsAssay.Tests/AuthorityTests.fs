@@ -267,7 +267,28 @@ let tests =
         testCase "zero discovered projects is Inconclusive" <| fun _ ->
             withTempRoot (fun root ->
                 let decision = Authority.decide policy { completeFacts root with Projects = [] }
-                Expect.contains (reasonCodes decision) "projects-zero-discovered" "zero discovery must be explicit")
+                Expect.contains (reasonCodes decision) "projects-zero-discovered" "zero discovery must be explicit"
+                let src = Path.Combine(root, "src")
+                Directory.CreateDirectory(src) |> ignore
+                let core = Path.Combine(src, "Core.fsproj")
+                let tests = Path.Combine(src, "Tests.fsproj")
+                let solution = Path.Combine(root, "Legacy.sln")
+                let projectXml = "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>"
+                File.WriteAllText(core, projectXml)
+                File.WriteAllText(tests, projectXml)
+                File.WriteAllText(solution, String.concat Environment.NewLine [
+                    "Microsoft Visual Studio Solution File, Format Version 12.00"
+                    "Project(\"{FAKE}\") = \"Core\", \"src\\Core.fsproj\", \"{CORE}\""
+                    "EndProject"
+                    "Project(\"{FAKE}\") = \"Tests\", \"src\\Tests.fsproj\", \"{TESTS}\""
+                    "EndProject"
+                ])
+                let discovered = ProjectSystem.discoverProjectPaths solution |> List.map Path.GetFullPath
+                Expect.sequenceEqual discovered [ Path.GetFullPath(core); Path.GetFullPath(tests) ] "legacy solution discovery must match existing F# projects"
+                let failed = { (completeFacts root).Projects.Head with Path = core; Disposition = Authority.ProjectDisposition.LoadFailed; Reason = "workspace failed to load legacy solution project" }
+                let decision = Authority.decide policy { completeFacts root with Projects = [ failed ] }
+                Expect.equal decision.Outcome Inconclusive "project loading failure cannot fall back to a conclusive result"
+                Expect.contains (reasonCodes decision) "project-load-failed" "project loading failure must be explicit")
 
         testCase "zero loaded projects is Inconclusive" <| fun _ ->
             withTempRoot (fun root ->
@@ -296,7 +317,36 @@ let tests =
             withTempRoot (fun root ->
                 let failed = ({ Path = Path.Combine(root, "other", "Other.fsproj"); ProjectClass = "other"; TargetFrameworks = [ "net10.0" ]; Disposition = Authority.ProjectDisposition.LoadFailed; Reason = "load failed" }: Authority.ProjectEvidence)
                 let decision = Authority.decide policy { completeFacts root with Projects = (completeFacts root).Projects @ [ failed ] }
-                Expect.contains (reasonCodes decision) "project-load-failed" "load failure must be visible")
+                Expect.contains (reasonCodes decision) "project-load-failed" "load failure must be visible"
+                let finding = ({ RuleId = "FSA-C01"; Path = Path.Combine(root, "src", "Core.fs"); Symbol = "file-scope"; Line = 1; Column = 0; Message = "policyless observation"; Fingerprint = "" }: Authority.FindingEvidence)
+                let facts = {
+                    completeFacts root with
+                        Projects = []
+                        Rules = [ { RuleId = finding.RuleId; Status = "incomplete"; EvidenceAvailable = false; FindingCount = 1 } ]
+                        Findings = [ finding ]
+                        PolicyErrors = [ "required policy lock not found" ]
+                }
+                let receipt = Authority.createReceipt root candidate Authority.unapprovedPolicy (Path.Combine(root, "fsassay-policy.lock.json")) "unavailable" facts
+                Expect.equal receipt.outcome "Inconclusive" "policyless analysis must remain inconclusive"
+                Expect.isFalse receipt.authoritative "policyless analysis cannot be authoritative"
+                Expect.equal receipt.findings.[0].authorityClass "unclassified" "policyless findings must not be reported as removed"
+                Expect.equal receipt.rules.[0].authorityClass "unclassified" "policyless rule outcomes must be explicit"
+                Expect.isEmpty (Authority.validateReceipt receipt) "unclassified policyless receipt must validate"
+                let json = Output.canonicalJsonBytes receipt |> Encoding.UTF8.GetString
+                let sarif = Output.canonicalSarifBytes receipt |> Encoding.UTF8.GetString
+                Expect.stringContains json "unclassified" "JSON must preserve policyless classification"
+                Expect.stringContains sarif "unclassified" "SARIF must preserve policyless classification"
+                let removedPolicy = {
+                    policy with
+                        experimentalRules = policy.experimentalRules |> Array.filter ((<>) finding.RuleId)
+                        removedRules = [| finding.RuleId |]
+                }
+                let removedHash =
+                    match Authority.canonicalPolicyIdentity removedPolicy with
+                    | Ok(_, hash) -> hash
+                    | Error errors -> failwithf "removed policy must be valid: %A" errors
+                let removedReceipt = Authority.createReceipt root candidate removedPolicy (Path.Combine(root, "fsassay-policy.lock.json")) removedHash { facts with PolicyErrors = [] }
+                Expect.equal removedReceipt.findings.[0].authorityClass "removed" "removed requires an explicit valid policy entry")
 
         testCase "internal tool failure is ToolFailure" <| fun _ ->
             withTempRoot (fun root ->

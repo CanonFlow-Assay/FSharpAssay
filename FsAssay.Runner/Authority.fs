@@ -773,14 +773,16 @@ module Authority =
         | SourceDisposition.GeneratedExcluded -> "generated-excluded"
         | SourceDisposition.PolicyExcluded -> "policy-excluded"
 
-    let private authorityClass (policy: PolicyLock) ruleId =
-        if Array.contains ruleId policy.approvedBlockingRules then "blocking"
+    let private authorityClass policyAvailable (policy: PolicyLock) ruleId =
+        if not policyAvailable then "unclassified"
+        elif Array.contains ruleId policy.approvedBlockingRules then "blocking"
         elif Array.contains ruleId policy.advisoryRules then "advisory"
         elif Array.contains ruleId policy.experimentalRules then "experimental"
         elif Array.contains ruleId policy.prototypeRules then "prototype"
         elif Array.contains ruleId policy.dummyRules then "dummy"
         elif Array.contains ruleId policy.deprecatedRules then "deprecated"
-        else "removed"
+        elif Array.contains ruleId policy.removedRules then "removed"
+        else "unclassified"
 
     let repositoryRelativePath repositoryRoot path =
         if path = "Architecture" then "Architecture"
@@ -843,6 +845,7 @@ module Authority =
 
     let createReceipt repositoryRoot candidate policy policyPath policyHash facts =
         let relative value = repositoryRelativePath repositoryRoot value
+        let policyAvailable = isHex 64 policyHash
         let normalizedFactFindings =
             facts.Findings
             |> List.map (fun finding ->
@@ -878,7 +881,7 @@ module Authority =
                     column = finding.Column
                     message = finding.Message
                     fingerprint = finding.Fingerprint
-                    authorityClass = authorityClass policy finding.RuleId
+                    authorityClass = authorityClass policyAvailable policy finding.RuleId
                 })
             |> List.sortBy (fun finding -> finding.ruleId, finding.path, finding.line, finding.column, finding.message)
             |> List.toArray
@@ -889,7 +892,7 @@ module Authority =
             |> List.map (fun rule ->
                 {
                     ruleId = rule.RuleId
-                    authorityClass = authorityClass policy rule.RuleId
+                    authorityClass = authorityClass policyAvailable policy rule.RuleId
                     status = rule.Status
                     evidenceAvailable = rule.EvidenceAvailable
                     findingCount = Map.tryFind rule.RuleId ruleCounts |> Option.defaultValue 0
@@ -1049,8 +1052,8 @@ module Authority =
                 let duplicateRuleIds = receipt.rules |> Array.countBy _.ruleId |> Array.filter (fun (_, count) -> count > 1)
                 if not (Array.isEmpty duplicateRuleIds) then "rule receipts contain duplicates"
                 for rule in receipt.rules do
-                    if not (Set.contains rule.authorityClass (set [ "blocking"; "advisory"; "experimental"; "prototype"; "dummy"; "deprecated"; "removed" ])) then $"rule authority class is invalid: {rule.ruleId}"
-                    let expectedClass = authorityClass receipt.policy.snapshot rule.ruleId
+                    if not (Set.contains rule.authorityClass (set [ "blocking"; "advisory"; "experimental"; "prototype"; "dummy"; "deprecated"; "removed"; "unclassified" ])) then $"rule authority class is invalid: {rule.ruleId}"
+                    let expectedClass = authorityClass (receipt.policy.status = "loaded") receipt.policy.snapshot rule.ruleId
                     if rule.authorityClass <> expectedClass then $"rule authority class does not reconcile with policy: {rule.ruleId}"
                     if not (Set.contains rule.status (set [ "completed"; "incomplete"; "unavailable" ])) then $"rule status is invalid: {rule.ruleId}"
                     if (rule.status = "completed") <> rule.evidenceAvailable then $"rule evidence status contradicts availability: {rule.ruleId}"
