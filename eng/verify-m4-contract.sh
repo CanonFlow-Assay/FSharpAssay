@@ -16,6 +16,8 @@ grep -q '<clear />' eng/m4-offline-nuget.config
 grep -q 'actions/attest-build-provenance@v2' .github/workflows/ci.yml
 grep -q 'attestations: write' .github/workflows/ci.yml
 grep -q 'id-token: write' .github/workflows/ci.yml
+test "$(grep -c '563' .github/workflows/fsassay.yml)" -eq 0
+test "$(grep -c '607' .github/workflows/fsassay.yml)" -eq 3
 
 jq -e '
   .catalogueCount == 93 and

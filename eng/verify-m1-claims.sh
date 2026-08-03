@@ -14,7 +14,7 @@ test "${analyzer_changes[0]}" = "FsAssay.Analyzers/packages.lock.json"
 test -z "$(git diff --name-only "$base" HEAD -- \
   FsAssay.Analyzers ':!FsAssay.Analyzers/packages.lock.json')"
 
-if grep -Eini 'pages|id-token|environment:|deploy-pages|upload-pages' .github/workflows/*.yml; then
+if grep -Eini 'pages|environment:|deploy-pages|upload-pages' .github/workflows/*.yml; then
   echo "deployment capability remains in a workflow" >&2
   exit 1
 fi

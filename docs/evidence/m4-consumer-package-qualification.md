@@ -83,7 +83,9 @@ manifest, command streams, traces and logs as review artifacts.
 ## Limitations and nonclaims
 
 M4 does not admit a blocking or advisory rule. Finding counts are observations,
-not success metrics. Default analysis cannot infer ambient test success and can
+not success metrics. The candidate self-audit records 607 experimental/prototype
+observations; that increase reflects the bounded CLI implementation and is not
+evidence of improvement. Default analysis cannot infer ambient test success and can
 remain `Inconclusive`/non-authoritative. The package is not NuGet-signed and is
 not published. GitHub provenance proves the workflow-produced artifact subject;
 it does not prove analyzer correctness, business correctness, source security or
