@@ -3,13 +3,24 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <PathMap>$(MSBuildProjectDirectory)=/_/FsAssay.Runner</PathMap>
+    <EmbedUntrackedSources>false</EmbedUntrackedSources>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>fsassay</ToolCommandName>
     <PackageId>FsAssay.Cli</PackageId>
     <Version>$(FsAssayBaselineVersion)</Version>
     <Authors>CanonFlow Foundation</Authors>
-    <Description>Experimental F# static analyzer with an evidence-bounded production rule set.</Description>
+    <Description>Experimental F# design-assessment CLI producing deterministic four-state evidence; the current policy admits zero blocking or advisory rules.</Description>
+    <PackageProjectUrl>https://github.com/CanonFlow-Assay/FSharpAssay</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="/" Link="README.md" />
+    <None Include="..\LICENSE" Pack="true" PackagePath="/" Link="LICENSE" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Include="Domain.fs" />

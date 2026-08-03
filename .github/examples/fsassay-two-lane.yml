@@ -1,0 +1,86 @@
+# Copy to .github/workflows only after review. This file is intentionally inactive.
+# FsAssay.Cli 1.0.4 is unpublished. Prerequisites:
+# - a tracked .config/dotnet-tools.json pinning exactly 1.0.4;
+# - a reviewed .config/fsassay-qualified-feed.config pointing at a local or
+#   otherwise qualified feed containing the exact reviewed package.
+name: FsAssay two-lane example
+
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+env:
+  FSASSAY_TARGET: ./MySolution.slnx
+  FSASSAY_NUGET_CONFIG: .config/fsassay-qualified-feed.config
+
+jobs:
+  observation:
+    name: FsAssay observations (informational)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        continue-on-error: true
+      - uses: actions/setup-dotnet@v4
+        continue-on-error: true
+        with:
+          dotnet-version: '10.0.301'
+      - name: Restore pinned repository-local tool
+        continue-on-error: true
+        run: dotnet tool restore --configfile "$FSASSAY_NUGET_CONFIG"
+      - name: Record observations without gating
+        continue-on-error: true
+        run: |
+          mkdir -p artifacts/fsassay-observation
+          set +e
+          dotnet tool run fsassay -- \
+            --out-json artifacts/fsassay-observation/receipt.json \
+            --out-sarif artifacts/fsassay-observation/results.sarif \
+            "$FSASSAY_TARGET"
+          analysis_exit=$?
+          set -e
+          printf 'FsAssay observation exit: %s\n' "$analysis_exit"
+          exit 0
+      - name: Upload observation SARIF and receipt
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: fsassay-observation-${{ github.sha }}
+          if-no-files-found: warn
+          path: artifacts/fsassay-observation/
+
+  authority:
+    name: FsAssay authority gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.301'
+      - name: Restore pinned repository-local tool
+        run: dotnet tool restore --configfile "$FSASSAY_NUGET_CONFIG"
+      - name: Produce authority receipt and capture analysis exit
+        run: |
+          mkdir -p artifacts/fsassay-authority
+          set +e
+          dotnet tool run fsassay -- \
+            --out-json artifacts/fsassay-authority/receipt.json \
+            --out-sarif artifacts/fsassay-authority/results.sarif \
+            "$FSASSAY_TARGET"
+          analysis_exit=$?
+          set -e
+          printf '%s\n' "$analysis_exit" > artifacts/fsassay-authority/analysis-exit.txt
+      - name: Delegate the merge decision only to the authority gate
+        if: always()
+        run: bash eng/fsassay-authority-gate.sh artifacts/fsassay-authority/receipt.json
+      - name: Upload authority evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fsassay-authority-${{ github.sha }}
+          if-no-files-found: warn
+          path: artifacts/fsassay-authority/

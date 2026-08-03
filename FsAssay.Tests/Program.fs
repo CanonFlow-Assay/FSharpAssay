@@ -9,6 +9,8 @@ open FsAssay.Analyzers
 open FsAssay.Analyzers.Domain
 open System.IO
 open System
+open System.Text.RegularExpressions
+open System.Text.Json
 
 let checker = FSharpChecker.Create(keepAssemblyContents = true)
 
@@ -411,6 +413,28 @@ let runE2EWithArguments (projectCode: string) (sourceCode: string) (arguments: s
 let runE2E (projectCode: string) (sourceCode: string) =
     runE2EWithArguments projectCode sourceCode []
 
+let runCli (arguments: string list) =
+    let runnerAssembly =
+        Path.Combine(
+            __SOURCE_DIRECTORY__,
+            "..",
+            "FsAssay.Runner",
+            "bin",
+            "Release",
+            "net10.0",
+            "FsAssay.Runner.dll")
+    let pi = new System.Diagnostics.ProcessStartInfo("dotnet")
+    pi.ArgumentList.Add(runnerAssembly)
+    arguments |> List.iter pi.ArgumentList.Add
+    pi.RedirectStandardOutput <- true
+    pi.RedirectStandardError <- true
+    pi.UseShellExecute <- false
+    use p = System.Diagnostics.Process.Start(pi)
+    let standardOutput = p.StandardOutput.ReadToEndAsync()
+    let standardError = p.StandardError.ReadToEndAsync()
+    p.WaitForExit()
+    p.ExitCode, standardOutput.Result, standardError.Result
+
 let runE2EWithPluginPath (pluginPath: string) =
     let tmpDir = Path.Combine(Path.GetTempPath(), "FsAssayPluginE2E_" + Guid.NewGuid().ToString())
     Directory.CreateDirectory(tmpDir) |> ignore
@@ -440,6 +464,61 @@ let runE2EWithPluginPath (pluginPath: string) =
 
 let e2eTests =
     testList "Phase 5 Hardening E2E Fault Injection" [
+        testCase "CLI consumer contract is stable across the complete M3 catalogue" <| fun _ ->
+            let results = [ "help"; "--help"; "-h" ] |> List.map (fun argument -> runCli [ argument ])
+            let expectedExit, expectedOutput, expectedError = results.Head
+            Expect.equal expectedExit 0 "help must succeed"
+            Expect.equal expectedError "" "help must not write an error"
+            Expect.equal (Regex.Matches(expectedOutput, "USAGE: fsassay").Count) 1 "help must render exactly once"
+            results.Tail
+            |> List.iter (fun (exitCode, standardOutput, standardError) ->
+                Expect.equal exitCode expectedExit "all help forms use the same exit code"
+                Expect.equal standardOutput expectedOutput "all help forms render the same output"
+                Expect.equal standardError expectedError "all help forms use the same streams")
+
+            let doctorExit, doctorOutput, doctorError = runCli [ "doctor" ]
+            Expect.equal doctorExit 0 "doctor must succeed for the qualification toolchain"
+            Expect.equal doctorError "" "healthy doctor must not write an error"
+            for expected in [ "ToolVersion: 1.0.4"; "RuntimeVersion:"; "SdkVersion: 10.0.301"; "FSharpCompilerServiceVersion:"; "AnalysisNetworkDefault: offline"; "SourceUpload: none"; "FsAssayTelemetry: none"; "Status: healthy" ] do
+                Expect.stringContains doctorOutput expected $"doctor must report {expected}"
+
+            let explainExit, explainOutput, explainError = runCli [ "explain"; "FSA-C02" ]
+            Expect.equal explainExit 0 "known rule explanation must succeed"
+            Expect.equal explainError "" "known rule explanation must not write an error"
+            Expect.stringContains explainOutput "Rule: FSA-C02" "the canonical code is reported"
+            Expect.stringContains explainOutput "ImplementationStatus: implemented" "catalogue implementation status is reported"
+            Expect.stringContains explainOutput "M3AdmissionClass: experimental" "M3 admission class is reported"
+            Expect.stringContains explainOutput "Authority: non-authoritative" "explanation cannot be mistaken for authority"
+
+            let classificationPath =
+                Path.Combine(__SOURCE_DIRECTORY__, "..", "docs", "contracts", "fsassay-rule-classification-v1.json")
+            use classification = JsonDocument.Parse(File.ReadAllBytes(classificationPath))
+            let categoryByRule =
+                [ "blocking"; "advisory"; "experimental"; "prototype"; "dummy"; "deprecated"; "removed" ]
+                |> List.collect (fun category ->
+                    classification.RootElement.GetProperty(category).EnumerateArray()
+                    |> Seq.map (fun element -> element.GetString(), category)
+                    |> Seq.toList)
+                |> Map.ofList
+            Expect.equal categoryByRule.Count 93 "the exact M3 partition must cover all catalogue rules"
+            for rule in Rule.AllRules do
+                let ruleExit, ruleOutput, ruleError = runCli [ "explain"; rule.Code ]
+                Expect.equal ruleExit 0 $"explain must succeed for {rule.Code}"
+                Expect.equal ruleError "" $"explain must not write an error for {rule.Code}"
+                Expect.stringContains ruleOutput $"M3AdmissionClass: {categoryByRule.[rule.Code]}" $"M3 class drifted for {rule.Code}"
+                Expect.stringContains ruleOutput "Authority: non-authoritative" $"authority disclaimer missing for {rule.Code}"
+
+            let unknownExit, unknownOutput, unknownError = runCli [ "explain"; "UNKNOWN0000" ]
+            Expect.equal unknownExit 64 "unknown rules are invalid invocations"
+            Expect.equal unknownOutput "" "unknown rule output stays off stdout"
+            Expect.stringContains unknownError "unknown rule 'UNKNOWN0000'" "unknown rule is named"
+
+            for arguments, expected in [ [ "--definitely-unknown" ], "unknown option '--definitely-unknown'"; [ "--out-json" ], "must be followed by <path>"; [ "explain" ], "usage: fsassay explain <RULE>" ] do
+                let invalidExit, invalidOutput, invalidError = runCli arguments
+                Expect.equal invalidExit 64 "invalid invocations use EX_USAGE"
+                Expect.equal invalidOutput "" "invalid invocation output stays off stdout"
+                Expect.stringContains invalidError expected "invalid invocation is actionable"
+
         testCase "Fault Injection 1: Corrupted .fsproj" <| fun _ ->
             let proj = "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup<TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>"
             let code = "module Corrupt\nlet x = 1"

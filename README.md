@@ -70,6 +70,39 @@ Run only explicitly declared files and write canonical JSON:
 fsassay ./MyProject --files ./MyProject/A.fs,./MyProject/B.fs --out-json artifacts/result.json
 ```
 
+Consumer commands on the packaged CLI are:
+
+```bash
+fsassay help
+fsassay doctor
+fsassay explain FSA-C02
+fsassay --out-json artifacts/result.json --out-sarif artifacts/result.sarif ./MyProject
+fsassay --docs artifacts/rules
+```
+
+`help`, `--help`, and `-h` render the same help once and exit `0`. `doctor`
+reports the installed tool identity, local SDK/runtime/FCS identity and the
+offline-default posture without running analysis. `explain` reports only an
+existing catalogue rule and its reviewed M3 class; it is explicitly
+non-authoritative. `--docs <dir>` is the implemented catalogue surface. The
+default target invocation is the implemented check/strict-authority path and
+may honestly exit `2` when policy-required evidence is incomplete. There are no
+separate `catalog`, `check`, or `verify` commands.
+
+M4 qualifies installation from a local candidate feed without publishing it:
+
+```bash
+dotnet new tool-manifest
+dotnet tool install FsAssay.Cli --version 1.0.4 --source /path/to/local/feed
+dotnet tool run fsassay -- doctor
+dotnet tool uninstall FsAssay.Cli
+```
+
+Analysis is offline by default: FsAssay has no telemetry or source-upload path.
+Package restore/install may contact configured feeds unless the consumer clears
+them or supplies an isolated local feed. `--serve` is the explicit localhost
+listener and is outside the offline analysis proof.
+
 `.fsassayrc` remains the scan-selection configuration and still falls back to
 defaults when malformed. `fsassay-policy.lock.json` is the separate strict,
 versioned authority policy. M3 deliberately has no CLI surface for ingesting
@@ -87,6 +120,12 @@ contract and deterministic receipt. Neither milestone is a package publication
 or new release claim. M3 begins at merged `main`
 `8da5c3305489d0ac4d07339c400b5fdd7ebed1b1` and adds Shape, complete rule
 classification and typed baseline governance without changing analyzer rules.
+M4 retains `1.0.4` and does not publish it. Its candidate package includes a
+README, Apache-2.0 license, repository URL/commit and SourceLink metadata. The
+canonical package is qualified across independent roots and receives a GitHub
+build-provenance attestation on exact candidate push. That attestation is not a
+NuGet package signature: the candidate remains unsigned and `NU3004` is an
+explicit limitation.
 
 The analyzer and CLI runner are the stable qualification surface. The stable
 tests transitively build the external CanonFlow plugin solely as frozen

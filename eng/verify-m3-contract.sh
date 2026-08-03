@@ -2,13 +2,22 @@
 set -euo pipefail
 
 base="8da5c3305489d0ac4d07339c400b5fdd7ebed1b1"
+m4_base="36c1b9264618344878cbf9dcca11363f5ea3d59b"
 policy="fsassay-policy.lock.json"
 classification="docs/contracts/fsassay-rule-classification-v1.json"
 shape="docs/contracts/fsassay-shape-v1.json"
 manifest="docs/evidence/m3-shape-rule-admission-manifest.json"
 
 git merge-base --is-ancestor "$base" HEAD
-test -z "$(git diff --name-only "$base" HEAD -- FsAssay.Analyzers)"
+test -z "$(git diff --name-only "$base" HEAD -- FsAssay.Analyzers | grep -E '\.fs$' || true)"
+test -z "$(git diff --name-only "$m4_base" HEAD -- FsAssay.Analyzers \
+  ':!FsAssay.Analyzers/FsAssay.Analyzers.fsproj')"
+analyzer_project="FsAssay.Analyzers/FsAssay.Analyzers.fsproj"
+test "$(git diff --numstat "$m4_base" HEAD -- "$analyzer_project")" = \
+  $'3\t0\tFsAssay.Analyzers/FsAssay.Analyzers.fsproj'
+grep -Fxq '    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>' "$analyzer_project"
+grep -Fxq '    <PathMap>$(MSBuildProjectDirectory)=/_/FsAssay.Analyzers</PathMap>' "$analyzer_project"
+grep -Fxq '    <EmbedUntrackedSources>false</EmbedUntrackedSources>' "$analyzer_project"
 
 jq empty "$policy" "$classification" "$shape" "$manifest" \
   docs/contracts/fsassay-policy.schema.json \
@@ -55,12 +64,20 @@ grep -q 'Implemented means executable, not admitted' docs/contracts/M3-SHAPE-RUL
 grep -q 'wall-clock time is not consulted' docs/contracts/SHAPE-CONVERGE-v1.md
 grep -q 'new-blocking-finding' FsAssay.Runner/Authority.fs
 grep -q 'reappearing-blocking-finding' FsAssay.Runner/Authority.fs
-grep -q 'common=(--minimum-expected-tests 92 ' eng/run-stable-tests.sh
+grep -q 'common=(--minimum-expected-tests 93 ' eng/run-stable-tests.sh
 
 check_hash() {
   local path="$1"
   local key="$2"
   test "$(sha256sum "$path" | cut -d' ' -f1)" = "$(jq -r --arg key "$key" '.hashes[$key]' "$manifest")"
+}
+
+check_historical_hash() {
+  local revision="$1"
+  local path="$2"
+  local key="$3"
+  test "$(git show "${revision}:${path}" | sha256sum | cut -d' ' -f1)" = \
+    "$(jq -r --arg key "$key" '.hashes[$key]' "$manifest")"
 }
 
 check_hash "$policy" policyFileSha256
@@ -73,7 +90,7 @@ check_hash "$classification" ruleClassificationSha256
 check_hash docs/contracts/M3-SHAPE-RULE-ADMISSION.md admissionContractSha256
 check_hash docs/evidence/m3-shape-rule-admission-inventory.md inventorySha256
 check_hash FsAssay.Runner/Authority.fs authorityImplementationSha256
-check_hash FsAssay.Runner/Program.fs authorityProducerSha256
+check_historical_hash "$m4_base" FsAssay.Runner/Program.fs authorityProducerSha256
 
 jq -e '
   .authorizedBaseCommit == "8da5c3305489d0ac4d07339c400b5fdd7ebed1b1" and
