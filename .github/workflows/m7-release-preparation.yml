@@ -1,0 +1,83 @@
+name: M7 Release preparation
+
+on:
+  push:
+    branches: [ 'uplift/m7-release-preparation' ]
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/m7-release-preparation.yml'
+      - 'docs/contracts/M7-RELEASE-GATE.md'
+      - 'docs/evidence/m7-release-preparation.md'
+      - 'eng/inventory-m7-external-state.sh'
+      - 'eng/qualify-m7-release.sh'
+      - 'eng/verify-m7-contract.sh'
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  release-preparation:
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_INSTALL_DIR: ${{ github.workspace }}/.dotnet
+      FSASSAY_M7_EXTERNAL_ACTIONS: deny
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.301'
+
+      - name: Verify exact SDK
+        run: test "$(dotnet --version)" = "10.0.301"
+
+      - name: Qualify exact release-preparation candidate
+        env:
+          FSASSAY_CANDIDATE_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash eng/qualify-m7-release.sh "$FSASSAY_CANDIDATE_SHA" artifacts/m7
+
+      - name: Attest exact candidate package as evidence only
+        if: github.event_name == 'push'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: artifacts/m7/package/FsAssay.Cli.1.0.4.nupkg
+
+      - name: Verify candidate-push provenance evidence
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh attestation verify artifacts/m7/package/FsAssay.Cli.1.0.4.nupkg \
+            --repo "$GITHUB_REPOSITORY" >artifacts/m7/github-attestation-verification.log
+          test "$(sha256sum artifacts/m7/package/FsAssay.Cli.1.0.4.nupkg | cut -d' ' -f1)" = \
+            "$(jq -r '.package.sha256' artifacts/m7/release-preparation-manifest.json)"
+
+      - name: Prove monitored external state was not changed
+        env:
+          FSASSAY_CANDIDATE_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          bash eng/inventory-m7-external-state.sh "$FSASSAY_CANDIDATE_SHA" \
+            artifacts/m7/external-state-final.json >artifacts/m7/external-state-final.log
+          cmp artifacts/m7/external-state-after.json artifacts/m7/external-state-final.json
+          jq -e '.releaseActionsAuthorized == false and ([.actionGates[]] | all(. == "blocked"))' \
+            artifacts/m7/external-state-final.json >/dev/null
+
+      - name: Verify final tracked-source integrity
+        run: |
+          bash eng/assert-required-locks.sh
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: m7-release-preparation-${{ github.sha }}
+          if-no-files-found: error
+          path: artifacts/m7/
+
