@@ -111,6 +111,16 @@ namespace, then `setpriv` drops back to the original uid/gid with cleared
 supplementary groups before any .NET command. If neither isolated path is
 available, qualification fails; it never falls back to connected execution.
 
+Candidate `edba75515f4744112002a29977584307ee2eb17c` retained both package
+reproductions but failed its
+[Stable CI run](https://github.com/CanonFlow-Assay/FSharpAssay/actions/runs/30784583146)
+at `install-offline-consumer`. The uploaded SHA-qualified artifact proves that
+direct unshare was denied, `sudo-unshare-drop-uid` was selected and .NET then
+reported that its user home could not be determined. Attestation and
+reconciliation again did not run. The offline wrapper now injects a workspace-
+owned `DOTNET_CLI_HOME` after the uid/gid drop rather than depending on `sudo`
+environment preservation.
+
 ## Limitations and nonclaims
 
 M4 does not admit a blocking or advisory rule. Finding counts are observations,

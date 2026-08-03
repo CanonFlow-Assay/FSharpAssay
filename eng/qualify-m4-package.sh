@@ -243,13 +243,22 @@ else
 fi
 printf '%s\n' "$network_namespace_mode" >"$output/network-namespace-mode.txt"
 
+dotnet_cli_home="$workspace/dotnet-cli-home"
+mkdir -p "$dotnet_cli_home"
+
 offline_exec() {
+  local -a isolated_command=(
+    env
+    DOTNET_CLI_HOME="$dotnet_cli_home"
+    "$@"
+  )
+
   if [[ "$network_namespace_mode" = "direct-unshare" ]]; then
-    unshare -n "$@"
+    unshare -n "${isolated_command[@]}"
   else
     sudo -n unshare -n setpriv \
       --reuid="$original_uid" --regid="$original_gid" --clear-groups \
-      "$@"
+      "${isolated_command[@]}"
   fi
 }
 
