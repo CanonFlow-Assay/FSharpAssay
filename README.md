@@ -21,10 +21,17 @@ each had an independently executable positive behavioral specimen:
 `FSA-P04`, `FSA-P05`, `FSA-SEC08`, `FSA-SEC11`, `FSA-SEC12`, `FSA-SEC13`,
 `FSA-TDD01`, `FSA-TDD02`, and `FSA-TDD03`.
 
-That legacy admission is historical evidence, not Human Gate C approval. The M2
+That legacy admission is historical evidence, not Human Gate C approval. The M3
 authority lock approves **zero blocking rules**. All current rule observations,
 including the inherited set, remain historical/experimental and cannot block,
-suppress, or help manufacture a `Pass`. M2 does not reclassify the catalogue.
+suppress, or help manufacture a `Pass`. M3 classifies the complete catalogue as
+35 experimental, 36 prototype and 22 dummy rules; implemented is not admitted.
+
+The normative [Shape New](docs/contracts/SHAPE-NEW-v1.md) and
+[Shape Converge](docs/contracts/SHAPE-CONVERGE-v1.md) contracts define the
+reviewed functional-core direction and bounded migration sequence. The
+[M3 admission record](docs/contracts/M3-SHAPE-RULE-ADMISSION.md) explains why
+no current rule meets the blocking or advisory bar.
 
 The versioned [Authority Contract](docs/contracts/AUTHORITY-CONTRACT-v1.md)
 defines exactly four top-level outcomes: `Pass`, `Fail`, `Inconclusive`, and
@@ -65,7 +72,7 @@ fsassay ./MyProject --files ./MyProject/A.fs,./MyProject/B.fs --out-json artifac
 
 `.fsassayrc` remains the scan-selection configuration and still falls back to
 defaults when malformed. `fsassay-policy.lock.json` is the separate strict,
-versioned authority policy. M2 deliberately has no CLI surface for ingesting
+versioned authority policy. M3 deliberately has no CLI surface for ingesting
 ambient test success, so the repository self-audit records its required stable
 test as `notRun` and is `Inconclusive` even when CI ran tests separately.
 
@@ -77,7 +84,9 @@ The inherited baseline identity is `1.0.4`. The read-only source baseline is
 qualification repair. M2 begins at merged `main`
 `13e2314ec8676aaf224440d6a46d3196ac84d2ef` and adds only the draft authority
 contract and deterministic receipt. Neither milestone is a package publication
-or new release claim.
+or new release claim. M3 begins at merged `main`
+`8da5c3305489d0ac4d07339c400b5fdd7ebed1b1` and adds Shape, complete rule
+classification and typed baseline governance without changing analyzer rules.
 
 The analyzer and CLI runner are the stable qualification surface. The stable
 tests transitively build the external CanonFlow plugin solely as frozen

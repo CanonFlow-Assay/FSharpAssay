@@ -14,13 +14,21 @@ let private requiredTest = ({
     minimumPassed = 2
 }: Authority.RequiredTestPolicy)
 
+let private rulesWith status =
+    FsAssay.Analyzers.Domain.Rule.AllRules
+    |> List.filter (fun rule -> rule.Status = status)
+    |> List.map _.Code
+    |> List.toArray
+
 let private policy = {
     Authority.unapprovedPolicy with
         requiredProjectClasses = [| "core" |]
         requiredTargetFrameworks = [| "net10.0" |]
         requiredTests = [| requiredTest |]
         advisoryRules = [||]
-        experimentalRules = [| "LEGACY001"; "PROTO001" |]
+        experimentalRules = rulesWith FsAssay.Analyzers.Domain.Implemented
+        prototypeRules = rulesWith FsAssay.Analyzers.Domain.Prototype
+        dummyRules = rulesWith FsAssay.Analyzers.Domain.Dummy
 }
 
 let private passedTest root = ({
@@ -43,8 +51,8 @@ let private completeFacts root = {
         ]
         RequiredTests = [ passedTest root ]
         Rules = [
-            { RuleId = "LEGACY001"; Status = "completed"; EvidenceAvailable = true; FindingCount = 0 }
-            { RuleId = "PROTO001"; Status = "completed"; EvidenceAvailable = true; FindingCount = 0 }
+            { RuleId = "FSA-C01"; Status = "completed"; EvidenceAvailable = true; FindingCount = 0 }
+            { RuleId = "FSA-C04"; Status = "completed"; EvidenceAvailable = true; FindingCount = 0 }
         ]
 }
 
@@ -113,7 +121,7 @@ let private withTempRoot action =
 let private reasonCodes (decision: Authority.AuthorityDecision) = decision.Reasons |> List.map fst |> Set.ofList
 
 let tests =
-    testList "M2 authority contract" [
+    testList "authority contract" [
         testCase "credible complete nonzero evidence passes" <| fun _ ->
             withTempRoot (fun root ->
                 let decision = Authority.decide policy (completeFacts root)
@@ -321,23 +329,23 @@ let tests =
                     |> List.map (fun rule -> { rule with Status = "unavailable"; EvidenceAvailable = false })
                 let experimentalDecision = Authority.decide policy { completeFacts root with Rules = unavailableRules }
                 Expect.equal experimentalDecision.Outcome Pass "experimental availability is not authority evidence"
-                let advisoryPolicy = { policy with advisoryRules = [| "LEGACY001" |]; experimentalRules = [| "PROTO001" |] }
+                let advisoryPolicy = { policy with advisoryRules = [| "FSA-C01" |]; experimentalRules = [| "FSA-C04" |] }
                 let advisoryDecision = Authority.decide advisoryPolicy { completeFacts root with Rules = unavailableRules }
                 Expect.equal advisoryDecision.Outcome Pass "advisory availability is not authority evidence")
 
         testCase "hypothetical unapproved required rule is Inconclusive" <| fun _ ->
             withTempRoot (fun root ->
-                let badPolicy = { policy with approvedBlockingRules = [| "LEGACY001" |]; experimentalRules = [| "PROTO001" |] }
+                let badPolicy = { policy with approvedBlockingRules = [| "FSA-C01" |]; experimentalRules = [| "FSA-C04" |] }
                 let unavailable =
                     (completeFacts root).Rules
-                    |> List.map (fun rule -> if rule.RuleId = "LEGACY001" then { rule with Status = "unavailable"; EvidenceAvailable = false } else rule)
+                    |> List.map (fun rule -> if rule.RuleId = "FSA-C01" then { rule with Status = "unavailable"; EvidenceAvailable = false } else rule)
                 let decision = Authority.decide badPolicy { completeFacts root with Rules = unavailable }
-                Expect.contains (reasonCodes decision) "gate-c-approval-missing" "M2 cannot inherit legacy admission"
+                Expect.contains (reasonCodes decision) "gate-c-approval-missing" "M3 cannot infer admission from implementation status"
                 Expect.contains (reasonCodes decision) "required-rule-unavailable" "only a hypothetical authority-required rule creates this gap")
 
         testCase "rule cannot be complete without project evidence" <| fun _ ->
             withTempRoot (fun root ->
-                let badRule = ({ RuleId = "LEGACY001"; Status = "completed"; EvidenceAvailable = false; FindingCount = 0 }: Authority.RuleEvidence)
+                let badRule = ({ RuleId = "FSA-C01"; Status = "completed"; EvidenceAvailable = false; FindingCount = 0 }: Authority.RuleEvidence)
                 let decision = Authority.decide policy { completeFacts root with Rules = [ badRule ] }
                 Expect.equal decision.Outcome ToolFailure "contradictory emitted evidence is invalid")
 
@@ -345,8 +353,8 @@ let tests =
             withTempRoot (fun root ->
                 let firstPath = Path.Combine(root, "first.json")
                 let secondPath = Path.Combine(root, "second.json")
-                let firstPolicy = { policy with experimentalRules = [| "Z"; "A" |] }
-                let secondPolicy = { policy with experimentalRules = [| "A"; "Z" |] }
+                let firstPolicy = { policy with experimentalRules = policy.experimentalRules |> Array.rev }
+                let secondPolicy = { policy with experimentalRules = policy.experimentalRules |> Array.sort }
                 File.WriteAllText(firstPath, JsonSerializer.Serialize(firstPolicy))
                 File.WriteAllText(secondPath, JsonSerializer.Serialize(secondPolicy, JsonSerializerOptions(WriteIndented = true)))
                 match Authority.loadPolicy firstPath, Authority.loadPolicy secondPath with
@@ -405,9 +413,9 @@ let tests =
                 let completeReceipt = receipt root (completeFacts root)
                 Expect.equal completeReceipt.outcome "Pass" "complete fixture must pass"
                 Expect.isTrue completeReceipt.authoritative "Pass fixture must be authoritative"
-                Expect.isEmpty completeReceipt.policy.snapshot.baseline.approvedFindings "M2 has no configured baseline governance"
+                Expect.isEmpty completeReceipt.policy.snapshot.baseline.records "M3 has no accepted baseline debt"
                 Expect.isEmpty completeReceipt.appliedSuppressions "configured debt must never be reported as applied suppression"
-                expectRejected "M2 cannot forge applied suppressions" { completeReceipt with appliedSuppressions = [| "*" |] }
+                expectRejected "M3 cannot forge applied suppressions" { completeReceipt with appliedSuppressions = [| "*" |] }
                 expectRejected "Pass false contradicts complete evidence" { completeReceipt with authoritative = false }
                 expectRejected "Inconclusive cannot be forged over complete evidence" { completeReceipt with outcome = "Inconclusive"; authoritative = false }
                 let forgedFailureReason = ({ code = "required-test-failed"; detail = "forged failure" }: Authority.ReasonReceipt)
@@ -446,16 +454,21 @@ let tests =
                 expectRejected "removing required tests without changing the hash must fail" { honest.policy.snapshot with requiredTests = [||] }
                 expectRejected "removing project classes without changing the hash must fail" { honest.policy.snapshot with requiredProjectClasses = [||] }
                 expectRejected "removing target frameworks without changing the hash must fail" { honest.policy.snapshot with requiredTargetFrameworks = [||] }
-                expectRejected "changing rule authority without changing the hash must fail" { honest.policy.snapshot with experimentalRules = [| "PROTO001" |] }
+                expectRejected "changing rule authority without changing the hash must fail" { honest.policy.snapshot with experimentalRules = [| "FSA-C04" |] }
                 expectRejected "changing profiles without changing the hash must fail" { honest.policy.snapshot with enabledProfiles = [| "alternate" |] }
                 expectRejected "changing baseline configuration without changing the hash must fail" {
-                    honest.policy.snapshot with baseline = { identity = "configured"; approvedFindings = [| "*" |] }
+                    honest.policy.snapshot with baseline = { identity = "configured"; reviewedBy = ""; reviewedOn = ""; records = [||] }
                 }
                 let exceptionEvidence = ({
                     id = "reviewed-exception"
+                    category = "hosting"
+                    relativePath = "src/Host.fs"
+                    symbol = "Host.start"
                     owner = "human@example.invalid"
                     reason = "bounded test mutation"
+                    createdOn = "2026-08-03"
                     expiresOn = "2099-01-01"
+                    shapeClauses = [| "SN-CORE" |]
                 }: Authority.PolicyException)
                 let alternatePolicy = { honest.policy.snapshot with exceptions = [| exceptionEvidence |] }
                 expectRejected "changing exceptions without changing the hash must fail" alternatePolicy
@@ -549,21 +562,161 @@ let tests =
         testCase "policy rule and skipped-test contradictions fail closed" <| fun _ ->
             withTempRoot (fun root ->
                 let duplicatePath = Path.Combine(root, "duplicate-policy.json")
-                let duplicatePolicy = { policy with experimentalRules = [| "LEGACY001"; "LEGACY001" |] }
+                let duplicatePolicy = { policy with experimentalRules = [| "FSA-C01"; "FSA-C01" |] }
                 File.WriteAllText(duplicatePath, JsonSerializer.Serialize(duplicatePolicy))
                 match Authority.loadPolicy duplicatePath with
                 | Authority.PolicyInvalid _ -> ()
                 | other -> failtestf "duplicate policy values must be invalid, got %A" other
                 let wildcardBaselinePath = Path.Combine(root, "wildcard-baseline-policy.json")
-                let wildcardBaseline = { policy with baseline = { identity = "configured"; approvedFindings = [| "*" |] } }
+                let wildcardBaseline = { policy with baseline = { identity = "configured"; reviewedBy = ""; reviewedOn = ""; records = [||] } }
                 File.WriteAllText(wildcardBaselinePath, JsonSerializer.Serialize(wildcardBaseline))
                 match Authority.loadPolicy wildcardBaselinePath with
                 | Authority.PolicyInvalid _ -> ()
                 | other -> failtestf "wildcard baseline must remain invalid until baseline governance exists, got %A" other
-                let countMismatch = ({ RuleId = "LEGACY001"; Status = "completed"; EvidenceAvailable = true; FindingCount = 1 }: Authority.RuleEvidence)
+                let countMismatch = ({ RuleId = "FSA-C01"; Status = "completed"; EvidenceAvailable = true; FindingCount = 1 }: Authority.RuleEvidence)
                 let countDecision = Authority.decide policy { completeFacts root with Rules = [ countMismatch; (completeFacts root).Rules.[1] ] }
                 Expect.equal countDecision.Outcome ToolFailure "declared rule counts must match findings"
                 let badSkipped = { passedTest root with Status = Authority.TestStatus.Skipped; Passed = 0; Skipped = 0 }
                 let skippedDecision = Authority.decide policy { completeFacts root with RequiredTests = [ badSkipped ] }
                 Expect.equal skippedDecision.Outcome ToolFailure "skipped status requires a nonzero skipped count")
+
+        testCase "M3 policy and classification partition the exact catalogue" <| fun _ ->
+            let policyPath = Path.GetFullPath("fsassay-policy.lock.json")
+            let classificationPath = Path.GetFullPath("docs/contracts/fsassay-rule-classification-v1.json")
+            match Authority.loadPolicy policyPath with
+            | Authority.PolicyLoaded(locked, _, _) ->
+                let allClasses =
+                    Array.concat [|
+                        locked.approvedBlockingRules; locked.advisoryRules; locked.experimentalRules
+                        locked.prototypeRules; locked.dummyRules; locked.deprecatedRules; locked.removedRules
+                    |]
+                let catalogue = FsAssay.Analyzers.Domain.Rule.AllRules |> List.map _.Code |> List.sort
+                Expect.sequenceEqual (allClasses |> Array.sort) catalogue "every catalogue identity must appear exactly once"
+                Expect.equal locked.approvedBlockingRules.Length 0 "Human Gate C admitted no blockers"
+                Expect.equal locked.advisoryRules.Length 0 "Human Gate C admitted no advisories"
+                Expect.equal locked.experimentalRules.Length 35 "implemented rules remain experimental"
+                Expect.equal locked.prototypeRules.Length 36 "prototype count is locked"
+                Expect.equal locked.dummyRules.Length 22 "dummy count is locked"
+            | other -> failtestf "M3 policy must load: %A" other
+            use document = JsonDocument.Parse(File.ReadAllBytes(classificationPath))
+            let root = document.RootElement
+            let jsonClass (name: string) = root.GetProperty(name).EnumerateArray() |> Seq.map _.GetString() |> Seq.toArray
+            Expect.equal (root.GetProperty("catalogueCount").GetInt32()) 93 "machine classification count is locked"
+            let machine = Array.concat [| jsonClass "blocking"; jsonClass "advisory"; jsonClass "experimental"; jsonClass "prototype"; jsonClass "dummy"; jsonClass "deprecated"; jsonClass "removed" |]
+            Expect.sequenceEqual (machine |> Array.sort) (FsAssay.Analyzers.Domain.Rule.AllRules |> List.map _.Code |> List.sort) "policy-independent classification must cover the same catalogue"
+
+        testCase "M3 Shape contract exposes stable clauses and bounded exceptions" <| fun _ ->
+            use document = JsonDocument.Parse(File.ReadAllBytes(Path.GetFullPath("docs/contracts/fsassay-shape-v1.json")))
+            let root = document.RootElement
+            let values (name: string) = root.GetProperty(name).EnumerateArray() |> Seq.map _.GetString() |> Seq.toArray
+            Expect.equal (root.GetProperty("contractVersion").GetString()) Authority.ShapeContractVersion "Shape identity must match policy validation"
+            Expect.equal (values "newClauses").Length 9 "Shape New clause count is locked"
+            Expect.equal (values "convergeClauses").Length 10 "Shape Converge sequence is locked"
+            Expect.sequenceEqual (values "frameworkExceptionCategories") [| "dependency-injection"; "hosting"; "interoperability"; "persistence"; "serialization"; "ui" |] "exception categories must remain bounded"
+            Expect.isFalse (root.GetProperty("authorityLaws").GetProperty("missingEvidenceCanPass").GetBoolean()) "missing evidence cannot become Pass"
+
+        testCase "M3 schema bump is strict and preserves M2 evidence fields" <| fun _ ->
+            withTempRoot (fun root ->
+                let currentJson = receipt root (completeFacts root) |> Output.canonicalJsonBytes |> Encoding.UTF8.GetString
+                let m2Version =
+                    currentJson
+                        .Replace(Authority.EvidenceSchemaVersion, "fsassay-authority-receipt/1.0.0")
+                        .Replace(Authority.PolicySchemaVersion, "fsassay-policy/1.0.0")
+                        .Replace(Authority.ShapeContractVersion, "not-established")
+                    |> Encoding.UTF8.GetBytes
+                Expect.isError (Authority.deserializeAndValidateReceipt m2Version) "M2 receipt identities require explicit migration"
+                use schema = JsonDocument.Parse(File.ReadAllBytes(Path.GetFullPath("docs/contracts/fsassay-authority-receipt.schema.json")))
+                let required = schema.RootElement.GetProperty("required").EnumerateArray() |> Seq.map _.GetString() |> Set.ofSeq
+                for retained in [ "candidate"; "policy"; "toolchain"; "counts"; "projects"; "sources"; "tests"; "rules"; "findings"; "appliedSuppressions"; "policyErrors"; "evidenceErrors"; "missingEvidence"; "toolFailures" ] do
+                    Expect.contains required retained (sprintf "M2 evidence field '%s' remains required" retained)
+                Expect.contains required "appliedBaselineRecords" "M3 adds explicit applied-baseline evidence")
+
+        testCase "baseline matching is exact and expiry is inclusive on explicit policy date" <| fun _ ->
+            let finding = ({
+                RuleId = "FSA-C01"
+                Path = "src/Core.fs"
+                Symbol = "Core.value"
+                Line = 12
+                Column = 4
+                Message = "deterministic specimen"
+                Fingerprint = String.replicate 64 "a"
+            }: Authority.FindingEvidence)
+            let record = ({
+                id = "BL-001"
+                ruleId = finding.RuleId
+                fingerprint = finding.Fingerprint
+                relativePath = finding.Path
+                symbol = finding.Symbol
+                owner = "shape-review@example.invalid"
+                rationale = "bounded migration debt"
+                disposition = "accepted"
+                createdOn = "2026-07-01"
+                expiresOn = "2026-08-03"
+                policyVersion = Authority.PolicySchemaVersion
+            }: Authority.BaselineRecord)
+            let baseline = ({ identity = "test-only"; reviewedBy = "shape-review@example.invalid"; reviewedOn = "2026-07-01"; records = [| record |] }: Authority.BaselinePolicy)
+            let inclusive = Authority.evaluateBaseline "2026-08-03" baseline [ finding ]
+            Expect.sequenceEqual inclusive.AppliedRecordIds [ "BL-001" ] "record remains active on its expiry date"
+            Expect.isEmpty inclusive.NewFindings "exact active match is reviewed debt"
+            let expired = Authority.evaluateBaseline "2026-08-04" baseline [ finding ]
+            Expect.isEmpty expired.AppliedRecordIds "expired record is not reported as applied"
+            Expect.equal expired.NewFindings.Length 1 "expired match is new debt"
+            let symbolMismatch = Authority.evaluateBaseline "2026-08-03" baseline [ { finding with Symbol = "Core.other" } ]
+            Expect.isEmpty symbolMismatch.AppliedRecordIds "symbol mismatch cannot reuse a record"
+            Expect.equal symbolMismatch.NewFindings.Length 1 "exact symbol is required"
+
+        testCase "resolved baseline debt reappears and reviewed metadata changes identity" <| fun _ ->
+            let finding = ({ RuleId = "FSA-C01"; Path = "src/Core.fs"; Symbol = "Core.value"; Line = 1; Column = 0; Message = "x"; Fingerprint = String.replicate 64 "b" }: Authority.FindingEvidence)
+            let record = ({ id = "BL-002"; ruleId = finding.RuleId; fingerprint = finding.Fingerprint; relativePath = finding.Path; symbol = finding.Symbol; owner = "owner-a"; rationale = "resolved after migration"; disposition = "resolved"; createdOn = "2026-07-01"; expiresOn = ""; policyVersion = Authority.PolicySchemaVersion }: Authority.BaselineRecord)
+            let baseline = ({ identity = ""; reviewedBy = "reviewer-a"; reviewedOn = "2026-07-02"; records = [| record |] }: Authority.BaselinePolicy)
+            let evaluation = Authority.evaluateBaseline "2026-08-03" baseline [ finding ]
+            Expect.isEmpty evaluation.AppliedRecordIds "resolved records are never applied"
+            Expect.equal evaluation.ReappearingFindings.Length 1 "resolved debt must be identified as reappearing"
+            let firstIdentity = Authority.canonicalBaselineIdentity baseline
+            let secondIdentity = Authority.canonicalBaselineIdentity { baseline with reviewedBy = "reviewer-b" }
+            Expect.notEqual firstIdentity secondIdentity "review metadata is hash-bound"
+
+        testCase "receipt reports only exact active baseline records as applied" <| fun _ ->
+            withTempRoot (fun root ->
+                let relativePath = "src/Core.fs"
+                let message = "deterministic receipt specimen"
+                let fingerprint = Authority.findingFingerprint "FSA-C01" relativePath 7 2 message
+                let finding = ({ RuleId = "FSA-C01"; Path = Path.Combine(root, "src", "Core.fs"); Symbol = "Core.value"; Line = 7; Column = 2; Message = message; Fingerprint = "producer-recomputes" }: Authority.FindingEvidence)
+                let record = ({ id = "BL-RECEIPT"; ruleId = finding.RuleId; fingerprint = fingerprint; relativePath = relativePath; symbol = finding.Symbol; owner = "owner"; rationale = "bounded"; disposition = "accepted"; createdOn = "2026-07-01"; expiresOn = "2026-08-03"; policyVersion = Authority.PolicySchemaVersion }: Authority.BaselineRecord)
+                let baseline = ({ identity = "test-only"; reviewedBy = "reviewer"; reviewedOn = "2026-07-01"; records = [| record |] }: Authority.BaselinePolicy)
+                let blockingPolicy = {
+                    policy with
+                        approvedBlockingRules = [| "FSA-C01" |]
+                        experimentalRules = policy.experimentalRules |> Array.filter ((<>) "FSA-C01")
+                        baseline = baseline
+                        evaluationDate = "2026-08-03"
+                }
+                let findingRule = ({ RuleId = "FSA-C01"; Status = "completed"; EvidenceAvailable = true; FindingCount = 1 }: Authority.RuleEvidence)
+                let facts = { completeFacts root with Rules = findingRule :: (completeFacts root).Rules.Tail; Findings = [ finding ] }
+                let activeReceipt = Authority.createReceipt root candidate blockingPolicy (Path.Combine(root, "fsassay-policy.lock.json")) (String.replicate 64 "d") facts
+                Expect.sequenceEqual activeReceipt.appliedBaselineRecords [| "BL-RECEIPT" |] "only exact active record is itemized"
+                Expect.isFalse (activeReceipt.reasons |> Array.exists (fun reason -> reason.code = "new-blocking-finding")) "active reviewed debt is not new"
+                let expiredPolicy = { blockingPolicy with evaluationDate = "2026-08-04" }
+                let expiredReceipt = Authority.createReceipt root candidate expiredPolicy (Path.Combine(root, "fsassay-policy.lock.json")) (String.replicate 64 "e") facts
+                Expect.isEmpty expiredReceipt.appliedBaselineRecords "expired record is not reported as applied"
+                Expect.isTrue (expiredReceipt.reasons |> Array.exists (fun reason -> reason.code = "new-blocking-finding")) "expired debt fails explicitly")
+
+        testCase "baseline cannot hide missing authority evidence" <| fun _ ->
+            withTempRoot (fun root ->
+                let finding = ({ RuleId = "FSA-C01"; Path = "src/Core.fs"; Symbol = "Core.value"; Line = 1; Column = 0; Message = "x"; Fingerprint = String.replicate 64 "c" }: Authority.FindingEvidence)
+                let record = ({ id = "BL-003"; ruleId = finding.RuleId; fingerprint = finding.Fingerprint; relativePath = "src/Core.fs"; symbol = finding.Symbol; owner = "owner"; rationale = "bounded"; disposition = "accepted"; createdOn = "2026-07-01"; expiresOn = "2026-09-01"; policyVersion = Authority.PolicySchemaVersion }: Authority.BaselineRecord)
+                let blockingPolicy = {
+                    policy with
+                        approvedBlockingRules = [| "FSA-C01" |]
+                        experimentalRules = policy.experimentalRules |> Array.filter ((<>) "FSA-C01")
+                        baseline = { identity = "test-only"; reviewedBy = "reviewer"; reviewedOn = "2026-07-01"; records = [| record |] }
+                        evaluationDate = "2026-08-03"
+                }
+                let unavailableRule = ({ RuleId = "FSA-C01"; Status = "unavailable"; EvidenceAvailable = false; FindingCount = 1 }: Authority.RuleEvidence)
+                let facts = { completeFacts root with MissingEvidence = [ "generated members unavailable" ]; Rules = unavailableRule :: (completeFacts root).Rules.Tail; Findings = [ finding ] }
+                let decision = Authority.decide blockingPolicy facts
+                Expect.equal decision.Outcome Inconclusive "active debt does not hide incomplete evidence"
+                Expect.isFalse decision.Authoritative "incomplete evidence can never be authoritative"
+                Expect.contains (reasonCodes decision) "evidence-missing" "missing evidence remains explicit"
+                Expect.contains (reasonCodes decision) "required-rule-unavailable" "rule unavailability remains explicit")
     ]
