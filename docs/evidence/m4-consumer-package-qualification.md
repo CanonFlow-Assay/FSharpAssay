@@ -87,10 +87,10 @@ Branch candidate `483a62aee5f71fdefb98595b6d7a051319690b5f` failed its
 after both 93-test entry points passed. The historical M1 path-freeze verifier
 rejected the analyzer project file before package qualification or attestation
 could execute. That run is failed evidence, not a qualified candidate. The M1
-verifier now permits only the three bounded deterministic-build metadata lines
-in that project file plus the existing lockfile, continues to reject every
-analyzer `.fs` change and validates the exact three-line insertion against the
-signed M4 base.
+and M3 verifiers now permit only the three bounded deterministic-build metadata
+lines in that project file (plus M1's existing lockfile), continue to reject
+every analyzer `.fs` change and validate the exact three-line insertion against
+the signed M4 base.
 
 ## Limitations and nonclaims
 

@@ -2,13 +2,22 @@
 set -euo pipefail
 
 base="8da5c3305489d0ac4d07339c400b5fdd7ebed1b1"
+m4_base="36c1b9264618344878cbf9dcca11363f5ea3d59b"
 policy="fsassay-policy.lock.json"
 classification="docs/contracts/fsassay-rule-classification-v1.json"
 shape="docs/contracts/fsassay-shape-v1.json"
 manifest="docs/evidence/m3-shape-rule-admission-manifest.json"
 
 git merge-base --is-ancestor "$base" HEAD
-test -z "$(git diff --name-only "$base" HEAD -- FsAssay.Analyzers)"
+test -z "$(git diff --name-only "$base" HEAD -- FsAssay.Analyzers | grep -E '\.fs$' || true)"
+test -z "$(git diff --name-only "$m4_base" HEAD -- FsAssay.Analyzers \
+  ':!FsAssay.Analyzers/FsAssay.Analyzers.fsproj')"
+analyzer_project="FsAssay.Analyzers/FsAssay.Analyzers.fsproj"
+test "$(git diff --numstat "$m4_base" HEAD -- "$analyzer_project")" = \
+  $'3\t0\tFsAssay.Analyzers/FsAssay.Analyzers.fsproj'
+grep -Fxq '    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>' "$analyzer_project"
+grep -Fxq '    <PathMap>$(MSBuildProjectDirectory)=/_/FsAssay.Analyzers</PathMap>' "$analyzer_project"
+grep -Fxq '    <EmbedUntrackedSources>false</EmbedUntrackedSources>' "$analyzer_project"
 
 jq empty "$policy" "$classification" "$shape" "$manifest" \
   docs/contracts/fsassay-policy.schema.json \
