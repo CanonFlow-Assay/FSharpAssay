@@ -69,7 +69,7 @@
     "ruleClassificationSha256": "ad82828a617d72fddb1803e2844264ad1d15dc62bb4f1833cd2c38f500b6487e",
     "admissionContractSha256": "3337b36470a50c5bbb4e0b4f97cce531151245210919ab3a7a4544ec6461f5cf",
     "inventorySha256": "64a5a4f91034f6e90565073febae08e2adbc8f2bace438d459e2ce3eadf98ea1",
-    "authorityImplementationSha256": "c44f7a836b36734b5ee57da456c4aa2ce64c0c4a8652c66c641da73b97df7311",
+    "authorityImplementationSha256": "fdec3dca3dc16ff224288be855429322e3a941bec518e610d00a6e1ec9a851a7",
     "authorityProducerSha256": "9f449b3c0c9f2ad4952b914dd1f0821d12500b863e7e0369add4e3fcafbb9d33"
   },
   "analyzerRulesChanged": false,
