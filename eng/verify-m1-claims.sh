@@ -4,15 +4,27 @@ set -euo pipefail
 base="f773b3090ffd86cb5600fdaf3aca20ec9cc19606"
 base_tree="417d216dd00d7d8f082627f1f859f413044a8c6d"
 analyzer_tree="bbd34a4fe89f692347f6f5706258252ffa69c32e"
+m4_base="36c1b9264618344878cbf9dcca11363f5ea3d59b"
 manifest="docs/evidence/m1-deletions.tsv"
 
 test "$(git rev-parse "${base}^{tree}")" = "$base_tree"
 test "$(git rev-parse "${base}:FsAssay.Analyzers")" = "$analyzer_tree"
 mapfile -t analyzer_changes < <(git diff --name-only "$base" HEAD -- FsAssay.Analyzers)
-test "${#analyzer_changes[@]}" -eq 1
-test "${analyzer_changes[0]}" = "FsAssay.Analyzers/packages.lock.json"
+test "${#analyzer_changes[@]}" -eq 2
+test "${analyzer_changes[0]}" = "FsAssay.Analyzers/FsAssay.Analyzers.fsproj"
+test "${analyzer_changes[1]}" = "FsAssay.Analyzers/packages.lock.json"
 test -z "$(git diff --name-only "$base" HEAD -- \
-  FsAssay.Analyzers ':!FsAssay.Analyzers/packages.lock.json')"
+  FsAssay.Analyzers \
+  ':!FsAssay.Analyzers/FsAssay.Analyzers.fsproj' \
+  ':!FsAssay.Analyzers/packages.lock.json')"
+test -z "$(git diff --name-only "$base" HEAD -- FsAssay.Analyzers | grep -E '\.fs$' || true)"
+
+analyzer_project="FsAssay.Analyzers/FsAssay.Analyzers.fsproj"
+test "$(git diff --numstat "$m4_base" HEAD -- "$analyzer_project")" = \
+  $'3\t0\tFsAssay.Analyzers/FsAssay.Analyzers.fsproj'
+grep -Fxq '    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>' "$analyzer_project"
+grep -Fxq '    <PathMap>$(MSBuildProjectDirectory)=/_/FsAssay.Analyzers</PathMap>' "$analyzer_project"
+grep -Fxq '    <EmbedUntrackedSources>false</EmbedUntrackedSources>' "$analyzer_project"
 
 if grep -Eini 'pages|environment:|deploy-pages|upload-pages' .github/workflows/*.yml; then
   echo "deployment capability remains in a workflow" >&2

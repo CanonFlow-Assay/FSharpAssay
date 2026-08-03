@@ -80,6 +80,18 @@ canonical reproduction result, stable test minimum, installed evidence hashes,
 offline proof, rollback and adversarial results. CI uploads the package,
 manifest, command streams, traces and logs as review artifacts.
 
+## Remote correction evidence
+
+Branch candidate `483a62aee5f71fdefb98595b6d7a051319690b5f` failed its
+[Stable CI run](https://github.com/CanonFlow-Assay/FSharpAssay/actions/runs/30783437432)
+after both 93-test entry points passed. The historical M1 path-freeze verifier
+rejected the analyzer project file before package qualification or attestation
+could execute. That run is failed evidence, not a qualified candidate. The M1
+verifier now permits only the three bounded deterministic-build metadata lines
+in that project file plus the existing lockfile, continues to reject every
+analyzer `.fs` change and validates the exact three-line insertion against the
+signed M4 base.
+
 ## Limitations and nonclaims
 
 M4 does not admit a blocking or advisory rule. Finding counts are observations,
