@@ -1,3 +1,5 @@
+#line 1 "/_/FsAssay.Runner/Program.fs"
+
 open System
 open System.IO
 open System.Text.RegularExpressions
