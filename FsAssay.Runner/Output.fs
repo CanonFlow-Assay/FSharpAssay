@@ -7,70 +7,68 @@ open FSharp.Analyzers.SDK
 open FsAssay.Analyzers.Domain
 
 module Output =
-    type JsonViolation = {
-        code: string
-        message: string
-        startLine: int
-        startColumn: int
-        endLine: int
-        endColumn: int
-    }
-    
-    type JsonFileResult = {
-        file: string
-        violations: JsonViolation[]
-    }
+    let private canonicalOptions () =
+        JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
 
-    let writeCanonicalJson (results: (string * Violation list) list) (outPath: string) =
-        let jsonResults =
-            results
-            |> List.map (fun (file, violations) ->
-                {
-                    file = file
-                    violations = 
-                        violations |> List.map (fun v ->
-                            {
-                                code = v.Code
-                                message = v.Message
-                                startLine = v.Range.StartLine
-                                startColumn = v.Range.StartColumn
-                                endLine = v.Range.EndLine
-                                endColumn = v.Range.EndColumn
-                            }
-                        ) |> List.toArray
-                }
-            )
-            |> List.toArray
-        let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase) // EXPECT: FSA-F04
-        let jsonStr = JsonSerializer.Serialize(jsonResults, options)
-        File.WriteAllText(outPath, jsonStr) // EXPECT: FSA2022 // EXPECT: FSA-C15
+    let canonicalJsonBytes (receipt: Authority.AuthorityReceipt) =
+        match Authority.validateReceipt receipt with
+        | error :: rest -> invalidOp (String.concat "; " (error :: rest))
+        | [] ->
+            let bytes =
+                JsonSerializer.Serialize(receipt, canonicalOptions ()) + "\n"
+                |> System.Text.Encoding.UTF8.GetBytes
+            match Authority.deserializeAndValidateReceipt bytes with
+            | Ok _ -> bytes
+            | Error errors -> invalidOp (String.concat "; " errors)
+
+    let private atomicWrite outPath (bytes: byte[]) =
+        let fullPath = Path.GetFullPath(outPath)
+        let directory = Path.GetDirectoryName(fullPath)
+        Directory.CreateDirectory(directory) |> ignore
+        let temporary = Path.Combine(directory, "." + Path.GetFileName(fullPath) + ".tmp-" + Guid.NewGuid().ToString("N"))
+        try
+            File.WriteAllBytes(temporary, bytes) // EXPECT: FSA2022 // EXPECT: FSA-C15
+            File.Move(temporary, fullPath, true) // EXPECT: FSA2022
+        finally
+            if File.Exists(temporary) then File.Delete(temporary) // EXPECT: FSA2022
+
+    let writeCanonicalJson (receipt: Authority.AuthorityReceipt) (outPath: string) =
+        atomicWrite outPath (canonicalJsonBytes receipt)
 
     // Minimal SARIF generation using anonymous records
-    let writeSarif (results: (string * Violation list) list) (outPath: string) =
+    let canonicalSarifBytes (receipt: Authority.AuthorityReceipt) =
+        match Authority.validateReceipt receipt with
+        | error :: rest -> invalidOp (String.concat "; " (error :: rest))
+        | [] -> ()
         let sarifResults =
-            results
-            |> List.collect (fun (file, violations) ->
-                violations |> List.map (fun v ->
-                    {|
-                        ruleId = v.Code
-                        message = {| text = v.Message |}
-                        locations = [|
-                            {|
-                                physicalLocation = {|
-                                    artifactLocation = {| uri = "file://" + file.Replace("\\", "/") |}
-                                    region = {|
-                                        startLine = max 1 v.Range.StartLine
-                                        startColumn = max 1 (v.Range.StartColumn + 1)
-                                        endLine = max 1 v.Range.EndLine
-                                        endColumn = max 1 (v.Range.EndColumn + 1)
-                                    |}
+            receipt.findings
+            |> Array.map (fun finding ->
+                {|
+                    ruleId = finding.ruleId
+                    message = {| text = finding.message |}
+                    partialFingerprints = {| fsAssayFingerprint = finding.fingerprint |}
+                    properties = {| authorityClass = finding.authorityClass |}
+                    locations = [|
+                        {|
+                            physicalLocation = {|
+                                artifactLocation = {| uri = finding.path |}
+                                region = {|
+                                    startLine = max 1 finding.line
+                                    startColumn = max 1 (finding.column + 1)
                                 |}
                             |}
-                        |]
-                    |}
-                )
-            )
-            |> List.toArray
+                        |}
+                    |]
+                |})
+
+        let notifications =
+            receipt.reasons
+            |> Array.map (fun reason ->
+                {|
+                    descriptor = {| id = reason.code |}
+                    level = if receipt.outcome = "ToolFailure" || receipt.outcome = "Fail" then "error" else "warning"
+                    message = {| text = reason.detail |}
+                |})
 
         let sarifObj = {|
             version = "2.1.0"
@@ -84,14 +82,54 @@ module Output =
                             version = ProductIdentity.Version
                         |}
                     |}
+                    automationDetails = {| id = receipt.policy.sha256 |}
+                    invocations = [|
+                        {|
+                            executionSuccessful = receipt.outcome <> "ToolFailure"
+                            toolExecutionNotifications = notifications
+                        |}
+                    |]
+                    properties = {|
+                        evidenceSchemaVersion = receipt.schemaVersion
+                        outcome = receipt.outcome
+                        authoritative = receipt.authoritative
+                        candidateKind = receipt.candidate.kind
+                        candidateCommit = receipt.candidate.commitSha
+                        candidateTree = receipt.candidate.treeSha
+                        policySha256 = receipt.policy.sha256
+                        reasons = receipt.reasons
+                        counts = receipt.counts
+                        findingCount = receipt.findings.Length
+                    |}
                     results = sarifResults
                 |}
             |]
         |}
 
-        let options = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase) // EXPECT: FSA-F04
-        let jsonStr = JsonSerializer.Serialize(sarifObj, options)
-        File.WriteAllText(outPath, jsonStr) // EXPECT: FSA2022 // EXPECT: FSA-C15
+        JsonSerializer.Serialize(sarifObj, canonicalOptions ()) + "\n"
+        |> System.Text.Encoding.UTF8.GetBytes
+
+    let writeSarif (receipt: Authority.AuthorityReceipt) (outPath: string) =
+        atomicWrite outPath (canonicalSarifBytes receipt)
+
+    let writeRequestedEvidence receipt jsonPath sarifPath =
+        let targets = [ jsonPath; sarifPath ] |> List.choose id
+        try
+            let jsonBytes = jsonPath |> Option.map (fun _ -> canonicalJsonBytes receipt)
+            let sarifBytes = sarifPath |> Option.map (fun _ -> canonicalSarifBytes receipt)
+            match jsonPath, jsonBytes with
+            | Some path, Some bytes -> atomicWrite path bytes
+            | _ -> ()
+            match sarifPath, sarifBytes with
+            | Some path, Some bytes -> atomicWrite path bytes
+            | _ -> ()
+            Ok ()
+        with ex ->
+            for target in targets do
+                try
+                    if File.Exists(target) then File.Delete(target) // EXPECT: FSA2022
+                with _ -> ()
+            Error ex.Message
 
     let writeToolchainRecord (outPath: string) =
         let record = {| // EXPECT: FSA-AI17

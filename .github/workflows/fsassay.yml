@@ -15,8 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DOTNET_INSTALL_DIR: ${{ github.workspace }}/.dotnet
+      FSASSAY_APPROVED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Verify required locks before restore
         run: bash eng/assert-required-locks.sh
@@ -49,12 +52,45 @@ jobs:
               ./FsAssay.slnx | tee "artifacts/audit/run-${suffix}.log"
             local audit_status=${PIPESTATUS[0]}
             set -e
-            if [ "$audit_status" -ne 0 ] && [ "$audit_status" -ne 1 ]; then
-              exit "$audit_status"
-            fi
-            grep -q '^Files scanned: 24$' "artifacts/audit/run-${suffix}.log"
+            test "$audit_status" -eq 2
+            grep -q '^Files scanned: 25$' "artifacts/audit/run-${suffix}.log"
             grep -q '^Skipped: 0$' "artifacts/audit/run-${suffix}.log"
             grep -q '^Failed: 0$' "artifacts/audit/run-${suffix}.log"
+            grep -q '^Total Violations: 559$' "artifacts/audit/run-${suffix}.log"
+            grep -q '^Authority outcome: Inconclusive$' "artifacts/audit/run-${suffix}.log"
+            grep -q '^Authoritative: false$' "artifacts/audit/run-${suffix}.log"
+            jq -e '
+              .schemaVersion == "fsassay-authority-receipt/1.0.0" and
+              .outcome == "Inconclusive" and .authoritative == false and
+              .counts.projectsDiscovered == 6 and .counts.projectsLoaded == 4 and
+              .counts.projectsUnsupported == 2 and .counts.eligibleFiles == 25 and
+              .counts.analyzedFiles == 25 and .counts.compilerIncompleteFiles == 0 and
+              (.tests | length) == 1 and .tests[0].status == "notRun" and
+              (.findings | length) == 559 and
+              (.reasons | length) == 2 and
+              ([.reasons[] | select(.code == "project-unsupported")] | length) == 1 and
+              ([.reasons[] | select(.code == "required-test-not-run")] | length) == 1 and
+              ([.reasons[] | select(.code | startswith("required-rule-"))] | length) == 0 and
+              ([.rules[] | select(.status == "completed")] | length) == 35 and
+              ([.rules[] | select(.status == "unavailable")] | length) == 58 and
+              (.policy.status == "loaded") and (.policy.snapshot.shapeContractVersion == "not-established") and
+              (.policy.snapshot.approvedBlockingRules | length) == 0 and
+              (.policy.snapshot.requiredProjectClasses | length) == 4 and
+              .policy.snapshot.requiredTests[0].minimumPassed == 85 and
+              (.policyErrors | length) == 0 and (.evidenceErrors | length) == 0 and
+              .policy.snapshot.baseline.identity == "none" and
+              (.policy.snapshot.baseline.approvedFindings | length) == 0 and (.appliedSuppressions | length) == 0 and
+              (.toolchain.sdkVersion == "10.0.301") and
+              ([.findings[].path] | all(startswith("/") | not))
+            ' "artifacts/audit/results-${suffix}.json"
+            jq -e '
+              .runs[0].properties.outcome == "Inconclusive" and
+              .runs[0].properties.authoritative == false and
+              .runs[0].properties.findingCount == 559 and
+              (.runs[0].properties.reasons | length) == 2 and
+              (.runs[0].invocations[0].toolExecutionNotifications | length) == 2 and
+              .runs[0].invocations[0].executionSuccessful == true
+            ' "artifacts/audit/results-${suffix}.sarif"
           }
           run_audit first
           run_audit second

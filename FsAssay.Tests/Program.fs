@@ -373,7 +373,7 @@ let myTest () =
             expectViolation "FSA-TDD03" results
     ]
 
-let runE2E (projectCode: string) (sourceCode: string) =
+let runE2EWithArgumentsCapture (projectCode: string) (sourceCode: string) (arguments: string list) =
     let tmpDir = Path.Combine(Path.GetTempPath(), "FsAssayE2E_" + Guid.NewGuid().ToString())
     Directory.CreateDirectory(tmpDir) |> ignore
     File.WriteAllText(Path.Combine(tmpDir, "TestProj.fsproj"), projectCode)
@@ -391,14 +391,25 @@ let runE2E (projectCode: string) (sourceCode: string) =
             "FsAssay.Runner.dll")
     let pi = new System.Diagnostics.ProcessStartInfo("dotnet")
     pi.ArgumentList.Add(runnerAssembly)
+    for argument in arguments do pi.ArgumentList.Add(argument)
     pi.ArgumentList.Add(tmpDir)
     pi.RedirectStandardOutput <- true
     pi.RedirectStandardError <- true
     pi.UseShellExecute <- false
     use p = System.Diagnostics.Process.Start(pi)
+    let standardOutput = p.StandardOutput.ReadToEndAsync()
+    let standardError = p.StandardError.ReadToEndAsync()
     p.WaitForExit()
+    let captured = p.ExitCode, standardOutput.Result, standardError.Result
     Directory.Delete(tmpDir, true)
-    p.ExitCode
+    captured
+
+let runE2EWithArguments (projectCode: string) (sourceCode: string) (arguments: string list) =
+    let exitCode, _, _ = runE2EWithArgumentsCapture projectCode sourceCode arguments
+    exitCode
+
+let runE2E (projectCode: string) (sourceCode: string) =
+    runE2EWithArguments projectCode sourceCode []
 
 let runE2EWithPluginPath (pluginPath: string) =
     let tmpDir = Path.Combine(Path.GetTempPath(), "FsAssayPluginE2E_" + Guid.NewGuid().ToString())
@@ -433,7 +444,7 @@ let e2eTests =
             let proj = "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup<TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>"
             let code = "module Corrupt\nlet x = 1"
             let exitCode = runE2E proj code
-            Expect.equal exitCode 3 "Expected ToolFailure (3) on corrupted project"
+            Expect.equal exitCode 2 "Expected Inconclusive (2) for a diagnosed project-load failure"
 
         testCase "Fault Injection 2: Missing source files" <| fun _ ->
             let proj = "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><Compile Include=\"NonExistent.fs\" /></ItemGroup></Project>"
@@ -451,6 +462,12 @@ let e2eTests =
                 Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "missing-plugin.dll")
             let exitCode = runE2EWithPluginPath missing
             Expect.equal exitCode 3 "Expected ToolFailure (3) when the admitted plugin cannot load"
+
+        testCase "Adjudication mode cannot override missing authority policy" <| fun _ ->
+            let project = "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><Compile Include=\"Library.fs\" /></ItemGroup></Project>"
+            let code = "module AdjudicateBoundary\n// EXPECT: FSA2022\n// EXPECT: FSA-C15\nlet value = System.IO.File.ReadAllText(\"input.txt\")"
+            let exitCode, standardOutput, standardError = runE2EWithArgumentsCapture project code [ "--adjudicate" ]
+            Expect.equal exitCode 2 $"adjudication success must not bypass an Inconclusive receipt. stdout={standardOutput}; stderr={standardError}"
     ]
 
 let perfAndCompTests =
@@ -610,4 +627,4 @@ let getNull () =
 
 [<Tests>]
 let allTests =
-    testList "All Tests" [tests; ObligationPluginTests.tests; e2eTests; perfAndCompTests; aiEcosystemTests; negativeTests]
+    testList "All Tests" [tests; ObligationPluginTests.tests; AuthorityTests.tests; e2eTests; perfAndCompTests; aiEcosystemTests; negativeTests]
