@@ -69,6 +69,8 @@ contracts.
 - Qualification uses two independent clones/caches, a repository-local tool
   manifest, a NuGet configuration with `<clear/>` and one local feed, a disabled
   network namespace, install/run/uninstall rollback and repeated JSON/SARIF.
+- Each independent clone fetches the exact 40-character candidate object; it
+  does not resolve an ambient branch or linked-worktree `HEAD`.
 - Failure injection rejects wrong hashes/provenance, incomplete packages,
   invalid invocations, zero evidence and lock drift.
 - Candidate-push CI attests the exact package hash with GitHub build provenance
