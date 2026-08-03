@@ -101,8 +101,9 @@ validate_provenance() {
 
 validate_hash "$package_hash" "$output/$package_file"
 validate_provenance "$candidate" "$output/$package_file"
-unzip -Z1 "$output/$package_file" | grep -Fxq 'README.md'
-unzip -Z1 "$output/$package_file" | grep -Fxq 'LICENSE'
+unzip -Z1 "$output/$package_file" >"$output/package-entries.txt"
+grep -Fxq 'README.md' "$output/package-entries.txt"
+grep -Fxq 'LICENSE' "$output/package-entries.txt"
 if grep -aFq "$root_a" "$output/$package_file" || grep -aFq "$root_b" "$output/$package_file"; then
   echo "package leaked an independent checkout path" >&2
   exit 1
