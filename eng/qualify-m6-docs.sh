@@ -88,7 +88,11 @@ jq -e --arg candidate "$candidate" --arg packageHash "$package_hash" '
   cd "$consumer"
   dotnet tool uninstall "$package_id" >"$output/tool-uninstall.log"
 )
-test "$(jq '.tools | length' "$consumer/.config/dotnet-tools.json")" -eq 0
+if test -f "$consumer/.config/dotnet-tools.json"; then
+  test "$(jq '.tools | length' "$consumer/.config/dotnet-tools.json")" -eq 0
+else
+  test ! -e "$consumer/.config/dotnet-tools.json"
+fi
 
 jq -n -S --arg candidate "$candidate" --arg packageHash "$package_hash" \
   --arg jsonHash "$(sha256sum "$output/analysis/result.json" | cut -d' ' -f1)" \
