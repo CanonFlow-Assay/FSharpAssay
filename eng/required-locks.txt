@@ -6,3 +6,7 @@ FsAssay.Tests/packages.lock.json
 FsAssay.TypeGym/packages.lock.json
 FsAssay.Web.Tests/packages.lock.json
 FsAssay.Web/src/FsAssay.Web.Client/packages.lock.json
+playground/m5/Shape.Application/packages.lock.json
+playground/m5/Shape.Domain/packages.lock.json
+playground/m5/Shape.Shell/packages.lock.json
+playground/m5/Shape.Tests/packages.lock.json

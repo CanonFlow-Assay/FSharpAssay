@@ -1,0 +1,39 @@
+name: M5 Playground evidence
+
+on:
+  push:
+    branches: [ 'uplift/m5-playground-independent-consumer' ]
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'playground/m5/**'
+      - 'docs/evidence/m5-**'
+      - 'eng/qualify-m5-playground.sh'
+      - 'eng/m5-offline-nuget.config'
+      - '.github/workflows/m5-playground.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.301'
+      - name: Verify exact SDK
+        run: test "$(dotnet --version)" = "10.0.301"
+      - name: Qualify packaged consumer and deterministic evidence
+        env:
+          FSASSAY_CANDIDATE_SHA: ${{ github.sha }}
+        run: bash eng/qualify-m5-playground.sh "$FSASSAY_CANDIDATE_SHA" artifacts/m5
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: m5-playground-${{ github.sha }}
+          if-no-files-found: error
+          path: artifacts/m5/

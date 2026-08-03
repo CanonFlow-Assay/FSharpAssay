@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Shape.Domain/Shape.Domain.fsproj" />
+  <Project Path="Shape.Application/Shape.Application.fsproj" />
+  <Project Path="Shape.Shell/Shape.Shell.fsproj" />
+  <Project Path="Shape.Tests/Shape.Tests.fsproj" />
+</Solution>

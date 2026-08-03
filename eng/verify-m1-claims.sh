@@ -37,9 +37,14 @@ grep -q 'and 36 `Prototype`' README.md
 grep -q -- '--out-json artifacts/result.json' README.md
 test "$(jq -r '.sdk.version' global.json)" = "10.0.301"
 test "$(jq -r '.sdk.rollForward' global.json)" = "disable"
-test "$(grep -h "dotnet-version: '10.0.301'" .github/workflows/*.yml | wc -l)" -eq 3
-test "$(grep -h 'dotnet --version' .github/workflows/*.yml | wc -l)" -eq 3
-test "$(grep -h 'DOTNET_INSTALL_DIR:' .github/workflows/*.yml | wc -l)" -eq 3
+m1_workflows=(
+  .github/workflows/ci.yml
+  .github/workflows/fsassay.yml
+  .github/workflows/web-qualification.yml
+)
+test "$(grep -h "dotnet-version: '10.0.301'" "${m1_workflows[@]}" | wc -l)" -eq 3
+test "$(grep -h 'dotnet --version' "${m1_workflows[@]}" | wc -l)" -eq 3
+test "$(grep -h 'DOTNET_INSTALL_DIR:' "${m1_workflows[@]}" | wc -l)" -eq 3
 
 test "$(head -n 1 "$manifest")" = $'path\tbase_blob\tbytes\tcategory\trecovery'
 tail -n +2 "$manifest" | cut -f1 | LC_ALL=C sort -c

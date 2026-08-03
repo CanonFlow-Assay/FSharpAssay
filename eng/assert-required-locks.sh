@@ -23,7 +23,7 @@ LC_ALL=C sort -c "$manifest"
 test -z "$(uniq -d "$manifest")"
 
 mapfile -t required < "$manifest"
-test "${#required[@]}" -eq 8
+test "${#required[@]}" -eq 12
 
 mapfile -t tracked < <(git -C "$repository" ls-files '*/packages.lock.json' | LC_ALL=C sort)
 if ! diff -u <(printf '%s\n' "${required[@]}") <(printf '%s\n' "${tracked[@]}"); then
