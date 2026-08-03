@@ -37,5 +37,6 @@ The exact identities are in [`../contracts/fsassay-rule-classification-v1.json`]
 - Existing rule pages are not rewritten to manufacture complete admission dossiers.
 - The 563 self-audit observations require human adjudication; their presence is not a product-success metric.
 - The self-audit remains `Inconclusive` and non-authoritative because required tests are recorded as `notRun` and two frozen project classes are unsupported.
+- Canonical JSON, SARIF and toolchain evidence is byte-identical across fresh checkout roots. Rate-card Markdown and dashboard HTML repeat byte-identically only within the same checkout root; both embed absolute checkout paths and are not cross-root byte deterministic.
 - Shape clauses exceed current analyzer coverage. They are normative design/review guidance, not a claim of automated enforcement.
 - LLM judgment is advisory only and cannot override deterministic compiler, test, policy or receipt evidence.

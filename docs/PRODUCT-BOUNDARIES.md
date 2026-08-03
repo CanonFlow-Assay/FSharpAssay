@@ -54,3 +54,9 @@ by the candidate evidence manifest. The two frozen project classes remain
 explicitly unsupported, so the receipt must be `Inconclusive` and
 non-authoritative. The inherited M1 count of 436, M2 count of 559 and any M3
 observation count are not success metrics.
+
+Canonical JSON, SARIF and toolchain records are qualified for cross-root byte
+determinism. The human-facing rate-card Markdown and dashboard HTML currently
+embed absolute checkout paths: repeated runs in one root are byte-identical,
+but artifacts from different roots are not. M3 records this limitation and does
+not refactor the output surface.

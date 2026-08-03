@@ -40,3 +40,5 @@ Existing M2 evidence remains historical evidence for M2; it is not rewritten to 
 ## Limits
 
 M3 does not prove that any current rule is suitable for blocking, does not suppress findings through framework exceptions, does not make LLM judgment authoritative and does not claim the analyzer covers every Shape clause.
+
+JSON, SARIF and toolchain evidence is cross-root byte deterministic. Rate-card Markdown and dashboard HTML contain absolute checkout paths, so they are byte-identical only for repeated runs within one root and differ across fresh roots. M3 records this limitation without refactoring the output surface.

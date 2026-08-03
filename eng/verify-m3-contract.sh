@@ -82,6 +82,13 @@ jq -e '
   .repositoryAudit.expectedOutcome == "Inconclusive" and
   .repositoryAudit.expectedAuthoritative == false and
   .repositoryAudit.findings == 563 and
+  .repositoryAudit.determinismScope.json == {"sameRootRepeat":true,"crossRoot":true} and
+  .repositoryAudit.determinismScope.sarif == {"sameRootRepeat":true,"crossRoot":true} and
+  .repositoryAudit.determinismScope.toolchain == {"sameRootRepeat":true,"crossRoot":true} and
+  .repositoryAudit.determinismScope.rateCardMarkdown.sameRootRepeat == true and
+  .repositoryAudit.determinismScope.rateCardMarkdown.crossRoot == false and
+  .repositoryAudit.determinismScope.dashboardHtml.sameRootRepeat == true and
+  .repositoryAudit.determinismScope.dashboardHtml.crossRoot == false and
   .analyzerRulesChanged == false and .packagePublished == false and
   .releaseCreated == false and .pullRequestMerged == false
 ' "$manifest" >/dev/null
