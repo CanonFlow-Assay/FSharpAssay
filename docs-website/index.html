@@ -1,64 +1,261 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FsAssay - Elite F# Code Quality</title>
-    <meta name="description" content="Documentation for FsAssay, the live F# TAST code quality analyzer and refactoring engine.">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Evidence-bounded documentation for FsAssay 1.0.4, an experimental F# static-analysis and authority-receipt tool.">
+  <title>FsAssay 1.0.4 · Evidence before verdicts</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <header class="hero">
-        <nav class="glass-nav">
-            <div class="logo">FsAssay</div>
-            <ul class="nav-links">
-                <li><a href="#features">Features</a></li>
-                <li><a href="#desktop">Desktop App</a></li>
-                <li><a href="#docs">Docs</a></li>
-            </ul>
-        </nav>
-        <div class="hero-content">
-            <h1>Elevate Your F# Code</h1>
-            <p>Live TAST-based Code Quality Analyzer, Rate Card Auditor, and Auto-Refactoring Engine.</p>
-            <button class="primary-btn">Get Started</button>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav shell" aria-label="Primary navigation">
+      <a class="brand" href="#top" aria-label="FsAssay documentation home">
+        <span class="brand-mark" aria-hidden="true">F#</span>
+        <span>FsAssay</span>
+      </a>
+      <div class="nav-links">
+        <a href="#start">Quick start</a>
+        <a href="#authority">Authority</a>
+        <a href="#shape">Shape</a>
+        <a href="#limits">Limits</a>
+        <a class="nav-cta" href="../docs/ADOPTION-REFERENCE.md">Technical reference</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero shell" id="top" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> Experimental · .NET 10 · identity 1.0.4</p>
+        <h1 id="hero-title">Design findings are useful.<br><span>Evidence decides what they mean.</span></h1>
+        <p class="lede">FsAssay helps F# teams inspect selected design risks while preserving the distinction between a finding, missing evidence, and tool failure. It guides review; it does not certify code or refactor it automatically.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#start">Run a local candidate</a>
+          <a class="button secondary" href="../docs/ADOPTION-REFERENCE.md">Read the adoption reference</a>
         </div>
-    </header>
+        <ul class="proof-strip" aria-label="Current evidence boundary">
+          <li><strong>93</strong><span>catalogue identities</span></li>
+          <li><strong>0</strong><span>blocking rules</span></li>
+          <li><strong>4</strong><span>receipt outcomes</span></li>
+          <li><strong>Local</strong><span>candidate package</span></li>
+        </ul>
+      </div>
 
-    <main>
-        <section id="features" class="section">
-            <h2>Elite Functional Scans</h2>
-            <div class="grid">
-                <div class="card">
-                    <div class="card-icon">⚡</div>
-                    <h3>TAST Analysis</h3>
-                    <p>Deep functional purity audits utilizing the F# compiler's Typed Abstract Syntax Tree.</p>
-                </div>
-                <div class="card">
-                    <div class="card-icon">🛠</div>
-                    <h3>Auto-Fix Refactoring</h3>
-                    <p>Instantly convert hostile anti-patterns into beautiful idiomatic functional constructs.</p>
-                </div>
-                <div class="card">
-                    <div class="card-icon">📊</div>
-                    <h3>Rich Rate Cards</h3>
-                    <p>Generate canonical JSON, SARIF v2, and Markdown rate cards with letter grades.</p>
-                </div>
-            </div>
-        </section>
+      <aside class="receipt-card" aria-label="Example evidence receipt">
+        <div class="receipt-title">
+          <span>authority-receipt.json</span>
+          <span class="receipt-badge">INCONCLUSIVE</span>
+        </div>
+        <pre><code>{
+  <span class="key">"outcome"</span>: <span class="warn">"Inconclusive"</span>,
+  <span class="key">"authoritative"</span>: <span class="bool">false</span>,
+  <span class="key">"reasons"</span>: [
+    <span class="string">"required-test-not-run"</span>
+  ],
+  <span class="key">"toolFailures"</span>: [],
+  <span class="key">"projectsLoaded"</span>: 4
+}</code></pre>
+        <p>Zero tool failures does not erase missing required evidence.</p>
+      </aside>
+    </section>
 
-        <section id="desktop" class="section dark-section">
-            <h2>New Avalonia AOT Desktop App</h2>
-            <p>We've moved testing and live scanning into our stunning, high-performance desktop application compiled with Native AOT.</p>
-            <div class="feature-showcase">
-                <div class="pulse-indicator"></div>
-                <span>Native AOT Compiled</span>
-            </div>
-        </section>
-    </main>
+    <section class="value-band" aria-labelledby="value-title">
+      <div class="shell">
+        <div class="section-heading compact">
+          <p class="eyebrow">Why teams use it</p>
+          <h2 id="value-title">A review lens with a fail-closed evidence model</h2>
+        </div>
+        <div class="value-grid">
+          <article>
+            <span class="index">01</span>
+            <h3>Focus review</h3>
+            <p>Stable locations and fingerprints make selected F# design observations discussable and repeatable.</p>
+          </article>
+          <article>
+            <span class="index">02</span>
+            <h3>Expose evidence gaps</h3>
+            <p>Unloaded projects, incomplete compiler evidence and tests marked <code>notRun</code> remain visible.</p>
+          </article>
+          <article>
+            <span class="index">03</span>
+            <h3>Modernize in slices</h3>
+            <p>Shape New and Shape Converge give humans a bounded functional-core direction without promising conversion.</p>
+          </article>
+        </div>
+      </div>
+    </section>
 
-    <footer>
-        <p>&copy; 2026 FsAssay Contributors. Powered by Google Antigravity.</p>
-    </footer>
+    <section class="section shell" id="start" aria-labelledby="start-title">
+      <div class="section-heading">
+        <p class="eyebrow">Quick start</p>
+        <h2 id="start-title">Install from a reviewed local feed</h2>
+        <p>FsAssay 1.0.4 is qualified here as a local candidate package, not documented as a public NuGet release. Use an absolute path to the reviewed feed.</p>
+      </div>
+
+      <div class="terminal" aria-label="Local tool installation and analysis commands">
+        <div class="terminal-bar"><span></span><span></span><span></span><strong>consumer repository</strong></div>
+        <pre><code><span class="prompt">$</span> dotnet new tool-manifest
+<span class="prompt">$</span> dotnet tool install FsAssay.Cli --version 1.0.4 \
+    --source /absolute/path/to/local/feed
+<span class="prompt">$</span> dotnet tool restore
+<span class="prompt">$</span> dotnet tool run fsassay -- doctor
+<span class="prompt">$</span> dotnet tool run fsassay -- explain FSA-C02
+<span class="prompt">$</span> dotnet tool run fsassay -- \
+    --out-json artifacts/fsassay.json \
+    --out-sarif artifacts/fsassay.sarif \
+    ./MySolution.slnx</code></pre>
+      </div>
+
+      <div class="callout">
+        <strong>Exit 2 can be useful evidence.</strong>
+        <span>Read the receipt before reading the finding count. Required tests cannot currently be ingested from ambient CI and may remain <code>notRun</code>.</span>
+      </div>
+    </section>
+
+    <section class="section authority-section" id="authority" aria-labelledby="authority-title">
+      <div class="shell">
+        <div class="section-heading inverse">
+          <p class="eyebrow">Trust model</p>
+          <h2 id="authority-title">Four outcomes. No clean-by-absence shortcut.</h2>
+          <p>The top-level outcome and the <code>authoritative</code> flag answer different questions. Always inspect both.</p>
+        </div>
+
+        <div class="outcome-grid">
+          <article class="outcome tool">
+            <div><span class="outcome-code">3</span><span class="pill">highest precedence</span></div>
+            <h3>ToolFailure</h3>
+            <p>Trustworthy valid evidence could not be produced.</p>
+          </article>
+          <article class="outcome fail">
+            <div><span class="outcome-code">1</span></div>
+            <h3>Fail</h3>
+            <p>A required test failed, or a future approved blocking rule found debt.</p>
+          </article>
+          <article class="outcome incomplete">
+            <div><span class="outcome-code">2</span></div>
+            <h3>Inconclusive</h3>
+            <p>Required evidence is absent, incomplete, unsupported or not run.</p>
+          </article>
+          <article class="outcome pass">
+            <div><span class="outcome-code">0</span></div>
+            <h3>Pass</h3>
+            <p>Every locked policy requirement is complete, credible and successful.</p>
+          </article>
+        </div>
+
+        <div class="evidence-checklist">
+          <h3>Before a human or agent acts</h3>
+          <div class="check-grid">
+            <p><span>✓</span> Validate schema, policy hash and candidate identity</p>
+            <p><span>✓</span> Inspect every reason and tool failure</p>
+            <p><span>✓</span> Confirm project and source coverage</p>
+            <p><span>✓</span> Check required-test status and totals</p>
+            <p><span>✓</span> Read maturity and stable fingerprints</p>
+            <p><span>✓</span> Adjudicate before refactoring</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section shell" id="shape" aria-labelledby="shape-title">
+      <div class="section-heading">
+        <p class="eyebrow">Functional C#—no. Practical F# shape—yes.</p>
+        <h2 id="shape-title">One contract for new work, one sequence for existing work</h2>
+        <p>Shape is a reviewed design contract. Current analyzers do not prove every clause.</p>
+      </div>
+
+      <div class="shape-grid">
+        <article class="shape-card new">
+          <div class="shape-label">Shape New</div>
+          <h3>Make the core explicit</h3>
+          <ul>
+            <li>Domain decisions in a functional core</li>
+            <li>Expected outcomes as Result, Option or native unions</li>
+            <li>Validated public construction and explicit dependencies</li>
+            <li>Thin adapters with deterministic behavior and boundary tests</li>
+          </ul>
+          <a href="../docs/contracts/SHAPE-NEW-v1.md">Read the normative contract <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="shape-card converge">
+          <div class="shape-label">Shape Converge</div>
+          <h3>Move one bounded slice</h3>
+          <ol>
+            <li>Prove the compiler and test baseline</li>
+            <li>Record findings and missing evidence</li>
+            <li>Freeze behavior before changing the slice</li>
+            <li>Move decisions inward and effects outward</li>
+          </ol>
+          <a href="../docs/contracts/SHAPE-CONVERGE-v1.md">Read the migration sequence <span aria-hidden="true">→</span></a>
+        </article>
+      </div>
+    </section>
+
+    <section class="section maturity-section" id="maturity" aria-labelledby="maturity-title">
+      <div class="shell maturity-layout">
+        <div class="section-heading">
+          <p class="eyebrow">Rule maturity</p>
+          <h2 id="maturity-title">Implemented is not admitted</h2>
+          <p>The complete catalogue is classified, but no current rule has passed the separate human bar for blocking or advisory authority.</p>
+          <a class="text-link" href="../docs/contracts/M3-SHAPE-RULE-ADMISSION.md">Read the admission bar <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="maturity-bars" aria-label="Rule maturity counts">
+          <div><span>Experimental</span><strong>35</strong><i style="--width: 38%"></i></div>
+          <div><span>Prototype</span><strong>36</strong><i style="--width: 39%"></i></div>
+          <div><span>Dummy</span><strong>22</strong><i style="--width: 24%"></i></div>
+          <div class="zero"><span>Blocking</span><strong>0</strong><i style="--width: 0%"></i></div>
+          <div class="zero"><span>Advisory</span><strong>0</strong><i style="--width: 0%"></i></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section shell" id="limits" aria-labelledby="limits-title">
+      <div class="section-heading">
+        <p class="eyebrow">Know the boundary</p>
+        <h2 id="limits-title">What FsAssay does not establish</h2>
+      </div>
+      <div class="limits-grid">
+        <article><h3>Not correctness</h3><p>A clean result does not prove business behavior, security, purity or production readiness.</p></article>
+        <article><h3>Not conversion</h3><p>Findings do not authorize automatic fixes. <code>--fix</code> is disabled in the qualified CLI.</p></article>
+        <article><h3>Not broad compatibility</h3><p>Project classification and target-framework discovery cover bounded SDK-style cases, not every MSBuild shape.</p></article>
+        <article><h3>Not public release proof</h3><p>The qualified 1.0.4 candidate is local and NuGet-unsigned. GitHub attestation is not a repository signature.</p></article>
+      </div>
+    </section>
+
+    <section class="section provenance-section" id="provenance" aria-labelledby="provenance-title">
+      <div class="shell provenance-layout">
+        <div class="section-heading inverse">
+          <p class="eyebrow">Release provenance</p>
+          <h2 id="provenance-title">Evidence grew. The package identity did not.</h2>
+          <p>M0–M5 qualified custody, stable tests, authority semantics, Shape, local packaging and independent use. None tagged or published 1.0.4.</p>
+        </div>
+        <ol class="timeline">
+          <li><strong>M0–M1</strong><span>Custody, stable boundary, locked restore</span></li>
+          <li><strong>M2</strong><span>Four-state deterministic authority receipt</span></li>
+          <li><strong>M3</strong><span>Shape, maturity and baseline governance</span></li>
+          <li><strong>M4</strong><span>Reproducible local package and rollback</span></li>
+          <li><strong>M5</strong><span>Playground plus independent consumer evidence</span></li>
+        </ol>
+        <div class="provenance-links">
+          <a href="../docs/evidence/m4-consumer-package-qualification.md">M4 qualification</a>
+          <a href="../docs/evidence/m5-independent-consumer.md">M5 consumer exercise</a>
+          <a href="../docs/PRODUCT-BOUNDARIES.md">Product boundaries</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-layout">
+      <div><strong>FsAssay 1.0.4</strong><p>Evidence-bounded F# design assessment.</p></div>
+      <div class="footer-links">
+        <a href="../docs/ADOPTION-REFERENCE.md">Adoption reference</a>
+        <a href="../docs/contracts/AUTHORITY-CONTRACT-v1.md">Authority contract</a>
+        <a href="../LICENSE">Apache-2.0 license</a>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>

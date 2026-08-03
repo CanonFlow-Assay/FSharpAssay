@@ -1,0 +1,39 @@
+name: M6 Documentation qualification
+
+on:
+  push:
+    branches: [ 'uplift/m6-documentation-adoption' ]
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'docs-website/**'
+      - 'docs/ADOPTION-REFERENCE.md'
+      - 'eng/verify-m6-docs.py'
+      - 'eng/verify-m6-tool-rollback.py'
+      - 'eng/test-m6-tool-rollback.sh'
+      - 'eng/qualify-m6-docs.sh'
+      - '.github/workflows/m6-docs.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.301'
+      - name: Qualify static documentation and packaged quick start
+        env:
+          FSASSAY_CANDIDATE_SHA: ${{ github.sha }}
+        run: bash eng/qualify-m6-docs.sh "$FSASSAY_CANDIDATE_SHA" artifacts/m6
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: m6-documentation-${{ github.sha }}
+          if-no-files-found: error
+          path: artifacts/m6/
