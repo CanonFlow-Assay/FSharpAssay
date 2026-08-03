@@ -49,11 +49,100 @@ type Arguments = // EXPECT: FSA-AI17 // EXPECT: FSA-AI11
 [<EntryPoint>]
 let main argv =
     let parser = ArgumentParser.Create<Arguments>(programName = "fsassay") // EXPECT: FSA-AI17
+
+    let printHelp () =
+        printf "%s" (parser.PrintUsage())
+        printfn ""
+        printfn "COMMANDS:"
+        printfn ""
+        printfn "    help                  Display this help. Aliases: --help, -h."
+        printfn "    doctor                Report the local toolchain and offline-default posture."
+        printfn "    explain <RULE>        Explain one existing catalogue rule and its M3 class."
+        printfn ""
+        printfn "ANALYSIS:"
+        printfn ""
+        printfn "    Put the target path last. Default analysis is the check/strict authority path;"
+        printfn "    use --out-json and --out-sarif for the four-state evidence receipt."
+
+    if argv.Length = 1 && (argv.[0] = "help" || argv.[0] = "--help" || argv.[0] = "-h") then
+        printHelp ()
+        Environment.Exit(ExitCodes.Success)
+
+    if argv.Length > 0 && argv.[0] = "help" then
+        eprintfn "ERROR: 'help' does not accept arguments."
+        Environment.Exit(ExitCodes.InvalidInvocation)
+
+    if argv.Length = 1 && argv.[0] = "doctor" then
+        try
+            let toolchain = Authority.currentToolchain (Directory.GetCurrentDirectory())
+            if toolchain.SdkVersion = "unavailable" || toolchain.FSharpCompilerServiceVersion = "unavailable" then
+                eprintfn "FsAssay doctor: ToolFailure; the local .NET SDK or F# compiler service is unavailable."
+                Environment.Exit(ExitCodes.ToolFailure)
+            printfn "FsAssay doctor"
+            printfn "ToolVersion: %s" ProductIdentity.Version
+            printfn "RuntimeVersion: %s" toolchain.RuntimeVersion
+            printfn "SdkVersion: %s" toolchain.SdkVersion
+            printfn "FSharpCompilerServiceVersion: %s" toolchain.FSharpCompilerServiceVersion
+            printfn "AnalysisNetworkDefault: offline"
+            printfn "SourceUpload: none"
+            printfn "FsAssayTelemetry: none"
+            printfn "Status: healthy"
+            Environment.Exit(ExitCodes.Success)
+        with error ->
+            eprintfn "FsAssay doctor: ToolFailure; %s" error.Message
+            Environment.Exit(ExitCodes.ToolFailure)
+
+    if argv.Length > 0 && argv.[0] = "doctor" then
+        eprintfn "ERROR: 'doctor' does not accept arguments."
+        Environment.Exit(ExitCodes.InvalidInvocation)
+
+    if argv.Length = 2 && argv.[0] = "explain" then
+        let requestedCode = argv.[1].ToUpperInvariant()
+        match FsAssay.Analyzers.Domain.Rule.AllRules |> List.tryFind (fun rule -> rule.Code = requestedCode) with
+        | Some rule ->
+            let implementationStatus, admissionClass =
+                match rule.Status with
+                | FsAssay.Analyzers.Domain.Implemented -> "implemented", "experimental"
+                | FsAssay.Analyzers.Domain.Delegated _ -> "delegated", "experimental"
+                | FsAssay.Analyzers.Domain.Prototype -> "prototype", "prototype"
+                | FsAssay.Analyzers.Domain.Dummy -> "dummy", "dummy"
+                | FsAssay.Analyzers.Domain.Proposed -> "proposed", "unavailable"
+            printfn "Rule: %s" rule.Code
+            printfn "Message: %s" rule.Message
+            printfn "Severity: %A" rule.Severity
+            printfn "ImplementationStatus: %s" implementationStatus
+            printfn "M3AdmissionClass: %s" admissionClass
+            printfn "Explanation: %s" rule.Explanation
+            printfn "Authority: non-authoritative; M3 admits zero blocking and zero advisory rules."
+            Environment.Exit(ExitCodes.Success)
+        | None ->
+            eprintfn "ERROR: unknown rule '%s'." argv.[1]
+            Environment.Exit(ExitCodes.InvalidInvocation)
+
+    if argv.Length > 0 && argv.[0] = "explain" then
+        eprintfn "ERROR: usage: fsassay explain <RULE>."
+        Environment.Exit(ExitCodes.InvalidInvocation)
+
+    let knownOptions =
+        set [
+            "--out-json"; "-j"; "--out-sarif"; "-s"; "--out-toolchain"; "-t"
+            "--ratecard-md"; "-r"; "--material-html"; "-m"; "--suppressionreport-json"; "-x"
+            "--watch"; "-w"; "--diff"; "-d"; "--serve"; "-p"; "--adjudicate"; "-a"
+            "--files"; "-c"; "--profile"; "-P"; "--fix"; "-f"; "--mcp"; "-mcp"
+            "--docs"; "-docs"; "--plugin"; "--help"; "-h"
+        ]
+
+    match argv |> Array.tryFind (fun argument -> argument.StartsWith("-") && not (knownOptions.Contains argument)) with
+    | Some unknownOption ->
+        eprintfn "ERROR: unknown option '%s'." unknownOption
+        Environment.Exit(ExitCodes.InvalidInvocation)
+    | None -> ()
+
     let results =
         try
             parser.ParseCommandLine argv
         with e ->
-            printfn "%s" e.Message // EXPECT: FSA-F04
+            eprintfn "%s" e.Message // EXPECT: FSA-F04
             Environment.Exit(ExitCodes.InvalidInvocation) // EXPECT: FSA-F04
             failwith "" // EXPECT: FSA-C06
 

@@ -5,5 +5,9 @@
     <NuGetAudit>false</NuGetAudit>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <FsAssayBaselineVersion>1.0.4</FsAssayBaselineVersion>
+    <Deterministic>true</Deterministic>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <RepositoryUrl>https://github.com/CanonFlow-Assay/FSharpAssay.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 </Project>
