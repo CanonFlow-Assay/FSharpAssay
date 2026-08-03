@@ -46,7 +46,9 @@ build_package_root() {
   local normalized="$root/artifacts/m4-package/$package_file"
 
   git clone --quiet --no-local "$repository" "$root"
-  git -C "$root" checkout --quiet "$candidate"
+  git -C "$root" fetch --quiet "$repository" HEAD
+  test "$(git -C "$root" rev-parse FETCH_HEAD)" = "$candidate"
+  git -C "$root" checkout --quiet FETCH_HEAD
   git -C "$root" remote set-url origin https://github.com/CanonFlow-Assay/FSharpAssay.git
   test "$(git -C "$root" rev-parse HEAD)" = "$candidate"
 

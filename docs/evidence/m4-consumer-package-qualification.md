@@ -77,7 +77,7 @@ contracts.
 The generated `artifacts/m4/package-manifest.json` is the deterministic machine
 receipt. It binds the exact candidate SHA, package hash/size/metadata, raw and
 canonical reproduction result, stable test minimum, installed evidence hashes,
-offline proof, rollback and adversarial results. CI publishes the package,
+offline proof, rollback and adversarial results. CI uploads the package,
 manifest, command streams, traces and logs as review artifacts.
 
 ## Limitations and nonclaims
