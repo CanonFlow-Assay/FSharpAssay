@@ -47,6 +47,7 @@ build_package_root() {
 
   git clone --quiet --no-local "$repository" "$root"
   git -C "$root" checkout --quiet "$candidate"
+  git -C "$root" remote set-url origin https://github.com/CanonFlow-Assay/FSharpAssay.git
   test "$(git -C "$root" rev-parse HEAD)" = "$candidate"
 
   (
