@@ -90,7 +90,9 @@ could execute. That run is failed evidence, not a qualified candidate. The M1
 and M3 verifiers now permit only the three bounded deterministic-build metadata
 lines in that project file (plus M1's existing lockfile), continue to reject
 every analyzer `.fs` change and validate the exact three-line insertion against
-the signed M4 base.
+the signed M4 base. The M3 verifier also validates its historical producer hash
+from that signed base; the M4 verifier separately bounds the current producer
+change to `Program.fs` and its package project file.
 
 ## Limitations and nonclaims
 

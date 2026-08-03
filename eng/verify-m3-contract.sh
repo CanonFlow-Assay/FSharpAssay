@@ -72,6 +72,14 @@ check_hash() {
   test "$(sha256sum "$path" | cut -d' ' -f1)" = "$(jq -r --arg key "$key" '.hashes[$key]' "$manifest")"
 }
 
+check_historical_hash() {
+  local revision="$1"
+  local path="$2"
+  local key="$3"
+  test "$(git show "${revision}:${path}" | sha256sum | cut -d' ' -f1)" = \
+    "$(jq -r --arg key "$key" '.hashes[$key]' "$manifest")"
+}
+
 check_hash "$policy" policyFileSha256
 check_hash docs/contracts/fsassay-policy.schema.json policySchemaSha256
 check_hash docs/contracts/fsassay-authority-receipt.schema.json receiptSchemaSha256
@@ -82,7 +90,7 @@ check_hash "$classification" ruleClassificationSha256
 check_hash docs/contracts/M3-SHAPE-RULE-ADMISSION.md admissionContractSha256
 check_hash docs/evidence/m3-shape-rule-admission-inventory.md inventorySha256
 check_hash FsAssay.Runner/Authority.fs authorityImplementationSha256
-check_hash FsAssay.Runner/Program.fs authorityProducerSha256
+check_historical_hash "$m4_base" FsAssay.Runner/Program.fs authorityProducerSha256
 
 jq -e '
   .authorizedBaseCommit == "8da5c3305489d0ac4d07339c400b5fdd7ebed1b1" and
