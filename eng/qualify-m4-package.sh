@@ -143,7 +143,7 @@ mkdir -p "$consumer/repository"
   unshare -n env DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_ROOT="$dotnet_root" NUGET_PACKAGES="$consumer_cache" \
     dotnet new tool-manifest --force >"$output/tool-manifest-create.log" 2>&1
 )
-manifest_before=$(sha256sum "$consumer/repository/.config/dotnet-tools.json" | cut -d' ' -f1)
+manifest_before=$(sha256sum "$consumer/repository/dotnet-tools.json" | cut -d' ' -f1)
 (
   cd "$consumer/repository"
   unshare -n env DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_ROOT="$dotnet_root" NUGET_PACKAGES="$consumer_cache" \
@@ -256,7 +256,7 @@ test "$incomplete_install_exit" -ne 0
   unshare -n env DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_ROOT="$dotnet_root" NUGET_PACKAGES="$consumer_cache" \
     dotnet tool uninstall "$package_id" >"$output/tool-uninstall.log" 2>&1
 )
-manifest_after=$(sha256sum "$consumer/repository/.config/dotnet-tools.json" | cut -d' ' -f1)
+manifest_after=$(sha256sum "$consumer/repository/dotnet-tools.json" | cut -d' ' -f1)
 test "$manifest_before" = "$manifest_after"
 test "$(find "$consumer/repository/.store" -type f 2>/dev/null | wc -l)" -eq 0
 test -z "$(git -C "$root_a" status --porcelain --untracked-files=no)"
