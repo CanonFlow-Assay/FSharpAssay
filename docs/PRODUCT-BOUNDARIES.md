@@ -35,9 +35,10 @@ The Web build and browser exercise remain a non-deploying qualification job.
 Desktop and TypeGym remain in the full repository audit solution but outside the
 stable build surface. No M1 change adds, removes, or reclassifies analyzer rules,
 changes catalogue status or creates a release. M2 supersedes the inherited
-verdict fold with a versioned authority contract, but approves no blocking rule;
+verdict fold with a versioned authority contract and configured zero blocking rules;
 M3 adds Shape, complete catalogue classification and typed baseline laws while
-also approving no blocking rule. Rule admission requires separate Human Gate C review.
+proposing zero blocking admissions. Human Gate C remains pending; rule admission
+requires its separate review.
 
 ## Configuration and generated output
 

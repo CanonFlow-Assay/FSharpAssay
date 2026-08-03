@@ -23,7 +23,6 @@
   ],
   "deprecated": [],
   "removed": [],
-  "admissionDecision": "No rule is admitted as blocking or advisory in M3.",
+  "admissionDecision": "Proposed for Human Gate C: the candidate contains zero blocking and zero advisory entries.",
   "admissionRationale": "Implemented means executable, not admitted. No current rule has the complete normative scope, specimens, hostile coverage, framework exceptions, documentation and fresh-consumer package proof required by Human Gate C."
 }
-

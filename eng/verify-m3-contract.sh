@@ -77,6 +77,7 @@ check_hash FsAssay.Runner/Program.fs authorityProducerSha256
 
 jq -e '
   .authorizedBaseCommit == "8da5c3305489d0ac4d07339c400b5fdd7ebed1b1" and
+  .gate == "Human Gate C pending; zero-admission classification proposed" and
   .stableTests.expected == 92 and .stableTests.m3Added == 7 and
   .repositoryAudit.expectedOutcome == "Inconclusive" and
   .repositoryAudit.expectedAuthoritative == false and

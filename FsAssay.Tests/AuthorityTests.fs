@@ -592,8 +592,8 @@ let tests =
                     |]
                 let catalogue = FsAssay.Analyzers.Domain.Rule.AllRules |> List.map _.Code |> List.sort
                 Expect.sequenceEqual (allClasses |> Array.sort) catalogue "every catalogue identity must appear exactly once"
-                Expect.equal locked.approvedBlockingRules.Length 0 "Human Gate C admitted no blockers"
-                Expect.equal locked.advisoryRules.Length 0 "Human Gate C admitted no advisories"
+                Expect.equal locked.approvedBlockingRules.Length 0 "candidate proposes no blockers pending Human Gate C"
+                Expect.equal locked.advisoryRules.Length 0 "candidate proposes no advisories pending Human Gate C"
                 Expect.equal locked.experimentalRules.Length 35 "implemented rules remain experimental"
                 Expect.equal locked.prototypeRules.Length 36 "prototype count is locked"
                 Expect.equal locked.dummyRules.Length 22 "dummy count is locked"

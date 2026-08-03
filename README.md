@@ -22,7 +22,7 @@ each had an independently executable positive behavioral specimen:
 `FSA-TDD01`, `FSA-TDD02`, and `FSA-TDD03`.
 
 That legacy admission is historical evidence, not Human Gate C approval. The M3
-authority lock approves **zero blocking rules**. All current rule observations,
+candidate lock proposes **zero blocking rules**, pending Human Gate C. All current rule observations,
 including the inherited set, remain historical/experimental and cannot block,
 suppress, or help manufacture a `Pass`. M3 classifies the complete catalogue as
 35 experimental, 36 prototype and 22 dummy rules; implemented is not admitted.

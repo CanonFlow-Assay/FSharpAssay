@@ -274,9 +274,9 @@ module Authority =
             if not (validDate policy.evaluationDate) then
                 "policy evaluation date must be an exact yyyy-MM-dd date"
             if not (Array.isEmpty policy.approvedBlockingRules) then
-                "blocking rules require Human Gate C approval; none are approved in M3"
+                "blocking rules require Human Gate C approval; this pending candidate permits none"
             if not (Array.isEmpty policy.advisoryRules) then
-                "advisory rule admission requires Human Gate C approval; none are approved in M3"
+                "advisory rule admission requires Human Gate C approval; this pending candidate permits none"
             if Array.isEmpty policy.enabledProfiles then
                 "at least one profile must be enabled"
             if Array.isEmpty policy.requiredProjectClasses then
@@ -535,7 +535,7 @@ module Authority =
 
         let incompleteness = [
             if not (Array.isEmpty policy.approvedBlockingRules) then
-                yield "gate-c-approval-missing", "blocking rules require Human Gate C approval; none are approved in M3"
+                yield "gate-c-approval-missing", "blocking rules require Human Gate C approval; this pending candidate permits none"
             yield! facts.PolicyErrors |> List.map (fun value -> "policy-invalid", value)
             yield! facts.MissingEvidence |> List.map (fun value -> "evidence-missing", value)
             if String.IsNullOrWhiteSpace(facts.Toolchain.SdkVersion) || facts.Toolchain.SdkVersion = "unavailable" then

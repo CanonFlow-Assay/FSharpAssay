@@ -2,12 +2,12 @@
 
 M3 establishes `fsharp-shape/1.0.0`, classifies the complete 93-rule catalogue and adds typed baseline governance. It does not add or change any analyzer rule.
 
-## Admission decision
+## Proposed Gate C decision
 
 | Class | Count | Authority meaning |
 |---|---:|---|
-| blocking | 0 | none approved by Human Gate C |
-| advisory | 0 | none approved by Human Gate C |
+| blocking | 0 | proposed; Human Gate C pending |
+| advisory | 0 | proposed; Human Gate C pending |
 | experimental | 35 | implemented observations, not admitted |
 | prototype | 36 | incomplete/provisional implementation |
 | dummy | 22 | catalogue placeholder without executable evidence |

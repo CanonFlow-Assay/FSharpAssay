@@ -16,9 +16,10 @@ Scope: tracked FSharpAssay source and public documentation before M3 edits.
 
 The repository was not selected for convenient violations. This is an inventory of its own existing catalogue and qualification evidence.
 
-## Gate C decision
+## Proposed Gate C decision
 
-No rule meets the complete admission bar at this milestone. Therefore:
+The inventory found no rule with evidence meeting the complete admission bar.
+The candidate therefore proposes:
 
 - blocking: 0;
 - advisory: 0;
@@ -32,10 +33,9 @@ The exact identities are in [`../contracts/fsassay-rule-classification-v1.json`]
 
 ## Gaps retained intentionally
 
-- No rule is newly admitted, so no blocker package-consumer proof is claimed.
+- The candidate claims no newly admitted rule and no blocker package-consumer proof.
 - Existing rule pages are not rewritten to manufacture complete admission dossiers.
 - The 563 self-audit observations require human adjudication; their presence is not a product-success metric.
 - The self-audit remains `Inconclusive` and non-authoritative because required tests are recorded as `notRun` and two frozen project classes are unsupported.
 - Shape clauses exceed current analyzer coverage. They are normative design/review guidance, not a claim of automated enforcement.
 - LLM judgment is advisory only and cannot override deterministic compiler, test, policy or receipt evidence.
-

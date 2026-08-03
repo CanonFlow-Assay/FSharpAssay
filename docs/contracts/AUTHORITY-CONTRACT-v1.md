@@ -31,9 +31,10 @@ authority-required rules. `completed`, `incomplete`, and `unavailable` report
 what execution evidence exists. Advisory/experimental status never helps create
 `Pass`, never blocks it, and never adds an authority reason. Only a separately
 Gate-C-approved blocking rule could make its missing/incomplete/unavailable
-outcome an authority gap. M3 has no such rule. All 93 catalogue identities are
-classified separately as 35 experimental, 36 prototype and 22 dummy rules;
-implementation status is not admission.
+outcome an authority gap. Gate C remains pending; this candidate configures zero
+blocking and zero advisory rules. All 93 catalogue identities are proposed as
+35 experimental, 36 prototype and 22 dummy rules; implementation status is not
+admission.
 
 ## Locked inputs
 
@@ -52,7 +53,8 @@ in `appliedBaselineRecords`; unmatched, expired and `resolved` records are not.
 `appliedSuppressions` remains empty. Baselines cannot hide missing authority
 evidence. The explicit policy date, not the wall clock, controls expiry.
 
-M3 has no Gate-C-approved blocking rules. The inherited catalogue and its 21
+This M3 candidate proposes zero blocking admissions while Gate C is pending.
+The inherited catalogue and its 21
 legacy admission entries are not changed, but they are non-authoritative
 historical observations under this contract. A policy requesting any blocking
 rule is diagnosed as incomplete instead of silently inheriting that legacy set.
