@@ -25,6 +25,15 @@ if grep -q 'pull_request.head.sha' .github/workflows/ci.yml; then
 fi
 test "$(grep -c '563' .github/workflows/fsassay.yml)" -eq 0
 test "$(grep -c '607' .github/workflows/fsassay.yml)" -eq 3
+test -x eng/fsassay-authority-gate.sh
+test -x eng/test-fsassay-authority-gate.sh
+grep -q '^# FsAssay two-lane CI model$' docs/ci-cd/two-lane-model.md
+grep -q 'This file is intentionally inactive' .github/examples/fsassay-two-lane.yml
+grep -q 'if: always()' .github/examples/fsassay-two-lane.yml
+test "$(grep -c 'continue-on-error: true' .github/examples/fsassay-two-lane.yml)" -eq 6
+test "$(grep -c 'if: always()' .github/examples/fsassay-two-lane.yml)" -eq 3
+grep -A1 'Delegate the merge decision only to the authority gate' .github/examples/fsassay-two-lane.yml | grep -q 'if: always()'
+bash eng/test-fsassay-authority-gate.sh
 
 jq -e '
   .catalogueCount == 93 and
