@@ -2,5 +2,8 @@ diff --git a/src/Alma.EnvironmentModel/EnvironmentDefinition.fs b/src/Alma.Envir
 index 1f13998..467c386 100644
 --- a/src/Alma.EnvironmentModel/EnvironmentDefinition.fs
 +++ b/src/Alma.EnvironmentModel/EnvironmentDefinition.fs
-@@ -147,0 +148 @@ module Space =
+@@ -148,3 +148,4 @@
 +[<RequireQualifiedAccess>]
+ type EnvironmentNumber =
+     | Number of int
+     | Numberless
