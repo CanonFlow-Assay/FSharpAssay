@@ -21,6 +21,7 @@ test "$(dotnet --version)" = "10.0.301"
 mkdir -p "$output/feed" "$output/tool" "$output/analysis"
 output=$(cd "$output" && pwd)
 python3 eng/verify-m6-docs.py "$repository" >"$output/static-validation.log"
+bash eng/test-m6-tool-rollback.sh >"$output/tool-rollback-regression.log"
 
 dotnet restore FsAssay.Stable.slnx --locked-mode
 dotnet build FsAssay.Stable.slnx --no-restore --configuration Release
@@ -88,11 +89,8 @@ jq -e --arg candidate "$candidate" --arg packageHash "$package_hash" '
   cd "$consumer"
   dotnet tool uninstall "$package_id" >"$output/tool-uninstall.log"
 )
-if test -f "$consumer/.config/dotnet-tools.json"; then
-  test "$(jq '.tools | length' "$consumer/.config/dotnet-tools.json")" -eq 0
-else
-  test ! -e "$consumer/.config/dotnet-tools.json"
-fi
+python3 eng/verify-m6-tool-rollback.py "$consumer/dotnet-tools.json" \
+  >"$output/tool-rollback-verification.log"
 
 jq -n -S --arg candidate "$candidate" --arg packageHash "$package_hash" \
   --arg jsonHash "$(sha256sum "$output/analysis/result.json" | cut -d' ' -f1)" \

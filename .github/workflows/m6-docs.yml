@@ -9,6 +9,8 @@ on:
       - 'docs-website/**'
       - 'docs/ADOPTION-REFERENCE.md'
       - 'eng/verify-m6-docs.py'
+      - 'eng/verify-m6-tool-rollback.py'
+      - 'eng/test-m6-tool-rollback.sh'
       - 'eng/qualify-m6-docs.sh'
       - '.github/workflows/m6-docs.yml'
 
