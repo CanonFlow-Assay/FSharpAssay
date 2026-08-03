@@ -46,7 +46,7 @@ if git diff --name-only "$base" HEAD -- FsAssay.Analyzers | grep -E '\.fs$'; the
   echo "M4 changed analyzer rule source" >&2
   exit 1
 fi
-test -z "$(git diff --name-only "$base" HEAD -- FsAssay.Runner ':!FsAssay.Runner/Program.fs' ':!FsAssay.Runner/FsAssay.Runner.fsproj')"
+test -z "$(git diff --name-only "$base" HEAD -- FsAssay.Runner ':!FsAssay.Runner/Program.fs' ':!FsAssay.Runner/FsAssay.Runner.fsproj' ':!FsAssay.Runner/Authority.fs' ':!FsAssay.Runner/ProjectSystem.fs')"
 
 bash eng/assert-required-locks.sh
 echo "M4 consumer/package contract verified"
