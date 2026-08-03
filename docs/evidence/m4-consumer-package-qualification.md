@@ -96,6 +96,21 @@ the signed M4 base. The M3 verifier also validates its historical producer hash
 from that signed base; the M4 verifier separately bounds the current producer
 change to `Program.fs` and its package project file.
 
+Replacement candidate `e1749169fb48f51270879e0f0e6c523f8de6a469` passed
+both 93-test entry points and every M1--M4 verifier, then failed its
+[Stable CI run](https://github.com/CanonFlow-Assay/FSharpAssay/actions/runs/30783947176)
+inside package qualification. The original qualifier emitted no failing phase
+or comparison artifacts; attestation and reconciliation did not run. This is a
+second failed candidate, not provenance evidence. Qualification now emits phase,
+line, command and status diagnostics, saves both raw and canonical packages plus
+their hashes before comparison, uploads SHA-qualified partial artifacts on
+failure and cleans its candidate-specific temporary workspace on every exit.
+The namespace preflight also distinguishes direct unprivileged `unshare` from
+the GitHub-hosted fallback: passwordless `sudo` creates only the network
+namespace, then `setpriv` drops back to the original uid/gid with cleared
+supplementary groups before any .NET command. If neither isolated path is
+available, qualification fails; it never falls back to connected execution.
+
 ## Limitations and nonclaims
 
 M4 does not admit a blocking or advisory rule. Finding counts are observations,

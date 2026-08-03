@@ -17,6 +17,8 @@ grep -q 'actions/attest-build-provenance@v2' .github/workflows/ci.yml
 grep -q 'attestations: write' .github/workflows/ci.yml
 grep -q 'id-token: write' .github/workflows/ci.yml
 grep -q 'FSASSAY_CANDIDATE_SHA: ${{ github.sha }}' .github/workflows/ci.yml
+grep -q 'if: always()' .github/workflows/ci.yml
+grep -q 'name: stable-qualification-${{ github.sha }}' .github/workflows/ci.yml
 if grep -q 'pull_request.head.sha' .github/workflows/ci.yml; then
   echo "PR qualification must retain the synthetic merge checkout" >&2
   exit 1

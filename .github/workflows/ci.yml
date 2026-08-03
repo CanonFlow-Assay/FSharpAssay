@@ -91,8 +91,10 @@ jobs:
           test -z "$(git status --porcelain --untracked-files=no)"
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: stable-qualification
+          name: stable-qualification-${{ github.sha }}
+          if-no-files-found: warn
           path: |
             artifacts/m4/
             artifacts/test-results/*.log
