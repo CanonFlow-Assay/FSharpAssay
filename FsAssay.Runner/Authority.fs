@@ -11,13 +11,16 @@ open System.Text.Json.Serialization
 
 module Authority =
     [<Literal>]
-    let PolicySchemaVersion = "fsassay-policy/1.0.0"
+    let PolicySchemaVersion = "fsassay-policy/1.1.0"
 
     [<Literal>]
-    let EvidenceSchemaVersion = "fsassay-authority-receipt/1.0.0"
+    let EvidenceSchemaVersion = "fsassay-authority-receipt/1.1.0"
 
     [<Literal>]
     let ContractVersion = "authority-contract/1.0.0"
+
+    [<Literal>]
+    let ShapeContractVersion = "fsharp-shape/1.0.0"
 
     type RequiredTestPolicy = {
         id: string
@@ -25,16 +28,37 @@ module Authority =
         minimumPassed: int
     }
 
+    type BaselineRecord = {
+        id: string
+        ruleId: string
+        fingerprint: string
+        relativePath: string
+        symbol: string
+        owner: string
+        rationale: string
+        disposition: string
+        createdOn: string
+        expiresOn: string
+        policyVersion: string
+    }
+
     type BaselinePolicy = {
         identity: string
-        approvedFindings: string[]
+        reviewedBy: string
+        reviewedOn: string
+        records: BaselineRecord[]
     }
 
     type PolicyException = {
         id: string
+        category: string
+        relativePath: string
+        symbol: string
         owner: string
         reason: string
+        createdOn: string
         expiresOn: string
+        shapeClauses: string[]
     }
 
     type PolicyLock = {
@@ -43,10 +67,15 @@ module Authority =
         authorityContractVersion: string
         shapeContractVersion: string
         toolVersion: string
+        evaluationDate: string
         enabledProfiles: string[]
         approvedBlockingRules: string[]
         advisoryRules: string[]
         experimentalRules: string[]
+        prototypeRules: string[]
+        dummyRules: string[]
+        deprecatedRules: string[]
+        removedRules: string[]
         requiredProjectClasses: string[]
         requiredTargetFrameworks: string[]
         requiredTests: RequiredTestPolicy[]
@@ -104,6 +133,7 @@ module Authority =
     type FindingEvidence = {
         RuleId: string
         Path: string
+        Symbol: string
         Line: int
         Column: int
         Message: string
@@ -136,6 +166,12 @@ module Authority =
         Reasons: (string * string) list
     }
 
+    type BaselineEvaluation = {
+        AppliedRecordIds: string list
+        NewFindings: FindingEvidence list
+        ReappearingFindings: FindingEvidence list
+    }
+
     type PolicyLoadResult =
         | PolicyLoaded of PolicyLock * string * string
         | PolicyUnavailable of string
@@ -145,16 +181,21 @@ module Authority =
         policySchemaVersion = PolicySchemaVersion
         evidenceSchemaVersion = EvidenceSchemaVersion
         authorityContractVersion = ContractVersion
-        shapeContractVersion = "not-established"
+        shapeContractVersion = ShapeContractVersion
         toolVersion = ProductIdentity.Version
+        evaluationDate = "1970-01-01"
         enabledProfiles = [| "core" |]
         approvedBlockingRules = [||]
         advisoryRules = [||]
         experimentalRules = [||]
+        prototypeRules = [||]
+        dummyRules = [||]
+        deprecatedRules = [||]
+        removedRules = [||]
         requiredProjectClasses = [||]
         requiredTargetFrameworks = [||]
         requiredTests = [||]
-        baseline = { identity = "none"; approvedFindings = [||] }
+        baseline = { identity = "none"; reviewedBy = ""; reviewedOn = ""; records = [||] }
         exceptions = [||]
     }
 
@@ -179,15 +220,44 @@ module Authority =
                 approvedBlockingRules = policy.approvedBlockingRules |> Array.sort
                 advisoryRules = policy.advisoryRules |> Array.sort
                 experimentalRules = policy.experimentalRules |> Array.sort
+                prototypeRules = policy.prototypeRules |> Array.sort
+                dummyRules = policy.dummyRules |> Array.sort
+                deprecatedRules = policy.deprecatedRules |> Array.sort
+                removedRules = policy.removedRules |> Array.sort
                 requiredProjectClasses = policy.requiredProjectClasses |> Array.sort
                 requiredTargetFrameworks = policy.requiredTargetFrameworks |> Array.sort
                 requiredTests = policy.requiredTests |> Array.sortBy (fun test -> test.id, test.project)
-                baseline = { policy.baseline with approvedFindings = policy.baseline.approvedFindings |> Array.sort }
-                exceptions = policy.exceptions |> Array.sortBy (fun item -> item.id)
+                baseline = { policy.baseline with records = policy.baseline.records |> Array.sortBy (fun item -> item.id) }
+                exceptions =
+                    policy.exceptions
+                    |> Array.map (fun item -> { item with shapeClauses = item.shapeClauses |> Array.sort })
+                    |> Array.sortBy (fun item -> item.id)
         }
 
     let private duplicates values =
         values |> Seq.countBy id |> Seq.filter (fun (_, count) -> count > 1) |> Seq.map fst |> Seq.toList
+
+    let private validDate value =
+        not (String.IsNullOrWhiteSpace(value))
+        && match DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None) with
+           | true, _ -> true
+           | _ -> false
+
+    let private validRelativePath value =
+        not (String.IsNullOrWhiteSpace(value))
+        && not (Path.IsPathRooted(value))
+        && not (value.Replace('\\', '/').StartsWith("../", StringComparison.Ordinal))
+
+    let private validSha256 (value: string) =
+        not (isNull value) && value.Length = 64 && value |> Seq.forall Uri.IsHexDigit
+
+    let canonicalBaselineIdentity baseline =
+        let normalized = {
+            baseline with
+                identity = ""
+                records = baseline.records |> Array.sortBy (fun item -> item.id)
+        }
+        JsonSerializer.SerializeToUtf8Bytes(normalized, jsonOptions ()) |> sha256Bytes
 
     let private validatePolicy policy =
         [
@@ -199,12 +269,14 @@ module Authority =
                 $"unsupported authority contract '{policy.authorityContractVersion}'"
             if policy.toolVersion <> ProductIdentity.Version then
                 $"policy tool version '{policy.toolVersion}' does not match '{ProductIdentity.Version}'"
-            if policy.shapeContractVersion <> "not-established" then
-                "Shape contract is not established in M2"
+            if policy.shapeContractVersion <> ShapeContractVersion then
+                $"unsupported Shape contract '{policy.shapeContractVersion}'"
+            if not (validDate policy.evaluationDate) then
+                "policy evaluation date must be an exact yyyy-MM-dd date"
             if not (Array.isEmpty policy.approvedBlockingRules) then
-                "blocking rules require Human Gate C approval; none are approved in M2"
+                "blocking rules require Human Gate C approval; this pending candidate permits none"
             if not (Array.isEmpty policy.advisoryRules) then
-                "advisory rule admission requires Human Gate C approval; none are approved in M2"
+                "advisory rule admission requires Human Gate C approval; this pending candidate permits none"
             if Array.isEmpty policy.enabledProfiles then
                 "at least one profile must be enabled"
             if Array.isEmpty policy.requiredProjectClasses then
@@ -213,28 +285,51 @@ module Authority =
                 "at least one required target framework must be locked"
             if Array.isEmpty policy.requiredTests then
                 "at least one required test must be locked"
-            if String.IsNullOrWhiteSpace(policy.baseline.identity) then
-                "baseline identity must not be blank"
-            if policy.baseline.identity <> "none" || not (Array.isEmpty policy.baseline.approvedFindings) then
-                "baseline governance is not established in M2; identity must be 'none' and configured findings must be empty"
+            if Array.isEmpty policy.baseline.records then
+                if policy.baseline.identity <> "none" || policy.baseline.reviewedBy <> "" || policy.baseline.reviewedOn <> "" then
+                    "an empty baseline must use identity 'none' with blank review metadata"
+            else
+                if not (validSha256 policy.baseline.identity) || policy.baseline.identity <> canonicalBaselineIdentity policy.baseline then
+                    "baseline identity does not match its canonical reviewed records"
+                if String.IsNullOrWhiteSpace(policy.baseline.reviewedBy) || not (validDate policy.baseline.reviewedOn) then
+                    "a nonempty baseline requires reviewer identity and review date"
             for name, values in [
                 "enabled profiles", policy.enabledProfiles
                 "blocking rules", policy.approvedBlockingRules
                 "advisory rules", policy.advisoryRules
                 "experimental rules", policy.experimentalRules
+                "prototype rules", policy.prototypeRules
+                "dummy rules", policy.dummyRules
+                "deprecated rules", policy.deprecatedRules
+                "removed rules", policy.removedRules
                 "project classes", policy.requiredProjectClasses
                 "target frameworks", policy.requiredTargetFrameworks
-                "baseline findings", policy.baseline.approvedFindings
             ] do
                 let repeated = duplicates values
                 if not repeated.IsEmpty then
                     sprintf "%s contain duplicates: %s" name (String.concat "," repeated)
                 if values |> Array.exists String.IsNullOrWhiteSpace then
                     sprintf "%s contain blank values" name
-            let ruleSets = [ policy.approvedBlockingRules; policy.advisoryRules; policy.experimentalRules ]
+            let ruleSets = [
+                policy.approvedBlockingRules
+                policy.advisoryRules
+                policy.experimentalRules
+                policy.prototypeRules
+                policy.dummyRules
+                policy.deprecatedRules
+                policy.removedRules
+            ]
             let ruleConflicts = ruleSets |> Array.concat |> duplicates
             if not ruleConflicts.IsEmpty then
-                sprintf "rule authority classes overlap: %s" (String.concat "," ruleConflicts)
+                sprintf "rule maturity classes overlap: %s" (String.concat "," ruleConflicts)
+            let classifiedRules = ruleSets |> Array.concat |> Set.ofArray
+            let catalogueRules = FsAssay.Analyzers.Domain.Rule.AllRules |> List.map _.Code |> Set.ofList
+            let missingRules = Set.difference catalogueRules classifiedRules
+            let unknownRules = Set.difference classifiedRules catalogueRules
+            if not missingRules.IsEmpty then
+                sprintf "catalogue rules lack an M3 classification: %s" (String.concat "," (Set.toList missingRules))
+            if not unknownRules.IsEmpty then
+                sprintf "policy classifies unknown rules: %s" (String.concat "," (Set.toList unknownRules))
             let duplicateTestIds = policy.requiredTests |> Seq.map _.id |> duplicates
             if not duplicateTestIds.IsEmpty then
                 sprintf "required test IDs contain duplicates: %s" (String.concat "," duplicateTestIds)
@@ -252,13 +347,40 @@ module Authority =
                    || project.StartsWith("../", StringComparison.Ordinal)
                    || test.minimumPassed < 1 then
                     $"invalid required test '{test.id}'"
+            let duplicateBaselineIds = policy.baseline.records |> Seq.map _.id |> duplicates
+            if not duplicateBaselineIds.IsEmpty then
+                sprintf "baseline record IDs contain duplicates: %s" (String.concat "," duplicateBaselineIds)
+            let duplicateBaselineFingerprints = policy.baseline.records |> Seq.map _.fingerprint |> duplicates
+            if not duplicateBaselineFingerprints.IsEmpty then
+                sprintf "baseline fingerprints contain duplicates: %s" (String.concat "," duplicateBaselineFingerprints)
+            for item in policy.baseline.records do
+                if String.IsNullOrWhiteSpace(item.id)
+                   || not (Set.contains item.ruleId catalogueRules)
+                   || not (Array.contains item.ruleId policy.approvedBlockingRules)
+                   || not (validSha256 item.fingerprint)
+                   || not (validRelativePath item.relativePath)
+                   || item.symbol = "unavailable"
+                   || String.IsNullOrWhiteSpace(item.symbol)
+                   || String.IsNullOrWhiteSpace(item.owner)
+                   || String.IsNullOrWhiteSpace(item.rationale)
+                   || not (Set.contains item.disposition (set [ "accepted"; "resolved" ]))
+                   || not (validDate item.createdOn)
+                   || (item.expiresOn <> "" && not (validDate item.expiresOn))
+                   || item.policyVersion <> PolicySchemaVersion then
+                    $"invalid baseline record '{item.id}'"
+            let allowedExceptionCategories = set [ "hosting"; "serialization"; "persistence"; "ui"; "dependency-injection"; "interoperability" ]
             for item in policy.exceptions do
-                if String.IsNullOrWhiteSpace(item.id) || String.IsNullOrWhiteSpace(item.owner) || String.IsNullOrWhiteSpace(item.reason) || String.IsNullOrWhiteSpace(item.expiresOn) then
-                    $"invalid exception '{item.id}'"
-                else
-                    match DateOnly.TryParseExact(item.expiresOn, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None) with
-                    | false, _ -> $"invalid exception expiry '{item.id}'"
-                    | _ -> ()
+                if String.IsNullOrWhiteSpace(item.id)
+                   || not (Set.contains item.category allowedExceptionCategories)
+                   || not (validRelativePath item.relativePath)
+                   || String.IsNullOrWhiteSpace(item.symbol)
+                   || String.IsNullOrWhiteSpace(item.owner)
+                   || String.IsNullOrWhiteSpace(item.reason)
+                   || not (validDate item.createdOn)
+                   || (item.expiresOn <> "" && not (validDate item.expiresOn))
+                   || Array.isEmpty item.shapeClauses
+                   || item.shapeClauses |> Array.exists String.IsNullOrWhiteSpace then
+                    $"invalid framework exception '{item.id}'"
         ]
 
     let private canonicalPolicyBytes policy =
@@ -305,6 +427,29 @@ module Authority =
         Findings = []
     }
 
+    let evaluateBaseline evaluationDate (baseline: BaselinePolicy) (findings: FindingEvidence list) =
+        let matches (finding: FindingEvidence) (record: BaselineRecord) =
+            record.ruleId = finding.RuleId
+            && record.fingerprint = finding.Fingerprint
+            && record.relativePath = finding.Path.Replace('\\', '/')
+            && record.symbol = finding.Symbol
+        let active (record: BaselineRecord) = record.expiresOn = "" || String.CompareOrdinal(record.expiresOn, evaluationDate) >= 0
+        let folder (state: BaselineEvaluation) (finding: FindingEvidence) =
+            match baseline.records |> Array.tryFind (matches finding) with
+            | Some record when record.disposition = "accepted" && active record ->
+                { state with AppliedRecordIds = record.id :: state.AppliedRecordIds }
+            | Some record when record.disposition = "resolved" ->
+                { state with ReappearingFindings = finding :: state.ReappearingFindings }
+            | _ -> { state with NewFindings = finding :: state.NewFindings }
+        let result =
+            findings
+            |> List.fold folder { AppliedRecordIds = []; NewFindings = []; ReappearingFindings = [] }
+        {
+            AppliedRecordIds = result.AppliedRecordIds |> List.distinct |> List.sort
+            NewFindings = result.NewFindings |> List.rev
+            ReappearingFindings = result.ReappearingFindings |> List.rev
+        }
+
     let private validateFacts policy facts =
         [
             let duplicateProjects = facts.Projects |> Seq.map _.Path |> duplicates
@@ -333,7 +478,12 @@ module Authority =
             let duplicateTests = facts.RequiredTests |> Seq.map _.Id |> duplicates
             if not duplicateTests.IsEmpty then
                 "test evidence contains duplicate IDs"
-            let requestedRules = Array.concat [| policy.approvedBlockingRules; policy.advisoryRules; policy.experimentalRules |] |> Set.ofArray
+            let requestedRules =
+                Array.concat [|
+                    policy.approvedBlockingRules; policy.advisoryRules; policy.experimentalRules
+                    policy.prototypeRules; policy.dummyRules; policy.deprecatedRules; policy.removedRules
+                |]
+                |> Set.ofArray
             for rule in facts.Rules do
                 if facts.PolicyErrors.IsEmpty && not (Set.contains rule.RuleId requestedRules) then
                     $"unknown or unrequested rule outcome '{rule.RuleId}'"
@@ -349,7 +499,7 @@ module Authority =
             for finding in facts.Findings do
                 if facts.PolicyErrors.IsEmpty && not (Set.contains finding.RuleId requestedRules) then
                     $"finding uses unknown or unrequested rule '{finding.RuleId}'"
-                if finding.Line < 1 || finding.Column < 0 || String.IsNullOrWhiteSpace(finding.Path) || String.IsNullOrWhiteSpace(finding.Message) then
+                if finding.Line < 1 || finding.Column < 0 || String.IsNullOrWhiteSpace(finding.Path) || String.IsNullOrWhiteSpace(finding.Symbol) || String.IsNullOrWhiteSpace(finding.Message) then
                     $"finding for {finding.RuleId} has invalid source evidence"
             for test in facts.RequiredTests do
                 if test.Passed < 0 || test.Failed < 0 || test.Skipped < 0 then
@@ -372,7 +522,8 @@ module Authority =
         let requiredTestsNotRun = facts.RequiredTests |> List.filter (fun test -> test.Status = TestStatus.NotRun)
         let requiredTestsSkipped = facts.RequiredTests |> List.filter (fun test -> test.Status = TestStatus.Skipped)
         let approvedBlocking = Set.ofArray policy.approvedBlockingRules
-        let blockingFindings = facts.Findings |> List.filter (fun finding -> approvedBlocking.Contains finding.RuleId)
+        let rawBlockingFindings = facts.Findings |> List.filter (fun finding -> approvedBlocking.Contains finding.RuleId)
+        let baselineEvaluation = evaluateBaseline policy.evaluationDate policy.baseline rawBlockingFindings
         let loadedProjects = facts.Projects |> List.filter (fun project -> project.Disposition = ProjectDisposition.Loaded)
         let failedProjects = facts.Projects |> List.filter (fun project -> project.Disposition = ProjectDisposition.LoadFailed)
         let skippedProjects = facts.Projects |> List.filter (fun project -> project.Disposition = ProjectDisposition.ProjectSkipped)
@@ -384,7 +535,7 @@ module Authority =
 
         let incompleteness = [
             if not (Array.isEmpty policy.approvedBlockingRules) then
-                yield "gate-c-approval-missing", "blocking rules require Human Gate C approval; none are approved in M2"
+                yield "gate-c-approval-missing", "blocking rules require Human Gate C approval; this pending candidate permits none"
             yield! facts.PolicyErrors |> List.map (fun value -> "policy-invalid", value)
             yield! facts.MissingEvidence |> List.map (fun value -> "evidence-missing", value)
             if String.IsNullOrWhiteSpace(facts.Toolchain.SdkVersion) || facts.Toolchain.SdkVersion = "unavailable" then
@@ -430,8 +581,10 @@ module Authority =
         let failures = [
             for test in requiredTestFailures do
                 yield "required-test-failed", $"required test '{test.Id}' failed ({test.Failed})"
-            for finding in blockingFindings do
-                yield "approved-blocking-finding", $"{finding.RuleId} at {finding.Path}:{finding.Line}"
+            for finding in baselineEvaluation.NewFindings do
+                yield "new-blocking-finding", $"{finding.RuleId} at {finding.Path}:{finding.Line} has no active reviewed baseline record"
+            for finding in baselineEvaluation.ReappearingFindings do
+                yield "reappearing-blocking-finding", $"{finding.RuleId} at {finding.Path}:{finding.Line} matches resolved debt"
         ]
 
         let toolReasons = [
@@ -539,6 +692,7 @@ module Authority =
     type FindingReceipt = {
         ruleId: string
         path: string
+        symbol: string
         line: int
         column: int
         message: string
@@ -578,6 +732,7 @@ module Authority =
         tests: TestReceipt[]
         rules: RuleReceipt[]
         findings: FindingReceipt[]
+        appliedBaselineRecords: string[]
         appliedSuppressions: string[]
         policyErrors: string[]
         evidenceErrors: string[]
@@ -621,7 +776,11 @@ module Authority =
     let private authorityClass (policy: PolicyLock) ruleId =
         if Array.contains ruleId policy.approvedBlockingRules then "blocking"
         elif Array.contains ruleId policy.advisoryRules then "advisory"
-        else "experimental"
+        elif Array.contains ruleId policy.experimentalRules then "experimental"
+        elif Array.contains ruleId policy.prototypeRules then "prototype"
+        elif Array.contains ruleId policy.dummyRules then "dummy"
+        elif Array.contains ruleId policy.deprecatedRules then "deprecated"
+        else "removed"
 
     let repositoryRelativePath repositoryRoot path =
         if path = "Architecture" then "Architecture"
@@ -683,26 +842,42 @@ module Authority =
         missing, errors
 
     let createReceipt repositoryRoot candidate policy policyPath policyHash facts =
-        let candidateMissing, candidateErrors = candidateAuthorityEvidence candidate
-        let derivedEvidenceErrors = validateFacts policy facts
-        let decisionFacts = {
-            facts with
-                MissingEvidence = facts.MissingEvidence @ candidateMissing
-                EvidenceErrors = facts.EvidenceErrors @ candidateErrors @ derivedEvidenceErrors
-        }
-        let decision = decide policy decisionFacts
         let relative value = repositoryRelativePath repositoryRoot value
-        let normalizedFindings =
+        let normalizedFactFindings =
             facts.Findings
             |> List.map (fun finding ->
                 let path = relative finding.Path
                 {
+                    finding with
+                        Path = path
+                        Fingerprint = findingFingerprint finding.RuleId path finding.Line finding.Column finding.Message
+                })
+        let normalizedFacts = { facts with Findings = normalizedFactFindings }
+        let candidateMissing, candidateErrors = candidateAuthorityEvidence candidate
+        let derivedEvidenceErrors = validateFacts policy normalizedFacts
+        let decisionFacts = {
+            normalizedFacts with
+                MissingEvidence = normalizedFacts.MissingEvidence @ candidateMissing
+                EvidenceErrors = normalizedFacts.EvidenceErrors @ candidateErrors @ derivedEvidenceErrors
+        }
+        let decision = decide policy decisionFacts
+        let appliedBaselineRecords =
+            decisionFacts.Findings
+            |> List.filter (fun finding -> Array.contains finding.RuleId policy.approvedBlockingRules)
+            |> evaluateBaseline policy.evaluationDate policy.baseline
+            |> _.AppliedRecordIds
+            |> List.toArray
+        let normalizedFindings =
+            decisionFacts.Findings
+            |> List.map (fun finding ->
+                {
                     ruleId = finding.RuleId
-                    path = path
+                    path = finding.Path
+                    symbol = finding.Symbol
                     line = finding.Line
                     column = finding.Column
                     message = finding.Message
-                    fingerprint = findingFingerprint finding.RuleId path finding.Line finding.Column finding.Message
+                    fingerprint = finding.Fingerprint
                     authorityClass = authorityClass policy finding.RuleId
                 })
             |> List.sortBy (fun finding -> finding.ruleId, finding.path, finding.line, finding.column, finding.message)
@@ -710,7 +885,7 @@ module Authority =
 
         let ruleCounts = normalizedFindings |> Array.countBy _.ruleId |> Map.ofArray
         let normalizedRules =
-            facts.Rules
+            decisionFacts.Rules
             |> List.map (fun rule ->
                 {
                     ruleId = rule.RuleId
@@ -791,6 +966,7 @@ module Authority =
             tests = testReceipts
             rules = normalizedRules
             findings = normalizedFindings
+            appliedBaselineRecords = appliedBaselineRecords
             appliedSuppressions = [||]
             policyErrors = decisionFacts.PolicyErrors |> List.distinct |> List.sort |> List.toArray
             evidenceErrors = decisionFacts.EvidenceErrors |> List.distinct |> List.sort |> List.toArray
@@ -842,7 +1018,8 @@ module Authority =
                     | Ok _ -> ()
                 elif receipt.policy.snapshot <> normalizePolicy unapprovedPolicy then
                     "unavailable or invalid policy must carry the exact fail-closed fallback snapshot"
-                if not (Array.isEmpty receipt.appliedSuppressions) then "M2 cannot claim applied suppressions"
+                if receipt.appliedBaselineRecords <> sortedDistinct receipt.appliedBaselineRecords then "applied baseline record IDs are duplicated or unsorted"
+                if not (Array.isEmpty receipt.appliedSuppressions) then "M3 cannot claim applied suppressions"
                 for requiredTest in receipt.policy.snapshot.requiredTests do
                     if not (relativePath requiredTest.project) then "required test policy project is not repository-relative"
                 if receipt.counts.projectsDiscovered <> receipt.projects.Length then "project discovery count does not reconcile"
@@ -872,7 +1049,7 @@ module Authority =
                 let duplicateRuleIds = receipt.rules |> Array.countBy _.ruleId |> Array.filter (fun (_, count) -> count > 1)
                 if not (Array.isEmpty duplicateRuleIds) then "rule receipts contain duplicates"
                 for rule in receipt.rules do
-                    if not (Set.contains rule.authorityClass (set [ "blocking"; "advisory"; "experimental" ])) then $"rule authority class is invalid: {rule.ruleId}"
+                    if not (Set.contains rule.authorityClass (set [ "blocking"; "advisory"; "experimental"; "prototype"; "dummy"; "deprecated"; "removed" ])) then $"rule authority class is invalid: {rule.ruleId}"
                     let expectedClass = authorityClass receipt.policy.snapshot rule.ruleId
                     if rule.authorityClass <> expectedClass then $"rule authority class does not reconcile with policy: {rule.ruleId}"
                     if not (Set.contains rule.status (set [ "completed"; "incomplete"; "unavailable" ])) then $"rule status is invalid: {rule.ruleId}"
@@ -881,6 +1058,7 @@ module Authority =
                     if rule.findingCount <> actual then $"rule finding count does not reconcile: {rule.ruleId}"
                 for finding in receipt.findings do
                     if not (relativePath finding.path) then $"finding path is not repository-relative: {finding.path}"
+                    if String.IsNullOrWhiteSpace(finding.symbol) then $"finding symbol is blank: {finding.ruleId}"
                     if finding.line < 1 || finding.column < 0 then $"finding location is invalid: {finding.ruleId}"
                     match receipt.rules |> Array.tryFind (fun rule -> rule.ruleId = finding.ruleId) with
                     | None -> $"finding has no rule outcome: {finding.ruleId}"
@@ -959,6 +1137,7 @@ module Authority =
                     Findings = receipt.findings |> Array.map (fun finding -> {
                         RuleId = finding.ruleId
                         Path = finding.path
+                        Symbol = finding.symbol
                         Line = finding.line
                         Column = finding.column
                         Message = finding.message
@@ -972,6 +1151,12 @@ module Authority =
                         EvidenceErrors = reconstructedFacts.EvidenceErrors @ candidateErrors
                 }
                 let expectedDecision = decide receiptPolicy semanticFacts
+                let expectedAppliedBaselineRecords =
+                    reconstructedFacts.Findings
+                    |> List.filter (fun finding -> Array.contains finding.RuleId receiptPolicy.approvedBlockingRules)
+                    |> evaluateBaseline receiptPolicy.evaluationDate receiptPolicy.baseline
+                    |> _.AppliedRecordIds
+                    |> List.toArray
                 let expectedReasons =
                     expectedDecision.Reasons
                     |> List.map (fun (code, detail) -> { code = code; detail = detail })
@@ -983,6 +1168,8 @@ module Authority =
                         $"receipt authoritative={receipt.authoritative} does not reconcile with evidence authority={expectedDecision.Authoritative}"
                     if receipt.reasons <> expectedReasons then
                         "receipt reason set does not reconcile with itemized evidence"
+                    if receipt.appliedBaselineRecords <> expectedAppliedBaselineRecords then
+                        "applied baseline records do not reconcile with finding evidence"
                 ]
         with ex -> [ "receipt graph is incomplete: " + ex.Message ]
 

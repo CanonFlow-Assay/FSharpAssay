@@ -397,6 +397,7 @@ let main argv =
                 ({
                     RuleId = violation.Code
                     Path = file
+                    Symbol = "file-scope"
                     Line = violation.Range.StartLine
                     Column = violation.Range.StartColumn
                     Message = violation.Message
@@ -405,7 +406,16 @@ let main argv =
 
     let evidenceComplete = projectLoadFailures.IsEmpty && failedFiles = 0 && skippedFiles = 0 && totalFiles > 0 && supportedLoadedProjects > 0
     let policyRules =
-        let locked = Array.concat [| policy.approvedBlockingRules; policy.advisoryRules; policy.experimentalRules |]
+        let locked =
+            Array.concat [|
+                policy.approvedBlockingRules
+                policy.advisoryRules
+                policy.experimentalRules
+                policy.prototypeRules
+                policy.dummyRules
+                policy.deprecatedRules
+                policy.removedRules
+            |]
         if policyErrors.IsEmpty then locked |> Array.sort
         else findings |> List.map _.RuleId |> List.distinct |> List.sort |> List.toArray
     let rules =

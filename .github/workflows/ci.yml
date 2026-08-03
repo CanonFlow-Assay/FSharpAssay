@@ -56,6 +56,9 @@ jobs:
       - name: Verify M2 authority contract
         run: bash eng/verify-m2-contract.sh
 
+      - name: Verify M3 Shape and rule admission contract
+        run: bash eng/verify-m3-contract.sh
+
       - name: Pack inherited baseline identity
         run: dotnet pack FsAssay.Runner/FsAssay.Runner.fsproj --configuration Release --no-build --no-restore --output artifacts/package
 

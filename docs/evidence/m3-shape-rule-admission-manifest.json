@@ -1,0 +1,81 @@
+{
+  "schema": "fsassay-m3-shape-rule-admission-manifest/1",
+  "authorizedBaseCommit": "8da5c3305489d0ac4d07339c400b5fdd7ebed1b1",
+  "branch": "uplift/m3-shape-rule-admission",
+  "toolVersion": "1.0.4",
+  "policySchemaVersion": "fsassay-policy/1.1.0",
+  "evidenceSchemaVersion": "fsassay-authority-receipt/1.1.0",
+  "authorityContractVersion": "authority-contract/1.0.0",
+  "shapeContractVersion": "fsharp-shape/1.0.0",
+  "evaluationDate": "2026-08-03",
+  "gate": "Human Gate C pending; zero-admission classification proposed",
+  "ruleClassification": {
+    "catalogue": 93,
+    "blocking": 0,
+    "advisory": 0,
+    "experimental": 35,
+    "prototype": 36,
+    "dummy": 22,
+    "deprecated": 0,
+    "removed": 0
+  },
+  "stableTests": {
+    "expected": 92,
+    "m2Inherited": 85,
+    "m3Added": 7,
+    "ordinaryEntryPoint": true,
+    "directEntryPoint": true,
+    "zeroTestPolicy": "strict-failure"
+  },
+  "repositoryAudit": {
+    "expectedExitCode": 2,
+    "expectedOutcome": "Inconclusive",
+    "expectedAuthoritative": false,
+    "projectsDiscovered": 6,
+    "projectsLoadedWithinPolicy": 4,
+    "projectsUnsupported": 2,
+    "filesScanned": 25,
+    "filesSkipped": 0,
+    "filesFailed": 0,
+    "findings": 563,
+    "reasonsOnCleanCandidate": 2,
+    "rulesCompleted": 35,
+    "rulesUnavailable": 58,
+    "requiredTestStatus": "notRun",
+    "determinismScope": {
+      "json": { "sameRootRepeat": true, "crossRoot": true },
+      "sarif": { "sameRootRepeat": true, "crossRoot": true },
+      "toolchain": { "sameRootRepeat": true, "crossRoot": true },
+      "rateCardMarkdown": { "sameRootRepeat": true, "crossRoot": false, "reason": "embeds absolute checkout paths" },
+      "dashboardHtml": { "sameRootRepeat": true, "crossRoot": false, "reason": "embeds absolute checkout paths" }
+    }
+  },
+  "baselineGovernance": {
+    "configuredRecords": 0,
+    "appliedRecords": 0,
+    "matchFields": ["ruleId", "fingerprint", "relativePath", "symbol"],
+    "expiryUsesExplicitPolicyDate": true,
+    "resolvedDebtReappearanceFails": true,
+    "missingEvidenceCanBeBaselined": false
+  },
+  "hashes": {
+    "policyFileSha256": "919c85c33d408c1f3fde99e6d78f388352a67b3d2399ba29aed1ce6c519ec97b",
+    "canonicalPolicyIdentitySha256": "1c1be8fee21febc61c85a530dcdcf924c0bc4112214a1aea8a756b4a4d09c0dd",
+    "policySchemaSha256": "1f6fc8647f7265092ba1452acb7fb7f3762a84ac0cdc8e258c5abb2f5f8ca882",
+    "receiptSchemaSha256": "bd13d6324c1fb65131ff52075c3f01ee750ec37ec63260f58882031949c87a02",
+    "shapeMachineContractSha256": "fbe459d68a0f2ef853b4be54ef8e7557bff32e359dab5db1829f8bff827c33a2",
+    "shapeNewSha256": "e10c4ffdfdde8b0e2a1c1356f7f8d43ed4f9b341d3c4cec7948320f1fdaccc45",
+    "shapeConvergeSha256": "41742e134f3eab332d187b70d6e56c7dfb2cdd83fbca7191840a814b83319e05",
+    "ruleClassificationSha256": "ad82828a617d72fddb1803e2844264ad1d15dc62bb4f1833cd2c38f500b6487e",
+    "admissionContractSha256": "3337b36470a50c5bbb4e0b4f97cce531151245210919ab3a7a4544ec6461f5cf",
+    "inventorySha256": "64a5a4f91034f6e90565073febae08e2adbc8f2bace438d459e2ce3eadf98ea1",
+    "authorityImplementationSha256": "c44f7a836b36734b5ee57da456c4aa2ce64c0c4a8652c66c641da73b97df7311",
+    "authorityProducerSha256": "9f449b3c0c9f2ad4952b914dd1f0821d12500b863e7e0369add4e3fcafbb9d33"
+  },
+  "analyzerRulesChanged": false,
+  "fullFindingDatasetCommitted": false,
+  "candidateSelfReferenceCommitted": false,
+  "packagePublished": false,
+  "releaseCreated": false,
+  "pullRequestMerged": false
+}

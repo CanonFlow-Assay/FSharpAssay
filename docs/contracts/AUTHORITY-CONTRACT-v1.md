@@ -1,8 +1,9 @@
 # FsAssay Authority Contract v1
 
-Status: **draft for Human Gate B**. This contract describes M2 behavior at tool
-identity `1.0.4`; it does not publish a release, Shape contract, rule approval,
-new command family, or correctness guarantee.
+Status: **M3 candidate under human review**. This contract describes authority
+behavior at tool identity `1.0.4` and Shape identity `fsharp-shape/1.0.0`; it
+does not publish a release, admit a blocking rule, add a command family, or
+claim correctness.
 
 ## Outcomes and precedence
 
@@ -30,31 +31,37 @@ authority-required rules. `completed`, `incomplete`, and `unavailable` report
 what execution evidence exists. Advisory/experimental status never helps create
 `Pass`, never blocks it, and never adds an authority reason. Only a separately
 Gate-C-approved blocking rule could make its missing/incomplete/unavailable
-outcome an authority gap. M2 has no such rule.
+outcome an authority gap. Gate C remains pending; this candidate configures zero
+blocking and zero advisory rules. All 93 catalogue identities are proposed as
+35 experimental, 36 prototype and 22 dummy rules; implementation status is not
+admission.
 
 ## Locked inputs
 
 `fsassay-policy.lock.json` binds the policy schema, receipt schema, authority
-contract, explicitly absent Shape contract, tool identity, profiles, Gate-C
-approved blocking rules, advisory/experimental observations, required project
+contract, Shape contract, deterministic evaluation date, tool identity,
+profiles, seven disjoint rule maturity classes, required project
 classes and target frameworks, tests, baseline identity, configured baseline
 records, and reviewed exceptions. Unknown fields and unsupported versions are
 diagnosed.
 
-M2 baseline governance is not established. A loaded M2 policy must use baseline
-identity `none` with no configured findings; wildcard or nonempty baseline debt
-is invalid. The complete policy snapshot retains `baseline.approvedFindings`
-separately from receipt `appliedSuppressions`, and `appliedSuppressions` must be
-empty. Configuration is never evidence that a finding was actually suppressed.
+M3 establishes typed baseline governance, while the current zero-blocker policy
+has no baseline debt and therefore uses identity `none`. Future reviewed records
+bind rule ID, fingerprint, repository-relative path, symbol, owner, rationale,
+disposition, dates and policy version. Exact active `accepted` records are listed
+in `appliedBaselineRecords`; unmatched, expired and `resolved` records are not.
+`appliedSuppressions` remains empty. Baselines cannot hide missing authority
+evidence. The explicit policy date, not the wall clock, controls expiry.
 
-M2 has no Gate-C-approved blocking rules. The inherited catalogue and its 21
+This M3 candidate proposes zero blocking admissions while Gate C is pending.
+The inherited catalogue and its 21
 legacy admission entries are not changed, but they are non-authoritative
 historical observations under this contract. A policy requesting any blocking
 rule is diagnosed as incomplete instead of silently inheriting that legacy set.
 
 ## Deterministic receipt
 
-`--out-json` emits `fsassay-authority-receipt/1.0.0`. It records:
+`--out-json` emits `fsassay-authority-receipt/1.1.0`. It records:
 
 - tool, schema, complete canonical policy snapshot and its SHA-256,
   SDK/runtime/FSharp.Compiler.Service identity;
@@ -63,8 +70,8 @@ rule is diagnosed as incomplete instead of silently inheriting that legacy set.
 - projects discovered, loaded, failed, skipped and unsupported, with project class and target frameworks;
 - source disposition, including generated and policy-excluded sources;
 - required tests and their exact `passed`, `failed`, `skipped`, or `notRun` evidence;
-- rule evidence availability, findings, stable fingerprints, authority class;
-- baseline configuration, empty applied-suppression evidence, exceptions,
+- rule evidence availability, findings, source symbols, stable fingerprints and all seven maturity classes;
+- typed baseline configuration, actually applied baseline IDs, empty applied-suppression evidence, bounded framework exceptions,
   itemized policy/evidence errors, missing evidence, tool failures, outcome and every reason.
 
 Arrays use stable ordering and source paths are repository-relative. SARIF uses
@@ -91,7 +98,7 @@ SHA-256, and CI/human review must independently pin the candidate identity and
 policy SHA. Gate B consumers should use the context validator to pin that policy
 SHA together with the analyzed commit and tree; synthetic-merge receipts also
 require the reviewed head and synthetic merge identities, while package receipts
-require the package SHA-256. Signing and provenance authenticity are outside M2.
+require the package SHA-256. Signing and provenance authenticity remain outside M3.
 
 Every non-`Pass` reason is also a SARIF `toolExecutionNotification`. SARIF run
 properties repeat the receipt outcome, authority flag, exact counts, finding
@@ -126,22 +133,23 @@ mismatch, or synthetic-merge mismatch makes the evidence invalid and forces
 
 ## Compatibility and limitations
 
-The pre-M2 `--out-json` payload was an array of file findings. M2 replaces it
-with the versioned receipt object; consumers must validate `schemaVersion`
-before reading it. `--out-sarif` remains SARIF 2.1.0 but now uses relative URIs,
+The pre-M2 `--out-json` payload was an array of file findings. M2 replaced it
+with the versioned receipt object. M3 intentionally bumps the policy and receipt
+schemas from `1.0.0` to `1.1.0`; M2 payloads fail closed and require explicit
+migration. Consumers must validate `schemaVersion` before reading. `--out-sarif` remains SARIF 2.1.0 and uses relative URIs,
 stable fingerprints, and run properties for outcome/policy/candidate identity.
 
-M2 does not ingest test evidence. CI may run 85 tests, but the CLI does not infer
+M3 does not ingest test evidence. CI runs 92 tests, but the CLI does not infer
 that ambient success and records policy-required tests as `notRun`. The full
 self-audit consequently remains `Inconclusive`/non-authoritative. A reviewed
 consumer evidence-ingestion surface belongs to a later milestone.
 
 The full audit includes frozen Desktop and TypeGym projects. Their unsupported
-status is explicit and prevents authority. The 559 current observations require
+status is explicit and prevents authority. The 563 current observations require
 human adjudication and are not proof of product success. Advisory/prototype
 findings must not be automatically refactored by humans or agents.
 
-M2 project classes are conservative filename-derived categories and fail closed
+M3 project classes are conservative filename-derived categories and fail closed
 to `unsupported` when unknown. Target-framework discovery reads the bounded
 SDK-style project XML; conditional properties and a general multi-target
 compatibility matrix are not qualified. No broader MSBuild compatibility is

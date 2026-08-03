@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "fsassay-rule-classification/1.0.0",
+  "catalogueCount": 93,
+  "humanGate": "C",
+  "blocking": [],
+  "advisory": [],
+  "experimental": [
+    "FSA-AI01", "FSA-AI12", "FSA-AI13", "FSA-AI14", "FSA-AI15", "FSA-AI16", "FSA-AI17", "FSA-AI18", "FSA-AI19", "FSA-ARCH01", "FSA-ARCH02",
+    "FSA-C01", "FSA-C02", "FSA-C03", "FSA-C05", "FSA-C06", "FSA-C08", "FSA-C09", "FSA-C10",
+    "FSA-P01", "FSA-P02", "FSA-P03", "FSA-P04", "FSA-P05",
+    "FSA-SEC08", "FSA-SEC09", "FSA-SEC11", "FSA-SEC12", "FSA-SEC13",
+    "FSA-TDD01", "FSA-TDD02", "FSA-TDD03", "FSA-TDD04", "FSA2017", "FSA2022"
+  ],
+  "prototype": [
+    "FSA-1301", "FSA-1402", "FSA-AI07", "FSA-AI10", "FSA-AI11", "FSA-C04", "FSA-C07", "FSA-C14", "FSA-C15", "FSA-C16", "FSA-F04", "FSA-F08",
+    "FSA-LINT01", "FSA-LINT02", "FSA-LINT03", "FSA-LINT04", "FSA-LINT05", "FSA-LINT06", "FSA-LINT07", "FSA-LINT08", "FSA-LINT09", "FSA-LINT10",
+    "FSA-LINT11", "FSA-LINT12", "FSA-LINT13", "FSA-LINT14", "FSA-LINT15", "FSA-LINT16", "FSA-LINT17", "FSA-LINT18", "FSA-LINT19", "FSA-LINT20",
+    "FSA-S01", "FSA-S02", "FSA-S03", "FSA-S05"
+  ],
+  "dummy": [
+    "FSA-B01", "FSA-C11", "FSA-C12", "FSA-C13", "FSA-E01", "FSA-E02", "FSA-E03", "FSA-E04", "FSA-F01", "FSA-F02", "FSA-F03", "FSA-F05", "FSA-F06", "FSA-F07",
+    "FSA-M01", "FSA-M03", "FSA-M04", "FSA-ML01", "FSA-ML02", "FSA-S04", "FSA-SEC10", "FSA2016"
+  ],
+  "deprecated": [],
+  "removed": [],
+  "admissionDecision": "Proposed for Human Gate C: the candidate contains zero blocking and zero advisory entries.",
+  "admissionRationale": "Implemented means executable, not admitted. No current rule has the complete normative scope, specimens, hostile coverage, framework exceptions, documentation and fresh-consumer package proof required by Human Gate C."
+}

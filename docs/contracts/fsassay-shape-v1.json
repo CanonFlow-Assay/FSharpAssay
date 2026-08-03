@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "fsassay-shape/1.0.0",
+  "contractVersion": "fsharp-shape/1.0.0",
+  "newClauses": ["SN-ADAPTER", "SN-CORE", "SN-DEPS", "SN-IMM", "SN-OUT", "SN-STATE", "SN-TEST", "SN-TOTAL", "SN-VALID"],
+  "convergeClauses": ["SC-01", "SC-02", "SC-03", "SC-04", "SC-05", "SC-06", "SC-07", "SC-08", "SC-09", "SC-10"],
+  "frameworkExceptionCategories": ["dependency-injection", "hosting", "interoperability", "persistence", "serialization", "ui"],
+  "authorityLaws": {
+    "missingEvidenceCanPass": false,
+    "exceptionsSuppressAuthorityEvidence": false,
+    "llmJudgmentIsAuthoritative": false,
+    "baselineMatchFields": ["ruleId", "fingerprint", "relativePath", "symbol"],
+    "expiryComparison": "evaluationDate <= expiresOn"
+  }
+}
+
