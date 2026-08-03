@@ -123,6 +123,10 @@ Before relying on a receipt, check at least:
 - rule evidence status, finding maturity and stable fingerprints;
 - applied baseline records and the absence or presence of suppression claims.
 
+When `fsassay-policy.lock.json` is absent or invalid, findings and rule outcomes
+are explicitly `unclassified`, not `removed`; the receipt remains
+`Inconclusive` with `authoritative: false` and exit code `2`.
+
 Zero findings with an unloaded workspace, incomplete compiler evidence or a
 required test marked `notRun` is not clean.
 

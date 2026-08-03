@@ -24,7 +24,7 @@ if grep -q 'pull_request.head.sha' .github/workflows/ci.yml; then
   exit 1
 fi
 test "$(grep -c '563' .github/workflows/fsassay.yml)" -eq 0
-test "$(grep -c '607' .github/workflows/fsassay.yml)" -eq 3
+test "$(grep -c '616' .github/workflows/fsassay.yml)" -eq 3
 test -x eng/fsassay-authority-gate.sh
 test -x eng/test-fsassay-authority-gate.sh
 grep -q '^# FsAssay two-lane CI model$' docs/ci-cd/two-lane-model.md
@@ -46,7 +46,7 @@ if git diff --name-only "$base" HEAD -- FsAssay.Analyzers | grep -E '\.fs$'; the
   echo "M4 changed analyzer rule source" >&2
   exit 1
 fi
-test -z "$(git diff --name-only "$base" HEAD -- FsAssay.Runner ':!FsAssay.Runner/Program.fs' ':!FsAssay.Runner/FsAssay.Runner.fsproj')"
+test -z "$(git diff --name-only "$base" HEAD -- FsAssay.Runner ':!FsAssay.Runner/Program.fs' ':!FsAssay.Runner/FsAssay.Runner.fsproj' ':!FsAssay.Runner/Authority.fs' ':!FsAssay.Runner/ProjectSystem.fs')"
 
 bash eng/assert-required-locks.sh
 echo "M4 consumer/package contract verified"
