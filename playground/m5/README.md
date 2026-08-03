@@ -4,7 +4,7 @@ This is a bounded consumer exercise, not a product feature or a marketing proof.
 
 The Shape New slice validates `OrderId` and `Quantity`, makes order rejection a closed union, keeps the decision pure, owns ports in Application, and maps transport input/output in Shell. The Shape Converge slice freezes the behavior of a legacy Boolean pricing entry point while delegating its decision to a typed pure core. It does not claim a whole-application convergence.
 
-`Shape.Tests` contains 15 behavior, representation and architecture tests. The locked policy and `expected-findings.json` bind every observed finding by rule, path and fingerprint. `eng/qualify-m5-playground.sh` fails on a missing package, failed build/test, non-loaded project, tool failure, changed finding, unexpected exit code or non-deterministic JSON/SARIF.
+`Shape.Tests` contains 15 behavior, representation and architecture tests. The four new package locks extend the current required-lock manifest from 8 to 12 without changing the historical M1 record. The locked policy and `expected-findings.json` bind every observed finding by rule, path and fingerprint. `eng/qualify-m5-playground.sh` fails on a missing package, failed build/test, non-loaded project, tool failure, changed finding, unexpected exit code or non-deterministic JSON/SARIF.
 
 ## Run
 
