@@ -10,6 +10,7 @@ open FsAssay.Analyzers.Domain
 open System.IO
 open System
 open System.Text.RegularExpressions
+open System.Text.Json
 
 let checker = FSharpChecker.Create(keepAssemblyContents = true)
 
@@ -463,7 +464,7 @@ let runE2EWithPluginPath (pluginPath: string) =
 
 let e2eTests =
     testList "Phase 5 Hardening E2E Fault Injection" [
-        testCase "CLI consumer contract and corrupted project remain honest" <| fun _ ->
+        testCase "CLI consumer contract is stable across the complete M3 catalogue" <| fun _ ->
             let results = [ "help"; "--help"; "-h" ] |> List.map (fun argument -> runCli [ argument ])
             let expectedExit, expectedOutput, expectedError = results.Head
             Expect.equal expectedExit 0 "help must succeed"
@@ -488,6 +489,25 @@ let e2eTests =
             Expect.stringContains explainOutput "ImplementationStatus: implemented" "catalogue implementation status is reported"
             Expect.stringContains explainOutput "M3AdmissionClass: experimental" "M3 admission class is reported"
             Expect.stringContains explainOutput "Authority: non-authoritative" "explanation cannot be mistaken for authority"
+
+            let classificationPath =
+                Path.Combine(__SOURCE_DIRECTORY__, "..", "docs", "contracts", "fsassay-rule-classification-v1.json")
+            use classification = JsonDocument.Parse(File.ReadAllBytes(classificationPath))
+            let categoryByRule =
+                [ "blocking"; "advisory"; "experimental"; "prototype"; "dummy"; "deprecated"; "removed" ]
+                |> List.collect (fun category ->
+                    classification.RootElement.GetProperty(category).EnumerateArray()
+                    |> Seq.map (fun element -> element.GetString(), category)
+                    |> Seq.toList)
+                |> Map.ofList
+            Expect.equal categoryByRule.Count 93 "the exact M3 partition must cover all catalogue rules"
+            for rule in Rule.AllRules do
+                let ruleExit, ruleOutput, ruleError = runCli [ "explain"; rule.Code ]
+                Expect.equal ruleExit 0 $"explain must succeed for {rule.Code}"
+                Expect.equal ruleError "" $"explain must not write an error for {rule.Code}"
+                Expect.stringContains ruleOutput $"M3AdmissionClass: {categoryByRule.[rule.Code]}" $"M3 class drifted for {rule.Code}"
+                Expect.stringContains ruleOutput "Authority: non-authoritative" $"authority disclaimer missing for {rule.Code}"
+
             let unknownExit, unknownOutput, unknownError = runCli [ "explain"; "UNKNOWN0000" ]
             Expect.equal unknownExit 64 "unknown rules are invalid invocations"
             Expect.equal unknownOutput "" "unknown rule output stays off stdout"
@@ -499,6 +519,7 @@ let e2eTests =
                 Expect.equal invalidOutput "" "invalid invocation output stays off stdout"
                 Expect.stringContains invalidError expected "invalid invocation is actionable"
 
+        testCase "Fault Injection 1: Corrupted .fsproj" <| fun _ ->
             let proj = "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup<TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>"
             let code = "module Corrupt\nlet x = 1"
             let exitCode = runE2E proj code

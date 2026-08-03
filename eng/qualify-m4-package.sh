@@ -24,6 +24,15 @@ if [[ -n "$(git -C "$repository" status --porcelain --untracked-files=no)" ]]; t
   echo "tracked candidate worktree is not clean" >&2
   exit 1
 fi
+for test_log in artifacts/test-results/stable-ordinary.log artifacts/test-results/stable-direct.log; do
+  if [[ ! -f "$repository/$test_log" ]]; then
+    echo "required stable test evidence is missing: $test_log" >&2
+    exit 1
+  fi
+  grep -Eq 'total:[[:space:]]+93' "$repository/$test_log"
+  grep -Eq 'failed:[[:space:]]+0' "$repository/$test_log"
+  grep -Eq 'succeeded:[[:space:]]+93' "$repository/$test_log"
+done
 
 mkdir -p "$output"
 output=$(cd "$output" && pwd)
@@ -104,6 +113,18 @@ validate_provenance "$candidate" "$output/$package_file"
 unzip -Z1 "$output/$package_file" >"$output/package-entries.txt"
 grep -Fxq 'README.md' "$output/package-entries.txt"
 grep -Fxq 'LICENSE' "$output/package-entries.txt"
+dotnet fsi "$root_a/eng/extract-sourcelink.fsx" "$output/$package_file" \
+  'tools/net10.0/any/FsAssay.Runner.pdb' >"$output/sourcelink.json"
+dotnet fsi "$root_a/eng/extract-sourcelink.fsx" "$output/$package_file" \
+  'tools/net10.0/any/FsAssay.Analyzers.pdb' >"$output/analyzers-sourcelink.json"
+cmp "$output/sourcelink.json" "$output/analyzers-sourcelink.json"
+jq -e --arg candidate "$candidate" '
+  .documents
+  | to_entries
+  | length > 0 and all(
+      (.key | startswith("/_/")) and
+      (.value | startswith("https://raw.githubusercontent.com/CanonFlow-Assay/FSharpAssay/" + $candidate + "/")))
+' "$output/sourcelink.json" >/dev/null
 if grep -aFq "$root_a" "$output/$package_file" || grep -aFq "$root_b" "$output/$package_file"; then
   echo "package leaked an independent checkout path" >&2
   exit 1
@@ -147,7 +168,8 @@ manifest_before=$(sha256sum "$consumer/repository/dotnet-tools.json" | cut -d' '
 (
   cd "$consumer/repository"
   unshare -n env DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_ROOT="$dotnet_root" NUGET_PACKAGES="$consumer_cache" \
-    dotnet tool install "$package_id" --version "$package_version" --source "$output" \
+    FSASSAY_M4_LOCAL_FEED="$output" dotnet tool install "$package_id" --version "$package_version" \
+      --configfile "$root_a/eng/m4-offline-nuget.config" \
       >"$output/tool-install.log" 2>&1
 )
 
@@ -245,7 +267,8 @@ set +e
 (
   cd "$workspace"
   unshare -n env DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_ROOT="$dotnet_root" NUGET_PACKAGES="$workspace/incomplete-cache" \
-    dotnet tool install "$package_id" --version "$package_version" --tool-path "$workspace/incomplete-tools" --source "$incomplete_feed"
+    FSASSAY_M4_LOCAL_FEED="$incomplete_feed" dotnet tool install "$package_id" --version "$package_version" \
+      --tool-path "$workspace/incomplete-tools" --configfile "$root_a/eng/m4-offline-nuget.config"
 ) >"$output/incomplete-install.stdout" 2>"$output/incomplete-install.stderr"
 incomplete_install_exit=$?
 set -e
@@ -287,6 +310,10 @@ jq -n -S \
       repositoryCommit: $candidate,
       nugetSignature: "unsigned-NU3004"
     },
+    stableTests: {
+      ordinary: {total: 93, passed: 93, failed: 0},
+      direct: {total: 93, passed: 93, failed: 0}
+    },
     reproducibility: {
       roots: "independent-clones-with-independent-empty-caches",
       normalizedPackagesByteIdentical: true,
@@ -306,7 +333,8 @@ jq -n -S \
       jsonSha256: $jsonHash,
       sarifSha256: $sarifHash,
       repeatedEvidenceByteIdentical: true,
-      noIpNetworkSyscallsObserved: true
+      noIpNetworkSyscallsObserved: true,
+      sourceLinkVerifiedForRunnerAndAnalyzers: true
     },
     adversarial: {
       hashMismatchRejected: true,

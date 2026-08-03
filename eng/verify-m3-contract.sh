@@ -55,7 +55,7 @@ grep -q 'Implemented means executable, not admitted' docs/contracts/M3-SHAPE-RUL
 grep -q 'wall-clock time is not consulted' docs/contracts/SHAPE-CONVERGE-v1.md
 grep -q 'new-blocking-finding' FsAssay.Runner/Authority.fs
 grep -q 'reappearing-blocking-finding' FsAssay.Runner/Authority.fs
-grep -q 'common=(--minimum-expected-tests 92 ' eng/run-stable-tests.sh
+grep -q 'common=(--minimum-expected-tests 93 ' eng/run-stable-tests.sh
 
 check_hash() {
   local path="$1"

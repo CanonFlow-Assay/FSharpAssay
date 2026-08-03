@@ -8,9 +8,9 @@ test, and pack surface. The CanonFlow plugin project is included only because it
 is an existing regression fixture used by the stable test suite; it is not a
 promoted plugin contract or release artifact.
 
-The executable regression evidence is the 92-test Expecto suite. Both the
+The executable regression evidence is the 93-test Expecto suite. Both the
 ordinary `dotnet test` entry point and direct executable entry point must run all
-92 tests, and a deliberately empty selection must fail. Authority tests exercise
+93 tests, and a deliberately empty selection must fail. Authority tests exercise
 the authority reducer, missing-evidence cases, precedence, invalid evidence, and
 cross-root JSON/SARIF determinism. They also prove that the public validator
 rejects forged verdict/authority/reason combinations and cannot describe
