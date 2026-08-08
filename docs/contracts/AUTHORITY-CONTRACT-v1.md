@@ -67,7 +67,7 @@ rule is diagnosed as incomplete instead of silently inheriting that legacy set.
   SDK/runtime/FSharp.Compiler.Service identity;
 - analyzed commit, approved PR head, tree, dirty-worktree, synthetic-merge,
   package, and repository-relative target identity as distinct fields;
-- projects discovered, loaded, failed, skipped and unsupported, with project class and target frameworks;
+- projects discovered, with an explicit supported flag, loaded/failed/skipped/unsupported disposition, project class and target frameworks;
 - source disposition, including generated and policy-excluded sources;
 - required tests and their exact `passed`, `failed`, `skipped`, or `notRun` evidence;
 - rule evidence availability, findings, source symbols, stable fingerprints and all seven maturity classes;

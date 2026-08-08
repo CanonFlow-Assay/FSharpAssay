@@ -427,19 +427,32 @@ let main argv =
             let fullPath = Path.GetFullPath(project)
             let projectClass = ProjectSystem.projectClass fullPath
             let frameworks = ProjectSystem.projectTargetFrameworks fullPath
+            let policyAvailable = policyErrors.IsEmpty
             let supportedClass = Array.contains projectClass policy.requiredProjectClasses
             let supportedFramework = not (Array.isEmpty frameworks) && frameworks |> Array.forall (fun framework -> Array.contains framework policy.requiredTargetFrameworks)
+            let supported = policyAvailable && supportedClass && supportedFramework
+            let loaded = loadedProjectPaths.Contains fullPath
             ({
                 Path = fullPath
                 ProjectClass = projectClass
                 TargetFrameworks = frameworks |> Array.toList
+                Supported = supported
+                Loaded = loaded
                 Disposition =
-                    if not (loadedProjectPaths.Contains fullPath) then Authority.ProjectDisposition.LoadFailed
-                    elif not supportedClass || not supportedFramework then Authority.ProjectDisposition.Unsupported
+                    if not supported then Authority.ProjectDisposition.Unsupported
+                    elif not loaded then Authority.ProjectDisposition.LoadFailed
                     else Authority.ProjectDisposition.Loaded
                 Reason =
-                    if not (loadedProjectPaths.Contains fullPath) then "workspace did not load the discovered project"
-                    elif not supportedClass || not supportedFramework then "project class or target framework is outside the locked authority policy"
+                    if not supported then
+                        let frameworkText = String.concat ", " (frameworks |> Array.toList)
+                        let causes = [
+                            if not policyAvailable then $"policy unavailable; support classification withheld for project class '{projectClass}' and target frameworks [{frameworkText}]"
+                            else
+                                if not supportedClass then $"project class '{projectClass}' is outside the locked authority policy"
+                                if not supportedFramework then $"target frameworks [{frameworkText}] are outside the locked authority policy"
+                        ]
+                        String.concat "; " causes
+                    elif not loaded then "workspace did not load the discovered supported project"
                     else ""
             }: Authority.ProjectEvidence)
         )
