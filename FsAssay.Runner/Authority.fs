@@ -99,6 +99,8 @@ module Authority =
         Path: string
         ProjectClass: string
         TargetFrameworks: string list
+        Supported: bool
+        Loaded: bool
         Disposition: ProjectDisposition
         Reason: string
     }
@@ -461,6 +463,14 @@ module Authority =
             for project in facts.Projects do
                 if String.IsNullOrWhiteSpace(project.Path) || String.IsNullOrWhiteSpace(project.ProjectClass) then
                     "project evidence has a blank path or class"
+                if project.Disposition = ProjectDisposition.Loaded && not project.Supported then
+                    $"loaded project {project.Path} is marked unsupported"
+                if project.Disposition = ProjectDisposition.Unsupported && project.Supported then
+                    $"unsupported project {project.Path} is marked supported"
+                if project.Disposition = ProjectDisposition.Loaded && not project.Loaded then
+                    $"loaded project {project.Path} has no workspace load evidence"
+                if project.Disposition = ProjectDisposition.LoadFailed && project.Loaded then
+                    $"failed project {project.Path} is marked loaded"
                 if project.Disposition = ProjectDisposition.Loaded && project.TargetFrameworks.IsEmpty then
                     $"loaded project {project.Path} has no target framework evidence"
                 if project.Disposition = ProjectDisposition.Loaded && project.TargetFrameworks |> List.exists (fun framework -> not (Array.contains framework policy.requiredTargetFrameworks)) then
@@ -662,6 +672,8 @@ module Authority =
         path: string
         projectClass: string
         targetFrameworks: string[]
+        supported: bool
+        loaded: bool
         status: string
         reason: string
     }
@@ -708,6 +720,7 @@ module Authority =
     type CountReceipt = {
         projectsDiscovered: int
         projectsLoaded: int
+        projectsSupported: int
         projectsFailed: int
         projectsSkipped: int
         projectsUnsupported: int
@@ -907,6 +920,8 @@ module Authority =
                     path = relative project.Path
                     projectClass = project.ProjectClass
                     targetFrameworks = project.TargetFrameworks |> List.sort |> List.toArray
+                    supported = project.Supported
+                    loaded = project.Loaded
                     status = projectStatusName project.Disposition
                     reason = project.Reason
                 })
@@ -956,7 +971,8 @@ module Authority =
             reasons = decision.Reasons |> List.map (fun (code, detail) -> { code = code; detail = detail }) |> List.toArray
             counts = {
                 projectsDiscovered = facts.Projects.Length
-                projectsLoaded = facts.Projects |> List.filter (fun project -> project.Disposition = ProjectDisposition.Loaded) |> List.length
+                projectsLoaded = facts.Projects |> List.filter (fun project -> project.Loaded) |> List.length
+                projectsSupported = facts.Projects |> List.filter (fun project -> project.Supported) |> List.length
                 projectsFailed = facts.Projects |> List.filter (fun project -> project.Disposition = ProjectDisposition.LoadFailed) |> List.length
                 projectsSkipped = facts.Projects |> List.filter (fun project -> project.Disposition = ProjectDisposition.ProjectSkipped) |> List.length
                 projectsUnsupported = facts.Projects |> List.filter (fun project -> project.Disposition = ProjectDisposition.Unsupported) |> List.length
@@ -1026,7 +1042,8 @@ module Authority =
                 for requiredTest in receipt.policy.snapshot.requiredTests do
                     if not (relativePath requiredTest.project) then "required test policy project is not repository-relative"
                 if receipt.counts.projectsDiscovered <> receipt.projects.Length then "project discovery count does not reconcile"
-                if receipt.counts.projectsLoaded <> projectCount "loaded" then "loaded project count does not reconcile"
+                if receipt.counts.projectsLoaded <> (receipt.projects |> Array.filter (fun project -> project.loaded) |> Array.length) then "loaded project count does not reconcile"
+                if receipt.counts.projectsSupported <> (receipt.projects |> Array.filter (fun project -> project.supported) |> Array.length) then "supported project count does not reconcile"
                 if receipt.counts.projectsFailed <> projectCount "failed" then "failed project count does not reconcile"
                 if receipt.counts.projectsSkipped <> projectCount "skipped" then "skipped project count does not reconcile"
                 if receipt.counts.projectsUnsupported <> projectCount "unsupported" then "unsupported project count does not reconcile"
@@ -1115,6 +1132,8 @@ module Authority =
                         Path = project.path
                         ProjectClass = project.projectClass
                         TargetFrameworks = project.targetFrameworks |> Array.toList
+                        Supported = project.supported
+                        Loaded = project.loaded
                         Disposition = projectDisposition project.status
                         Reason = project.reason
                     }) |> Array.toList
