@@ -720,6 +720,7 @@ module Authority =
     type CountReceipt = {
         projectsDiscovered: int
         projectsLoaded: int
+        projectsWorkspaceLoaded: int
         projectsSupported: int
         projectsFailed: int
         projectsSkipped: int
@@ -971,7 +972,8 @@ module Authority =
             reasons = decision.Reasons |> List.map (fun (code, detail) -> { code = code; detail = detail }) |> List.toArray
             counts = {
                 projectsDiscovered = facts.Projects.Length
-                projectsLoaded = facts.Projects |> List.filter (fun project -> project.Loaded) |> List.length
+                projectsLoaded = facts.Projects |> List.filter (fun project -> project.Disposition = ProjectDisposition.Loaded) |> List.length
+                projectsWorkspaceLoaded = facts.Projects |> List.filter (fun project -> project.Loaded) |> List.length
                 projectsSupported = facts.Projects |> List.filter (fun project -> project.Supported) |> List.length
                 projectsFailed = facts.Projects |> List.filter (fun project -> project.Disposition = ProjectDisposition.LoadFailed) |> List.length
                 projectsSkipped = facts.Projects |> List.filter (fun project -> project.Disposition = ProjectDisposition.ProjectSkipped) |> List.length
@@ -1042,7 +1044,8 @@ module Authority =
                 for requiredTest in receipt.policy.snapshot.requiredTests do
                     if not (relativePath requiredTest.project) then "required test policy project is not repository-relative"
                 if receipt.counts.projectsDiscovered <> receipt.projects.Length then "project discovery count does not reconcile"
-                if receipt.counts.projectsLoaded <> (receipt.projects |> Array.filter (fun project -> project.loaded) |> Array.length) then "loaded project count does not reconcile"
+                if receipt.counts.projectsLoaded <> projectCount "loaded" then "loaded project count does not reconcile"
+                if receipt.counts.projectsWorkspaceLoaded <> (receipt.projects |> Array.filter (fun project -> project.loaded) |> Array.length) then "workspace-loaded project count does not reconcile"
                 if receipt.counts.projectsSupported <> (receipt.projects |> Array.filter (fun project -> project.supported) |> Array.length) then "supported project count does not reconcile"
                 if receipt.counts.projectsFailed <> projectCount "failed" then "failed project count does not reconcile"
                 if receipt.counts.projectsSkipped <> projectCount "skipped" then "skipped project count does not reconcile"
