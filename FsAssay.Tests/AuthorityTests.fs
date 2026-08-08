@@ -295,13 +295,14 @@ let tests =
                 Expect.isGreaterThan loadedOptions.Head.SourceFiles.Length 0 "loaded fixture must carry source-file evidence"
                 let unsupportedLoaded = { (completeFacts root).Projects.Head with Supported = false; Loaded = true; Disposition = Authority.ProjectDisposition.Unsupported; Reason = "policy unavailable" }
                 let receipt = Authority.createReceipt root candidate policy "fsassay-policy.lock.json" "unavailable" { completeFacts root with Projects = [ unsupportedLoaded ] }
-                Expect.equal receipt.counts.projectsLoaded 1 "receipt must retain workspace-loaded evidence"
+                Expect.equal receipt.counts.projectsLoaded 0 "unsupported projects are not status-loaded"
+                Expect.equal receipt.counts.projectsWorkspaceLoaded 1 "receipt must retain workspace-loaded evidence"
                 Expect.equal receipt.counts.projectsSupported 0 "receipt must retain unsupported classification"
                 Expect.equal receipt.counts.projectsUnsupported 1 "receipt must retain unsupported count")
 
         testCase "zero loaded projects is Inconclusive" <| fun _ ->
             withTempRoot (fun root ->
-                let unavailable = { (completeFacts root).Projects.Head with Disposition = Authority.ProjectDisposition.LoadFailed; Reason = "load failed" }
+                let unavailable = { (completeFacts root).Projects.Head with Supported = true; Loaded = false; Disposition = Authority.ProjectDisposition.LoadFailed; Reason = "load failed" }
                 let decision = Authority.decide policy { completeFacts root with Projects = [ unavailable ] }
                 Expect.equal decision.Outcome Inconclusive "zero loaded cannot pass")
 
