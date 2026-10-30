@@ -6,3 +6,6 @@
 - [Application assessment](application-assessment/README.md): locally packaged native F# API, actual FsAssay receipt integration, named-test requirements, baseline/change lifecycle, registered offline advice and freshness/adversarial controls. The separate application review state never grants an FsAssay Pass.
 
 All use the repository's pinned SDK 10.0.301. The experimental Web UI and Desktop are separate frozen surfaces; these command-line samples do not promote them.
+
+See [phase-1 portable convergence](CONVERGENCE.md) for the next bounded F# shell
+candidate and its evidence limits.
