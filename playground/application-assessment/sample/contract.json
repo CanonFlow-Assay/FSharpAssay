@@ -1,0 +1,9 @@
+{
+  "schema": "approval-contract/1",
+  "outcomes": [
+    "Approved",
+    "NeedsReview",
+    "Rejected"
+  ],
+  "amountUnit": "integer-cents"
+}

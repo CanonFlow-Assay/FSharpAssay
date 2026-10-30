@@ -109,6 +109,16 @@ versioned authority policy. M3 deliberately has no CLI surface for ingesting
 ambient test success, so the repository self-audit records its required stable
 test as `notRun` and is `Inconclusive` even when CI ran tests separately.
 
+## Playground and investigations
+
+The [playground index](playground/README.md) links the existing M5 packaged Shape
+consumer and the new offline F# Decision Assist comparison. Run
+`dotnet fsi --warnaserror+ --exec playground/decision-assist/Run.fsx` for a real
+six-case mutation corpus with before/expanded assertions, explicit invalid and
+failed-baseline controls, deterministic advice and source/artifact freshness
+inspection. This separate evidence never upgrades the analyzer verdict or admits
+a blocking rule.
+
 ## Product identity and boundaries
 
 The inherited baseline identity is `1.0.4`. The read-only source baseline is

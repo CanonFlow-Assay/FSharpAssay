@@ -1,0 +1,36 @@
+{
+  "schema": "fsharp-application/0.2",
+  "applicationId": "approval",
+  "project": "Approval.App.fsproj",
+  "assemblyName": "Approval.App",
+  "sdk": "10.0.301",
+  "files": [
+    "Approval.App.fsproj",
+    "Domain.fs",
+    "Program.fs",
+    "Directory.Build.props",
+    "Directory.Build.targets",
+    "Directory.Packages.props",
+    "global.json",
+    "NuGet.config",
+    "contract.json",
+    "requirements.json",
+    "fsassay-policy.lock.json",
+    "packages.lock.json",
+    "assay.app.json",
+    ".editorconfig",
+    "OriginalTests.fs",
+    "AdditionalTests.fs"
+  ],
+  "requirements": "requirements.json",
+  "contract": "contract.json",
+  "minimumPassed": 5,
+  "frozenTestFiles": [
+    "OriginalTests.fs",
+    "Program.fs",
+    "Approval.App.fsproj"
+  ],
+  "acceptanceTestFiles": [
+    "AdditionalTests.fs"
+  ]
+}

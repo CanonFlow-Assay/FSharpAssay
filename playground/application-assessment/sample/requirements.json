@@ -1,0 +1,24 @@
+{
+  "schema": "fsharp-application-requirements/0.1",
+  "requirements": [
+    {
+      "id": "AMOUNT",
+      "description": "Requested amount must be strictly positive.",
+      "testIds": [
+        "amount-positive",
+        "amount-zero"
+      ],
+      "minimumPassed": 2
+    },
+    {
+      "id": "LIMIT",
+      "description": "At most 10000 cents is approved; larger requests need review.",
+      "testIds": [
+        "limit-low",
+        "limit-boundary",
+        "limit-high"
+      ],
+      "minimumPassed": 3
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "schema": "fsassay-playground-requirements/0.1",
+  "scope": "Existing M5 Order.fs and Pricing.fs only",
+  "requirements": [
+    {
+      "id": "QTY",
+      "description": "Only strictly positive quantities can be constructed.",
+      "tests": [
+        "QTY-positive",
+        "QTY-negative",
+        "QTY-zero"
+      ]
+    },
+    {
+      "id": "ORDER",
+      "description": "A customer must exist and open orders must be strictly below the maximum.",
+      "tests": [
+        "ORDER-missing-customer",
+        "ORDER-below-limit",
+        "ORDER-exact-limit",
+        "ORDER-above-limit"
+      ]
+    },
+    {
+      "id": "PRICE",
+      "description": "Preferred customers receive ten percent off subtotals of at least 100; standard and lower subtotals keep their price.",
+      "tests": [
+        "PRICE-standard",
+        "PRICE-above-threshold",
+        "PRICE-exact-threshold",
+        "PRICE-below-threshold",
+        "PRICE-quantity"
+      ]
+    }
+  ]
+}

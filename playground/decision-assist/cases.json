@@ -1,0 +1,65 @@
+{
+  "schema": "fsassay-playground-mutations/0.1",
+  "cases": [
+    {
+      "id": "quantity-zero",
+      "source": "Order.fs",
+      "find": "if value <= 0 then",
+      "replace": "if value < 0 then",
+      "requirementId": "QTY",
+      "probeId": "quantity-boundary",
+      "expectedBefore": "Survived",
+      "expectedExpanded": "Killed"
+    },
+    {
+      "id": "order-limit",
+      "source": "Order.fs",
+      "find": "facts.ExistingOpenOrders >= facts.MaximumOpenOrders",
+      "replace": "facts.ExistingOpenOrders > facts.MaximumOpenOrders",
+      "requirementId": "ORDER",
+      "probeId": "order-boundary",
+      "expectedBefore": "Survived",
+      "expectedExpanded": "Killed"
+    },
+    {
+      "id": "pricing-threshold",
+      "source": "Pricing.fs",
+      "find": "subtotal >= 100m",
+      "replace": "subtotal > 100m",
+      "requirementId": "PRICE",
+      "probeId": "pricing-boundary",
+      "expectedBefore": "Survived",
+      "expectedExpanded": "Killed"
+    },
+    {
+      "id": "customer-absence",
+      "source": "Order.fs",
+      "find": "if not facts.CustomerExists then",
+      "replace": "if false then",
+      "requirementId": "ORDER",
+      "probeId": "",
+      "expectedBefore": "Killed",
+      "expectedExpanded": "Killed"
+    },
+    {
+      "id": "pricing-equivalent-candidate",
+      "source": "Pricing.fs",
+      "find": "subtotal * 0.10m",
+      "replace": "subtotal / 10m",
+      "requirementId": "PRICE",
+      "probeId": "",
+      "expectedBefore": "Survived",
+      "expectedExpanded": "Survived"
+    },
+    {
+      "id": "invalid-candidate",
+      "source": "Order.fs",
+      "find": "else Ok (Quantity value)",
+      "replace": "else Ok (",
+      "requirementId": "QTY",
+      "probeId": "",
+      "expectedBefore": "Invalid",
+      "expectedExpanded": "Invalid"
+    }
+  ]
+}
