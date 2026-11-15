@@ -1,0 +1,11 @@
+{
+  "schema": "refresh-requirements/0.1",
+  "requirements": [
+    {"id":"LIMIT","tests":["limit equality is accepted","amount above limit is rejected"]},
+    {"id":"VALIDATION","tests":["zero amount is rejected","negative amount is rejected","blank reference is rejected","reference is normalized"]},
+    {"id":"ARCHITECTURE","tests":["domain has no persistence or network assembly dependency"]},
+    {"id":"PERSISTENCE","tests":["sqlite persists response","identical replay remains one record","conflicting replay is refused"]},
+    {"id":"CANCELLATION","tests":["cancelled write changes no rows"]},
+    {"id":"CONTRACT","tests":["wire contract keeps exact response names","actual loopback HTTP returns declared JSON"]}
+  ]
+}

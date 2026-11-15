@@ -1,3 +1,9 @@
+# Current refresh boundary
+
+The refresh extends the stable analyzer/CLI with strict scan configuration, explicit required-test execution, authority-aware reports and independent SecurityAssay integration. See [current usage](refresh/usage.md) and [the implementation ledger](refresh/implementation-ledger.md). The test suite adds regression cases to the historical 93-test baseline; `eng/expected-stable-tests.txt` registers the current exact count. Desktop, Web, MCP, external plugin contracts and rule admission remain outside stable promotion.
+
+The following M3 record is retained as historical context. Its statement that the CLI cannot execute required tests applies to M3 and ordinary analysis, not the new explicit verification route.
+
 # Product boundaries at M3
 
 ## Stable qualification surface

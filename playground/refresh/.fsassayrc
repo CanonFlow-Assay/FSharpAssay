@@ -1,0 +1,6 @@
+{
+  "profile": "core",
+  "exclude": ["**/obj/**", "**/bin/**"],
+  "coreProjects": ["Refresh.Domain/Refresh.Domain.fsproj"],
+  "shellProjects": ["Refresh.Shell/Refresh.Shell.fsproj", "Refresh.Tests/Refresh.Tests.fsproj"]
+}

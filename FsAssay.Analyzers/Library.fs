@@ -33,7 +33,7 @@ open FsAssay.Analyzers.Visitor
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-S05")>]
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-C14")>]
 [<System.Diagnostics.CodeAnalysis.SuppressMessage("FsAssay", "FSA-1301")>]
-let coreAnalyzer (ctxParseTree: FSharp.Compiler.Syntax.ParsedInput option) (ctxTypedTree: FSharpImplementationFileContents option) (ctxFileName: string) (ctxSourceText: ISourceText) (ctxDiagnostics: FSharp.Compiler.Diagnostics.FSharpDiagnostic[]) (profile: Profile) =
+let coreAnalyzerWithBoundary (selectors: FsAssay.Analyzers.BoundaryPolicy.Selectors) projectIdentity (ctxParseTree: FSharp.Compiler.Syntax.ParsedInput option) (ctxTypedTree: FSharpImplementationFileContents option) (ctxFileName: string) (ctxSourceText: ISourceText) (ctxDiagnostics: FSharp.Compiler.Diagnostics.FSharpDiagnostic[]) (profile: Profile) =
     async {
         let diagFindings =
             ctxDiagnostics
@@ -53,10 +53,16 @@ let coreAnalyzer (ctxParseTree: FSharp.Compiler.Syntax.ParsedInput option) (ctxT
                 try
                     tree.Declarations
                     |> List.fold (fun (accF, accP) d ->
-                        let (f, p) = analyzeDecl d topLevelSups ctxSourceText compExprRanges isTestFile accP
+                        let boundary namespaceIdentity =
+                            if selectors = FsAssay.Analyzers.BoundaryPolicy.empty then None
+                            else
+                                match FsAssay.Analyzers.BoundaryPolicy.classify selectors projectIdentity namespaceIdentity with
+                                | FsAssay.Analyzers.BoundaryPolicy.Scope.Shell -> Some "shell"
+                                | _ -> Some "core"
+                        let (f, p) = analyzeDeclWithBoundary boundary d topLevelSups ctxSourceText compExprRanges isTestFile accP
                         (Set.union accF f, p)
                     ) (Set.empty, false)
-                with _ ->
+                with _ when ctxDiagnostics |> Array.exists (fun diagnostic -> diagnostic.ErrorNumber = 25) ->
                     // FCS can expose an error-recovery typed tree for incomplete
                     // matches that throws during expression translation. The
                     // compiler diagnostic remains authoritative evidence.
@@ -77,6 +83,9 @@ let coreAnalyzer (ctxParseTree: FSharp.Compiler.Syntax.ParsedInput option) (ctxT
             return (allFindings @ lintFindings) |> List.choose (toViolation ctxSourceText)
         | None -> return diagFindings |> List.choose (toViolation ctxSourceText)
     }
+
+let coreAnalyzer parseTree typedTree fileName sourceText diagnostics profile =
+    coreAnalyzerWithBoundary FsAssay.Analyzers.BoundaryPolicy.empty "" parseTree typedTree fileName sourceText diagnostics profile
 
 let projectAnalyzer (files: (string * FSharpImplementationFileContents * ISourceText) list) =
     async {

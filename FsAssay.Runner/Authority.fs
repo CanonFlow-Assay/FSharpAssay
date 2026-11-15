@@ -521,7 +521,7 @@ module Authority =
                     $"test {test.Id} failed status requires a nonzero failure count"
                 | TestStatus.NotRun when test.Passed <> 0 || test.Failed <> 0 || test.Skipped <> 0 ->
                     $"test {test.Id} notRun status requires zero counts"
-                | TestStatus.Skipped when test.Passed <> 0 || test.Failed <> 0 || test.Skipped < 1 ->
+                | TestStatus.Skipped when test.Failed <> 0 || test.Skipped < 1 ->
                     $"test {test.Id} skipped status contradicts counts"
                 | _ -> ()
         ]
@@ -1066,7 +1066,7 @@ module Authority =
                     | "passed" when test.passed < 1 || test.failed <> 0 || test.skipped <> 0 -> "passed test counts contradict status"
                     | "failed" when test.failed < 1 -> "failed test requires nonzero failures"
                     | "notRun" when test.passed <> 0 || test.failed <> 0 || test.skipped <> 0 -> "notRun test requires zero counts"
-                    | "skipped" when test.passed <> 0 || test.failed <> 0 || test.skipped < 1 -> "skipped test counts contradict status"
+                    | "skipped" when test.failed <> 0 || test.skipped < 1 -> "skipped test counts contradict status"
                     | status when not (Set.contains status (set [ "passed"; "failed"; "notRun"; "skipped" ])) -> $"test status is invalid: {status}"
                     | _ -> ()
                 let duplicateRuleIds = receipt.rules |> Array.countBy _.ruleId |> Array.filter (fun (_, count) -> count > 1)
@@ -1271,6 +1271,8 @@ module Authority =
         let fileName = Path.GetFileName(normalized)
         let extension = Path.GetExtension(fileName)
         Set.contains extension (set [ ".fs"; ".fsi"; ".fsx"; ".fsproj"; ".csproj"; ".props"; ".targets"; ".sln"; ".slnx" ])
+        || fileName.Equals(".fsassayrc", StringComparison.OrdinalIgnoreCase)
+        || fileName.Equals(".editorconfig", StringComparison.OrdinalIgnoreCase)
         || fileName.Equals("global.json", StringComparison.OrdinalIgnoreCase)
         || fileName.Equals("NuGet.Config", StringComparison.OrdinalIgnoreCase)
         || fileName.Equals("packages.lock.json", StringComparison.OrdinalIgnoreCase)

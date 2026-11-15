@@ -1,0 +1,81 @@
+{
+  "schema": "fsassay-refresh-qualification-index/0.1",
+  "qualifiedCodeCommit": "b6660ac4db2ea1ce7965e5f309771603eb71d9c0",
+  "baseline": "0a2054be7dd690bc7961d1fc72b9de0d25dc4dec",
+  "branch": "feat/csharp-parity-refresh",
+  "implementationComplete": true,
+  "platform": "Linux x64",
+  "sdk": "10.0.301",
+  "engineTests": 120,
+  "applicationTests": 13,
+  "securityControls": 9,
+  "applicationPreviewChecks": 52,
+  "blockingAdmissions": 0,
+  "advisoryAdmissions": 0,
+  "published": false,
+  "artifacts": [
+    {
+      "role": "package-consumer",
+      "path": "artifacts/refresh/qualification-b6660ac/qualification.json",
+      "sha256": "fb535eeb9d2d7dc91a2d11feb5e0709ed6b1e5c8b3f0b6789db154c2a3d90a62"
+    },
+    {
+      "role": "package-identity",
+      "path": "artifacts/refresh/qualification-b6660ac/package.json",
+      "sha256": "f2d4febb1ca46ccfcf2c4130ed16478f97faab21195f6f453c1492cb0a5ac41d"
+    },
+    {
+      "role": "security-controls",
+      "path": "artifacts/refresh/security-qualified-b6660ac/qualification.json",
+      "sha256": "c068e7780fa39b3d889ecd16b380f9c499c6d66033c930693775f690bdcea2d9"
+    },
+    {
+      "role": "application-security",
+      "path": "artifacts/refresh/security-application-b6660ac/fsharp-security.json",
+      "sha256": "bc3ec528b24b11fb2a9be359142badc7ef0748cda4028500643251146aa3e26d"
+    },
+    {
+      "role": "application-security-receipt",
+      "path": "artifacts/refresh/security-application-b6660ac/receipt.json",
+      "sha256": "f75b25ead255929a8e2aacf377b2c69250dc9d4bf5013742fc19a2422ed38ffa"
+    },
+    {
+      "role": "application-preview",
+      "path": "artifacts/refresh/application-preview-b6660ac/qualification.json",
+      "sha256": "ed68413e44f3ba7b5adc426f945053ed2837666025259aa2c3cd0874caca4a17"
+    },
+    {
+      "role": "decision-assist",
+      "path": "artifacts/refresh/qualification-b6660ac/decision-assist/investigation.json",
+      "sha256": "a286dbe0d7a21c2e3e40879e9a993d3d9b28f5a25bafb8d65cbcde1fe28490b3"
+    },
+    {
+      "role": "schema-and-payload",
+      "path": "artifacts/refresh/extra-validation-b6660ac.json",
+      "sha256": "0d8e8ce2e0c0317b238de5829afd2b293aeddca4ca6564a446929492fe978aa5"
+    },
+    {
+      "role": "analysis-only-audit",
+      "path": "artifacts/refresh/stable-audit-b6660ac.json",
+      "sha256": "2d5ea291f91c75fb76c8d49f22ed851e67e2520ce0b5d3f0ce19fb3d576777f2"
+    },
+    {
+      "role": "historical-contracts",
+      "path": "artifacts/refresh/historical-contracts.log",
+      "sha256": "5f03534250ecd661e028e1c1f6ac872cc40097a66a68a4a42e5a5990833c8183"
+    },
+    {
+      "role": "retained-application-security-failure",
+      "path": "artifacts/refresh/security-application-010e0eb/receipt.json",
+      "sha256": "efafe3dcbed135f34b3b00209c744fc2e00739c57d0f5f49610e4cfc0f323545"
+    }
+  ],
+  "integration": {
+    "branch": "main",
+    "commit": "f979b8a1bf5ef3d76ef3259782d4ccad6603f592",
+    "path": "artifacts/refresh/integration-f979b8a/integration.json",
+    "sha256": "beaeafa5cd5c0a1e30ba033b4288a9b65a32c40eb2aecd332db9b36b468bd612",
+    "engineTests": 120,
+    "applicationTests": 13
+  }
+}

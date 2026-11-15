@@ -1,0 +1,752 @@
+{
+  "schema": "fsassay-rule-audit/0.1",
+  "catalogueCount": 93,
+  "blocking": 0,
+  "advisory": 0,
+  "rules": [
+    {
+      "ruleId": "FSA-1301",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-1301.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-1402",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-1402.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-AI01",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-AI01.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-AI07",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-AI07.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-AI10",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-AI10.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-AI11",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-AI11.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-AI12",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-AI12.md",
+      "pagePresent": true,
+      "disposition": "bounded security heuristic; use independent declared-input security evidence",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-AI13",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-AI13.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-AI14",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-AI14.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-AI15",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-AI15.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-AI16",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-AI16.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-AI17",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-AI17.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-AI18",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-AI18.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-AI19",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-AI19.md",
+      "pagePresent": true,
+      "disposition": "bounded security heuristic; use independent declared-input security evidence",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-ARCH01",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-ARCH01.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-ARCH02",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-ARCH02.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-B01",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-B01.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C01",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-C01.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C02",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-C02.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C03",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-C03.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C04",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-C04.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C05",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-C05.md",
+      "pagePresent": true,
+      "disposition": "compiler diagnostic projection; compiler-valid corpus required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C06",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-C06.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C07",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-C07.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C08",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-C08.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C09",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-C09.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C10",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-C10.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C11",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-C11.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C12",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-C12.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C13",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-C13.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C14",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-C14.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C15",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-C15.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-C16",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-C16.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-E01",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-E01.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-E02",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-E02.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-E03",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-E03.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-E04",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-E04.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-F01",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-F01.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-F02",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-F02.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-F03",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-F03.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-F04",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-F04.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-F05",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-F05.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-F06",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-F06.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-F07",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-F07.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-F08",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-F08.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT01",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT01.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT02",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT02.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT03",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT03.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT04",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT04.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT05",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT05.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT06",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT06.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT07",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT07.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT08",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT08.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT09",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT09.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT10",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT10.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT11",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT11.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT12",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT12.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT13",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT13.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT14",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT14.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT15",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT15.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT16",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT16.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT17",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT17.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT18",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT18.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT19",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT19.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-LINT20",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-LINT20.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-M01",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-M01.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-M03",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-M03.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-M04",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-M04.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-ML01",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-ML01.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-ML02",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-ML02.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-P01",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-P01.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-P02",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-P02.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-P03",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-P03.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-P04",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-P04.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-P05",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-P05.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-S01",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-S01.md",
+      "pagePresent": true,
+      "disposition": "bounded security heuristic; use independent declared-input security evidence",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-S02",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-S02.md",
+      "pagePresent": true,
+      "disposition": "bounded security heuristic; use independent declared-input security evidence",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-S03",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-S03.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-S04",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-S04.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-S05",
+      "classification": "prototype",
+      "rulePage": "docs/rules/FSA-S05.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-SEC08",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-SEC08.md",
+      "pagePresent": true,
+      "disposition": "bounded security heuristic; use independent declared-input security evidence",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-SEC09",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-SEC09.md",
+      "pagePresent": true,
+      "disposition": "bounded security heuristic; use independent declared-input security evidence",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-SEC10",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA-SEC10.md",
+      "pagePresent": true,
+      "disposition": "bounded security heuristic; use independent declared-input security evidence",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-SEC11",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-SEC11.md",
+      "pagePresent": true,
+      "disposition": "bounded security heuristic; use independent declared-input security evidence",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-SEC12",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-SEC12.md",
+      "pagePresent": true,
+      "disposition": "bounded security heuristic; use independent declared-input security evidence",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-SEC13",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-SEC13.md",
+      "pagePresent": true,
+      "disposition": "bounded security heuristic; use independent declared-input security evidence",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-TDD01",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-TDD01.md",
+      "pagePresent": true,
+      "disposition": "test-style observation; not behavioral evidence",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-TDD02",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-TDD02.md",
+      "pagePresent": true,
+      "disposition": "test-style observation; not behavioral evidence",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-TDD03",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-TDD03.md",
+      "pagePresent": true,
+      "disposition": "test-style observation; not behavioral evidence",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA-TDD04",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA-TDD04.md",
+      "pagePresent": true,
+      "disposition": "test-style observation; not behavioral evidence",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA2016",
+      "classification": "dummy",
+      "rulePage": "docs/rules/FSA2016.md",
+      "pagePresent": true,
+      "disposition": "placeholder; no automatic remediation",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA2017",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA2017.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    },
+    {
+      "ruleId": "FSA2022",
+      "classification": "experimental",
+      "rulePage": "docs/rules/FSA2022.md",
+      "pagePresent": true,
+      "disposition": "experimental/prototype observation; contextual repair and admission evidence required",
+      "admitted": false
+    }
+  ]
+}

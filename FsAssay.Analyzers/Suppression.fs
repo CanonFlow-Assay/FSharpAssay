@@ -12,16 +12,14 @@ let extractSuppressions (attrs: seq<FSharpAttribute>) =
     |> Seq.choose (fun a ->
         let name = try a.AttributeType.LogicalName with _ -> ""
         let fullName = try a.AttributeType.FullName with _ -> ""
-        if name.Contains("SuppressMessage") || fullName.Contains("SuppressMessage") then
+        if fullName = "System.Diagnostics.CodeAnalysis.SuppressMessageAttribute" then
             let args = a.ConstructorArguments
-            printfn "DEBUG: Found SuppressMessage. args.Count=%d" args.Count // EXPECT: FSA-F04
             if args.Count >= 2 then
                 let category = string (snd args.[0]) |> fun s -> s.Trim('"')
                 let checkId = string (snd args.[1]) |> fun s -> s.Trim('"')
-                printfn "DEBUG: category=%s, checkId=%s" category checkId // EXPECT: FSA-F04
                 if category = "FsAssay" then Some checkId else None
             else None
-        elif name.Contains("Profile") || fullName.Contains("Profile") then
+        elif name = "ProfileAttribute" || name = "Profile" then
             let args = a.ConstructorArguments
             if args.Count >= 1 then
                 let profile = string (snd args.[0]) |> fun s -> s.Trim('"')

@@ -26,13 +26,21 @@
     <Compile Include="Domain.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="Authority.fs" />
+    <Compile Include="Processes.fs" />
+    <Compile Include="Verification.fs" />
+    <Compile Include="Doctor.fs" />
     <Compile Include="ProjectSystem.fs" />
     <Compile Include="PluginLoader.fs" />
     <Compile Include="Orchestrator.fs" />
     <Compile Include="Output.fs" />
+    <Compile Include="Investigation.fs" />
+    <Compile Include="Assessment.fs" />
+    <Compile Include="ReadableReport.fs" />
+    <Compile Include="SecurityEvidence.fs" />
     <Compile Include="Server.fs" />
     <Compile Include="McpServer.fs" />
     <Compile Include="DocsGen.fs" />
+    <Compile Include="RuleGuidance.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

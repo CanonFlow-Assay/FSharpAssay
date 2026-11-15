@@ -1,7 +1,7 @@
 <Project>
   <!-- FsAssay MSBuild Quality Gate Hook for AGY / Antigravity AI Coding Agents -->
   <PropertyGroup>
-    <FsAssayEnabled>false</FsAssayEnabled>
+    <FsAssayEnabled Condition="'$(FsAssayEnabled)' == ''">false</FsAssayEnabled>
     <FsAssayRunnerPath Condition="'$(FsAssayRunnerPath)' == ''">$(MSBuildThisFileDirectory)FsAssay.Runner/bin/Debug/net10.0/FsAssay.Runner.dll</FsAssayRunnerPath>
   </PropertyGroup>
 

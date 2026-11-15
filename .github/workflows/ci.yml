@@ -2,7 +2,7 @@ name: Stable CI
 
 on:
   push:
-    branches: [ main, 'uplift/**' ]
+    branches: [ main, 'uplift/**', 'feat/csharp-parity-refresh' ]
   pull_request:
     branches: [ main ]
 
@@ -52,38 +52,11 @@ jobs:
       - name: Prove locked restore rejects drift
         run: bash eng/assert-locked-restore.sh
 
-      - name: Verify M1 claims
-        run: bash eng/verify-m1-claims.sh
+      - name: Verify immutable historical contracts
+        run: bash eng/verify-historical-contracts.sh
 
-      - name: Verify M2 authority contract
-        run: bash eng/verify-m2-contract.sh
-
-      - name: Verify M3 Shape and rule admission contract
-        run: bash eng/verify-m3-contract.sh
-
-      - name: Verify M4 consumer and package contract
-        run: bash eng/verify-m4-contract.sh
-
-      - name: Qualify reproducible package and offline consumer
-        env:
-          FSASSAY_CANDIDATE_SHA: ${{ github.sha }}
-        run: bash eng/qualify-m4-package.sh "$FSASSAY_CANDIDATE_SHA" artifacts/m4
-
-      - name: Attest exact package artifact on candidate push
-        if: github.event_name == 'push'
-        id: package-attestation
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-path: artifacts/m4/FsAssay.Cli.1.0.4.nupkg
-
-      - name: Verify GitHub package attestation and reconcile hash
-        if: github.event_name == 'push'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh attestation verify artifacts/m4/FsAssay.Cli.1.0.4.nupkg --repo "$GITHUB_REPOSITORY"
-          test "$(sha256sum artifacts/m4/FsAssay.Cli.1.0.4.nupkg | cut -d' ' -f1)" = \
-            "$(jq -r '.package.sha256' artifacts/m4/package-manifest.json)"
+      - name: Qualify current packaged consumer and repair controls
+        run: dotnet fsi --warnaserror+ --exec eng/qualify-refresh.fsx artifacts/refresh/qualified
 
       - name: Verify final tracked-source integrity
         run: |
@@ -96,6 +69,6 @@ jobs:
           name: stable-qualification-${{ github.sha }}
           if-no-files-found: warn
           path: |
-            artifacts/m4/
+            artifacts/refresh/
             artifacts/test-results/*.log
             artifacts/restore/*.log

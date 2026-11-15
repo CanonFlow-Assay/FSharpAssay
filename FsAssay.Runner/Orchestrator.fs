@@ -14,7 +14,7 @@ module Orchestrator =
     
     let checker = FSharpChecker.Create(keepAssemblyContents = true)
     
-    let evaluateFileWithProfile (options: FSharpProjectOptions) (file: string) (profile: Profile) (plugins: Analyzer<CliContext> list) = async {
+    let evaluateFileWithBoundary selectors projectIdentity (options: FSharpProjectOptions) (file: string) (profile: Profile) (plugins: Analyzer<CliContext> list) = async {
         if not (File.Exists(file)) then return Skipped UnrelatedFile // EXPECT: FSA2022
         else
             let source = File.ReadAllText(file) // EXPECT: FSA2022 // EXPECT: FSA-F08 // EXPECT: FSA-C15
@@ -44,7 +44,7 @@ module Orchestrator =
                     
                     try
                         let parseTree = Some context.ParseFileResults.ParseTree
-                        let! violations = Library.coreAnalyzer parseTree context.TypedTree context.FileName context.SourceText context.CheckFileResults.Diagnostics profile
+                        let! violations = Library.coreAnalyzerWithBoundary selectors projectIdentity parseTree context.TypedTree context.FileName context.SourceText context.CheckFileResults.Diagnostics profile
                         
                         let mutable pluginViolations = []
                         for plugin in plugins do
@@ -71,11 +71,12 @@ module Orchestrator =
                     return Skipped CompilerErrors
     }
 
+    let evaluateFileWithProfile options file profile plugins = evaluateFileWithBoundary BoundaryPolicy.empty "" options file profile plugins
     let evaluateFile options file = evaluateFileWithProfile options file Core []
 
     [<SuppressMessage("FsAssay", "FSA2017")>]
     [<SuppressMessage("FsAssay", "FSA-C01")>]
-    let evaluateSingleFileWithProfile (file: string) (profile: Profile) (plugins: Analyzer<CliContext> list) = async {
+    let evaluateSingleFileWithBoundary selectors projectIdentity (file: string) (profile: Profile) (plugins: Analyzer<CliContext> list) = async {
         if not (File.Exists(file)) then return Skipped UnrelatedFile // EXPECT: FSA2022
         else
             let source = File.ReadAllText(file) // EXPECT: FSA2022 // EXPECT: FSA-F08 // EXPECT: FSA-C15
@@ -122,7 +123,7 @@ module Orchestrator =
                     }
                     try
                         let parseTree = Some context.ParseFileResults.ParseTree
-                        let! violations = Library.coreAnalyzer parseTree context.TypedTree context.FileName context.SourceText context.CheckFileResults.Diagnostics profile
+                        let! violations = Library.coreAnalyzerWithBoundary selectors projectIdentity parseTree context.TypedTree context.FileName context.SourceText context.CheckFileResults.Diagnostics profile
                         
                         let mutable pluginViolations = []
                         for plugin in plugins do
@@ -147,6 +148,7 @@ module Orchestrator =
                         return Failed (AnalyzerException e.Message)
     }
 
+    let evaluateSingleFileWithProfile file profile plugins = evaluateSingleFileWithBoundary BoundaryPolicy.empty "" file profile plugins
     let evaluateSingleFile file = evaluateSingleFileWithProfile file Core []
 
     let analyzeProject path = async {

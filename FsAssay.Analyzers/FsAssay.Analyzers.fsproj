@@ -12,6 +12,7 @@
   <ItemGroup>
     <Compile Include="AstContext.fs" />
     <Compile Include="Domain.fs" />
+    <Compile Include="BoundaryPolicy.fs" />
     <Compile Include="Catalogue.fs" />
     <Compile Include="Suppression.fs" />
     <Compile Include="AstUtils.fs" />

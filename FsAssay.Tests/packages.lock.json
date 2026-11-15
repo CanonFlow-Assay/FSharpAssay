@@ -49,6 +49,16 @@
           "Microsoft.TestPlatform.TestHost": "17.10.0"
         }
       },
+      "Microsoft.Testing.Extensions.TrxReport": {
+        "type": "Direct",
+        "requested": "[2.3.0, )",
+        "resolved": "2.3.0",
+        "contentHash": "hdkmeVkxt6ZQLWBOU4eRcIJktnCtu2nuU1ziNCPtryQGOiwUOOqd0Q9E+Rivq9uTVdXRsG3ZaPg/h9XZXbx6ig==",
+        "dependencies": {
+          "Microsoft.Testing.Extensions.TrxReport.Abstractions": "2.3.0",
+          "Microsoft.Testing.Platform": "2.3.0"
+        }
+      },
       "YoloDev.Expecto.TestSdk": {
         "type": "Direct",
         "requested": "[0.16.0, )",

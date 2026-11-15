@@ -86,8 +86,7 @@ offline-default posture without running analysis. `explain` reports only an
 existing catalogue rule and its reviewed M3 class; it is explicitly
 non-authoritative. `--docs <dir>` is the implemented catalogue surface. The
 default target invocation is the implemented check/strict-authority path and
-may honestly exit `2` when policy-required evidence is incomplete. There are no
-separate `catalog`, `check`, or `verify` commands.
+may honestly exit `2` when policy-required evidence is incomplete. The refresh adds explicit `check`, `verify` and `assess` commands. `verify` and `assess` execute registered required tests; ordinary target invocation retains analysis semantics. See [verification and repair](docs/refresh/usage.md).
 
 M4 qualifies installation from a local candidate feed without publishing it:
 
@@ -103,11 +102,20 @@ Package restore/install may contact configured feeds unless the consumer clears
 them or supplies an isolated local feed. `--serve` is the explicit localhost
 listener and is outside the offline analysis proof.
 
-`.fsassayrc` remains the scan-selection configuration and still falls back to
-defaults when malformed. `fsassay-policy.lock.json` is the separate strict,
-versioned authority policy. M3 deliberately has no CLI surface for ingesting
-ambient test success, so the repository self-audit records its required stable
-test as `notRun` and is `Inconclusive` even when CI ran tests separately.
+`.fsassayrc` is the strict scan-selection and boundary configuration. Malformed, duplicate and unknown values fail closed; a missing file uses explicit defaults. `fsassay-policy.lock.json` is the separate strict,
+versioned authority policy. Ordinary analysis never ingests ambient test success. The explicit verification route builds and executes policy-registered test executables and validates structured TRX evidence; analysis-only self-audits continue to record `notRun`. Historical M3 receipts retain their original meaning.
+
+## Refresh verification and security
+
+The [completed refresh retrospective](docs/refresh/retrospective.md) records source-bound qualification and the repaired SQLite dependency finding. The [refresh guide](docs/refresh/usage.md) covers authority-aware reports, strict boundary configuration, required tests, native assessment envelopes and repair evidence. The [rule audit](docs/refresh/rule-audit.md) distinguishes all 93 catalogue entries from admitted authority and records candidate admission gaps.
+
+```sh
+fsassay verify --out-json artifacts/verified.json --assessment-json artifacts/assessment.json MyApplication.slnx
+fsassay security /absolute/security-request.json /absolute/fresh-evidence
+bash eng/qualify-refresh.sh artifacts/refresh/my-fresh-qualification
+```
+
+The [security adapter](docs/refresh/security.md) consumes the unchanged pinned offline SecurityAssay protocol and retains its independent verdict. The [packaged application](playground/refresh/README.md) exercises real SQLite/HTTP, retained failures, missing execution, fresh repairs and mutation survivors. Existing application-preview and Decision Assist evidence remains separate.
 
 ## Playground and investigations
 

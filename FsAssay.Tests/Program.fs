@@ -706,4 +706,4 @@ let getNull () =
 
 [<Tests>]
 let allTests =
-    testList "All Tests" [tests; ObligationPluginTests.tests; AuthorityTests.tests; e2eTests; perfAndCompTests; aiEcosystemTests; negativeTests]
+    testList "All Tests" [RefreshTests.tests; tests; ObligationPluginTests.tests; AuthorityTests.tests; e2eTests; perfAndCompTests; aiEcosystemTests; negativeTests]

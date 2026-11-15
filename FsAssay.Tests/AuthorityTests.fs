@@ -686,7 +686,7 @@ let tests =
                         .Replace(Authority.ShapeContractVersion, "not-established")
                     |> Encoding.UTF8.GetBytes
                 Expect.isError (Authority.deserializeAndValidateReceipt m2Version) "M2 receipt identities require explicit migration"
-                use schema = JsonDocument.Parse(File.ReadAllBytes(Path.GetFullPath("docs/contracts/fsassay-authority-receipt.schema.json")))
+                use schema = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(__SOURCE_DIRECTORY__, "../docs/contracts/fsassay-authority-receipt.schema.json")))
                 let required = schema.RootElement.GetProperty("required").EnumerateArray() |> Seq.map _.GetString() |> Set.ofSeq
                 for retained in [ "candidate"; "policy"; "toolchain"; "counts"; "projects"; "sources"; "tests"; "rules"; "findings"; "appliedSuppressions"; "policyErrors"; "evidenceErrors"; "missingEvidence"; "toolFailures" ] do
                     Expect.contains required retained (sprintf "M2 evidence field '%s' remains required" retained)

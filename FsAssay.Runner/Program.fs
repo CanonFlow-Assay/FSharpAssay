@@ -10,6 +10,9 @@ open Argu
 
 type Arguments = // EXPECT: FSA-AI17 // EXPECT: FSA-AI11
     | [<MainCommand; Last>] Target of path:string
+    | Assessment_Json of path:string
+    | Format of name:string
+    | Test_Artifacts of path:string
     | [<AltCommandLine("-j")>] Out_Json of path:string
     | [<AltCommandLine("-s")>] Out_Sarif of path:string
     | [<AltCommandLine("-t")>] Out_Toolchain of path:string
@@ -30,6 +33,9 @@ type Arguments = // EXPECT: FSA-AI17 // EXPECT: FSA-AI11
         interface IArgParserTemplate with
             member s.Usage =
                 match s with
+                | Assessment_Json _ -> "Write the additive native assessment envelope."
+                | Format _ -> "Console output: text or msbuild."
+                | Test_Artifacts _ -> "New evidence directory for required-test execution."
                 | Target _ -> "Target directory or file to scan."
                 | Out_Json _ -> "Output file path for canonical JSON."
                 | Out_Sarif _ -> "Output file path for SARIF."
@@ -49,7 +55,17 @@ type Arguments = // EXPECT: FSA-AI17 // EXPECT: FSA-AI11
                 | Plugin _ -> "Path to a compiled assembly (.dll) containing custom F# analyzers."
 
 [<EntryPoint>]
-let main argv =
+let main originalArguments =
+    let mode, argv =
+        if originalArguments.Length > 0 && Set.contains originalArguments.[0] (set ["check"; "verify"; "assess"]) then originalArguments.[0], originalArguments.[1..]
+        else "check", originalArguments
+    let invocationRoot = Directory.GetCurrentDirectory()
+    let invocation = System.Text.Json.JsonSerializer.Serialize({| workingDirectory = invocationRoot; executable = Environment.ProcessPath; arguments = originalArguments |})
+    if originalArguments.Length > 0 && originalArguments.[0] = "security" then
+        if originalArguments.Length <> 3 then
+            eprintfn "ERROR: usage: fsassay security <request.json> <fresh-output>"
+            Environment.Exit ExitCodes.InvalidInvocation
+        Environment.Exit(SecurityEvidence.run originalArguments.[1] originalArguments.[2])
     let parser = ArgumentParser.Create<Arguments>(programName = "fsassay") // EXPECT: FSA-AI17
 
     let printHelp () =
@@ -57,6 +73,7 @@ let main argv =
         printfn ""
         printfn "COMMANDS:"
         printfn ""
+        printfn "    check|verify|assess   Analyze; verify/assess also execute registered required tests."
         printfn "    help                  Display this help. Aliases: --help, -h."
         printfn "    doctor                Report the local toolchain and offline-default posture."
         printfn "    explain <RULE>        Explain one existing catalogue rule and its M3 class."
@@ -76,20 +93,9 @@ let main argv =
 
     if argv.Length = 1 && argv.[0] = "doctor" then
         try
-            let toolchain = Authority.currentToolchain (Directory.GetCurrentDirectory())
-            if toolchain.SdkVersion = "unavailable" || toolchain.FSharpCompilerServiceVersion = "unavailable" then
-                eprintfn "FsAssay doctor: ToolFailure; the local .NET SDK or F# compiler service is unavailable."
-                Environment.Exit(ExitCodes.ToolFailure)
-            printfn "FsAssay doctor"
-            printfn "ToolVersion: %s" ProductIdentity.Version
-            printfn "RuntimeVersion: %s" toolchain.RuntimeVersion
-            printfn "SdkVersion: %s" toolchain.SdkVersion
-            printfn "FSharpCompilerServiceVersion: %s" toolchain.FSharpCompilerServiceVersion
-            printfn "AnalysisNetworkDefault: offline"
-            printfn "SourceUpload: none"
-            printfn "FsAssayTelemetry: none"
-            printfn "Status: healthy"
-            Environment.Exit(ExitCodes.Success)
+            let output, errors = Doctor.inspect invocationRoot
+            printfn "%s" output
+            Environment.Exit(if errors.IsEmpty then ExitCodes.Success else ExitCodes.ToolFailure)
         with error ->
             eprintfn "FsAssay doctor: ToolFailure; %s" error.Message
             Environment.Exit(ExitCodes.ToolFailure)
@@ -115,6 +121,9 @@ let main argv =
             printfn "ImplementationStatus: %s" implementationStatus
             printfn "M3AdmissionClass: %s" admissionClass
             printfn "Explanation: %s" rule.Explanation
+            let guidance, example = RuleGuidance.explain rule.Code
+            printfn "Repair guidance: %s" guidance
+            printfn "Example: %s" example
             printfn "Authority: non-authoritative; M3 admits zero blocking and zero advisory rules."
             Environment.Exit(ExitCodes.Success)
         | None ->
@@ -127,7 +136,7 @@ let main argv =
 
     let knownOptions =
         set [
-            "--out-json"; "-j"; "--out-sarif"; "-s"; "--out-toolchain"; "-t"
+            "--assessment-json"; "--format"; "--test-artifacts"; "--out-json"; "-j"; "--out-sarif"; "-s"; "--out-toolchain"; "-t"
             "--ratecard-md"; "-r"; "--material-html"; "-m"; "--suppressionreport-json"; "-x"
             "--watch"; "-w"; "--diff"; "-d"; "--serve"; "-p"; "--adjudicate"; "-a"
             "--files"; "-c"; "--profile"; "-P"; "--fix"; "-f"; "--mcp"; "-mcp"
@@ -159,9 +168,21 @@ let main argv =
     | None -> ()
 
     let path = results.GetResult(Target, defaultValue = Directory.GetCurrentDirectory()) // EXPECT: FSA2022
-    let rawConfig = Config.loadConfig path
+    let path = Path.GetFullPath path
+    let rawConfig, configErrors =
+        match Config.tryLoadConfig path with
+        | Ok config -> config, []
+        | Error error -> {Config.defaultConfig with directory = (if Directory.Exists path then path else Path.GetDirectoryName path)}, ["Invalid .fsassayrc: " + error]
     let activeProfile = results.GetResult(Profile, defaultValue = rawConfig.profile)
     let config = { rawConfig with profile = activeProfile }
+    let configErrors = if Config.profiles.Contains activeProfile then configErrors else configErrors @ ["unknown profile: " + activeProfile]
+    let consoleFormat = results.GetResult(Format, defaultValue = "text")
+    if consoleFormat <> "text" && consoleFormat <> "msbuild" then
+        eprintfn "ERROR: --format must be text or msbuild."
+        Environment.Exit ExitCodes.InvalidInvocation
+    if mode = "check" && results.Contains(Test_Artifacts) then
+        eprintfn "ERROR: --test-artifacts requires verify or assess."
+        Environment.Exit ExitCodes.InvalidInvocation
 
     let rec findAuthorityPolicy (directory: string) =
         let candidate = Path.Combine(directory, "fsassay-policy.lock.json")
@@ -186,6 +207,11 @@ let main argv =
         if File.Exists(policyPath) then Path.GetDirectoryName(policyPath)
         else policySearchDirectory
     let discoveredProjects = ProjectSystem.discoverProjectPaths path
+    let boundaryErrors = FsAssay.Analyzers.BoundaryPolicy.validateGraph config.boundaries (discoveredProjects |> List.map (fun project -> Path.GetRelativePath(config.directory, project)))
+    let configErrors = configErrors @ boundaryErrors
+    let initialInputs, snapshotErrors =
+        try Assessment.capture repositoryRoot, []
+        with error -> [||], [error.Message]
     let mutable loadedProjectPaths = Set.empty<string>
     let mutable projectLoadFailures: string list = []
 
@@ -212,6 +238,9 @@ let main argv =
         | "api" -> FsAssay.Analyzers.Domain.Profile.Api
         | "test" -> FsAssay.Analyzers.Domain.Profile.Test
         | "script" -> FsAssay.Analyzers.Domain.Profile.Script
+        | "interop" -> FsAssay.Analyzers.Domain.Profile.Interop
+        | "cli" -> FsAssay.Analyzers.Domain.Profile.CLI
+        | "etl" -> FsAssay.Analyzers.Domain.Profile.ETL
         | _ -> FsAssay.Analyzers.Domain.Profile.Core
 
     let explicitFiles = results.TryGetResult(Files)
@@ -279,7 +308,7 @@ let main argv =
             let allTrees = ResizeArray<string * FSharp.Compiler.Symbols.FSharpImplementationFileContents * FSharp.Compiler.Text.ISourceText>() // EXPECT: FSA-C16
 
             for (file, optsOpt) in filesToScan do // EXPECT: FSA-P02 // EXPECT: FSA-F04
-                let isExcluded = config.exclude |> Array.exists (fun pat -> file.Contains(pat.Replace("*", "")))
+                let isExcluded = Config.isExcluded config.directory config.exclude file
                 if not isExcluded && file.EndsWith(".fs") && not (file.Contains("AssemblyAttributes.fs")) && not (file.Contains("AssemblyInfo.fs")) then
                     totalFiles <- totalFiles + 1 // EXPECT: FSA-F04 // EXPECT: FSA-C10
                     
@@ -290,8 +319,8 @@ let main argv =
 
                     let verdict =
                         match optsOpt with
-                        | Some opts -> Orchestrator.evaluateFileWithProfile opts file effectiveProfile cliPlugins |> Async.RunSynchronously // EXPECT: FSA-C03
-                        | None -> Orchestrator.evaluateSingleFileWithProfile file effectiveProfile cliPlugins |> Async.RunSynchronously // EXPECT: FSA-C03
+                        | Some opts -> Orchestrator.evaluateFileWithBoundary config.boundaries (Path.GetRelativePath(config.directory, opts.ProjectFileName)) opts file effectiveProfile cliPlugins |> Async.RunSynchronously // EXPECT: FSA-C03
+                        | None -> Orchestrator.evaluateSingleFileWithBoundary config.boundaries "" file effectiveProfile cliPlugins |> Async.RunSynchronously // EXPECT: FSA-C03
 
                     match verdict with
                     | Completed (violations, treeOpt, sourceText) ->
@@ -301,33 +330,7 @@ let main argv =
                         
                         totalViolations <- totalViolations + violations.Length // EXPECT: FSA-F04 // EXPECT: FSA-C10
                         allResults.Add(file, violations) // EXPECT: FSA-F04
-                        if not (List.isEmpty violations) then
-                            if not (results.Contains(Adjudicate)) then // EXPECT: FSA-F04
-                                printfn "\n❌ %s:%d:%d" file violations.[0].Range.StartLine violations.[0].Range.StartColumn // EXPECT: FSA-F04
-                                for v in violations do // EXPECT: FSA-P02
-                                    let severityIcon = 
-                                        match v.Severity with
-                                        | Critical -> "🔴"
-                                        | Major -> "🟠"
-                                        | Minor -> "🟡"
-                                    printfn "   └── [%s] %s: %s" v.Code severityIcon v.Message // EXPECT: FSA-F04
-                                    v.CodeSnippet |> Option.iter (fun s -> // EXPECT: FSA-F04
-                                        printfn "       │" // EXPECT: FSA-F04
-                                        printfn "       │  %d │ %s" v.Range.StartLine (s.TrimEnd()) // EXPECT: FSA-F04
-                                        printfn "       │     │ %s" (String.replicate (max 1 (v.Range.EndColumn - v.Range.StartColumn)) "^")
-                                    )
-                                    if not (List.isEmpty v.Fixes) then // EXPECT: FSA-F04
-                                        printfn "       │" // EXPECT: FSA-F04
-                                        printfn "       ├── Fix: %s" v.Fixes.[0].ToText
-                                    printfn "       │" // EXPECT: FSA-F04
-                                    printfn "       ├── Why: %s" v.Explanation // EXPECT: FSA-F04
-                                    if not (List.isEmpty v.RelatedRules) then
-                                        printfn "       │" // EXPECT: FSA-F04
-                                        printfn "       └── Related: %s" (String.concat ", " v.RelatedRules)
-                            
-                            
-                            if results.Contains(Fix) then
-                                printfn "   ✨ Auto-fix is disabled in this sprint."
+                        if results.Contains(Fix) then printfn "Automatic source fixes remain disabled; preview and review repairs."
                     | Skipped reason ->
                         skippedFiles <- skippedFiles + 1 // EXPECT: FSA-C10
                     | Failed fail ->
@@ -340,15 +343,6 @@ let main argv =
                 if not (List.isEmpty projViolations) then
                     totalViolations <- totalViolations + projViolations.Length // EXPECT: FSA-F04 // EXPECT: FSA-C10
                     allResults.Add("Architecture", projViolations) // EXPECT: FSA-F04
-                    if not (results.Contains(Adjudicate)) then
-                        printfn "\n❌ Architecture Violations" // EXPECT: FSA-F04
-                        for v in projViolations do // EXPECT: FSA-P02
-                            let severityIcon = 
-                                match v.Severity with
-                                | Critical -> "🔴"
-                                | Major -> "🟠"
-                                | Minor -> "🟡"
-                            printfn "   └── [%s] %s: %s" v.Code severityIcon v.Message
 
             (totalFiles, skippedFiles, failedFiles + pluginLoadFailures.Length, totalViolations, List.ofSeq allResults, filesToScan |> List.map fst)
 
@@ -464,7 +458,7 @@ let main argv =
         scannedFiles
         |> List.distinct
         |> List.map (fun file ->
-            let policyExcluded = config.exclude |> Array.exists (fun pattern -> file.Contains(pattern.Replace("*", "")))
+            let policyExcluded = Config.isExcluded config.directory config.exclude file
             ({
                 Path = file
                 Disposition =
@@ -480,6 +474,20 @@ let main argv =
             }: Authority.SourceEvidence)
         )
 
+    let verificationDirectory =
+        if mode = "check" then None
+        else
+            let directory = results.GetResult(Test_Artifacts, defaultValue = Path.Combine(repositoryRoot, "artifacts", "verification", Guid.NewGuid().ToString("N"))) |> fun path -> Path.GetFullPath(path, invocationRoot)
+            if Directory.Exists directory || File.Exists directory then
+                eprintfn "ERROR: required-test evidence directory must be new."
+                Environment.Exit ExitCodes.InvalidInvocation
+            Directory.CreateDirectory directory |> ignore
+            Some directory
+    let testRuns =
+        match verificationDirectory with
+        | Some directory when configErrors.IsEmpty && policyErrors.IsEmpty ->
+            policy.requiredTests |> Array.mapi (fun index requirement -> Verification.execute repositoryRoot (Path.Combine(directory, string index)) requirement) |> Array.toList
+        | _ -> []
     let requiredTests =
         policy.requiredTests
         |> Array.map (fun test ->
@@ -493,6 +501,10 @@ let main argv =
             }: Authority.TestEvidence))
         |> Array.toList
 
+    let requiredTests = if mode = "check" || testRuns.IsEmpty then requiredTests else testRuns |> List.map _.evidence
+    let freshnessErrors =
+        try if Assessment.capture repositoryRoot = initialInputs then snapshotErrors else snapshotErrors @ ["declared source/configuration changed during evaluation"]
+        with error -> snapshotErrors @ [error.Message]
     let findings =
         allResults
         |> List.collect (fun (file, violations) ->
@@ -546,8 +558,8 @@ let main argv =
     let authorityFacts = {
         Authority.emptyFacts with
             PolicyErrors = policyErrors
-            EvidenceErrors = candidateEvidenceErrors
-            ToolFailures = if pluginLoadFailures.IsEmpty && failedFiles = 0 then [] else pluginLoadFailures @ [ if failedFiles > pluginLoadFailures.Length then $"{failedFiles - pluginLoadFailures.Length} analyzer evaluation(s) failed" ]
+            EvidenceErrors = candidateEvidenceErrors @ configErrors @ freshnessErrors
+            ToolFailures = (testRuns |> List.collect _.toolErrors) @ (if pluginLoadFailures.IsEmpty && failedFiles = 0 then [] else pluginLoadFailures @ [ if failedFiles > pluginLoadFailures.Length then $"{failedFiles - pluginLoadFailures.Length} analyzer evaluation(s) failed" ])
             MissingEvidence = projectLoadFailures @ candidateMissingEvidence
             Toolchain = Authority.currentToolchain repositoryRoot
             Projects = projectEvidence
@@ -558,45 +570,27 @@ let main argv =
     }
 
     let authorityReceipt = Authority.createReceipt repositoryRoot candidate policy policyPath policyHash authorityFacts
-    printfn "Authority outcome: %s" authorityReceipt.outcome
-    printfn "Authoritative: %b" authorityReceipt.authoritative
-
-    let jsonOutput = results.TryGetResult(Out_Json)
-    let sarifOutput = results.TryGetResult(Out_Sarif)
+    let reportFiles =
+        [
+            results.TryGetResult(Out_Json) |> Option.map (fun path -> Path.GetFullPath(path, invocationRoot), Output.canonicalJsonBytes authorityReceipt)
+            results.TryGetResult(Out_Sarif) |> Option.map (fun path -> Path.GetFullPath(path, invocationRoot), Output.canonicalSarifBytes authorityReceipt)
+            results.TryGetResult(Assessment_Json) |> Option.map (fun path -> Path.GetFullPath(path, invocationRoot), Assessment.create mode authorityReceipt initialInputs testRuns |> Assessment.bytes)
+            results.TryGetResult(RateCard_Md) |> Option.map (fun path -> Path.GetFullPath(path, invocationRoot), System.Text.Encoding.UTF8.GetBytes(ReadableReport.markdownReport authorityReceipt testRuns invocation))
+            results.TryGetResult(Material_Html) |> Option.map (fun path -> Path.GetFullPath(path, invocationRoot), System.Text.Encoding.UTF8.GetBytes(ReadableReport.html authorityReceipt testRuns invocation))
+            results.TryGetResult(Out_Toolchain) |> Option.map (fun path -> Path.GetFullPath(path, invocationRoot), System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(authorityReceipt.toolchain))
+            results.TryGetResult(SuppressionReport_Json) |> Option.map (fun path -> Path.GetFullPath(path, invocationRoot), System.Text.Json.JsonSerializer.SerializeToUtf8Bytes({|schema = "fsassay-suppression-observations/0.1"; appliedAuthoritySuppressions = authorityReceipt.appliedSuppressions; note = "Source attributes affect experimental observations only; no suppression grants engine authority."|}))
+        ]
+        |> List.choose id
+    let protectedFiles = (initialInputs |> Array.map (fun input -> Path.Combine(repositoryRoot, input.path)) |> Array.toList) @ scannedFiles @ discoveredProjects @ [policyPath; Path.Combine(config.directory, ".fsassayrc")]
     let evidenceWriteFailure =
-        match Output.writeRequestedEvidence authorityReceipt jsonOutput sarifOutput with
-        | Ok () ->
-            jsonOutput |> Option.iter (printfn "Wrote JSON output to %s")
-            sarifOutput |> Option.iter (printfn "Wrote SARIF output to %s")
-            None
-        | Error message ->
-            eprintfn "Evidence output ToolFailure: %s. Requested evidence targets were removed to prevent stale-current confusion." message
-            Some message
-
-    match results.TryGetResult(Out_Toolchain) with // EXPECT: FSA-F04
-    | Some outPath ->
-        Output.writeToolchainRecord outPath // EXPECT: FSA-F04
-        printfn "Wrote toolchain record to %s" outPath
-    | None -> ()
-
-    match results.TryGetResult(RateCard_Md) with // EXPECT: FSA-F04
-    | Some outPath ->
-        Output.writeRateCard allResults outPath // EXPECT: FSA-F04
-        printfn "Wrote Markdown Rate Card to %s" outPath
-    | None -> ()
-
-    match results.TryGetResult(Material_Html) with // EXPECT: FSA-F04
-    | Some outPath ->
-        Output.writeMaterialDashboard allResults outPath // EXPECT: FSA-F04
-        printfn "Wrote Material Design 5 HTML Dashboard to %s" outPath
-    | None -> ()
-
-    match results.TryGetResult(SuppressionReport_Json) with // EXPECT: FSA-F04
-    | Some outPath ->
-        let files = allResults |> List.map fst
-        Output.writeSuppressionReport files outPath // EXPECT: FSA-F04
-        printfn "Wrote Suppression Report to %s" outPath
-    | None -> ()
+        match Output.publish protectedFiles reportFiles with
+        | Ok () -> None
+        | Error error -> eprintfn "Evidence output ToolFailure: %s" error; Some error
+    if evidenceWriteFailure.IsNone then
+        printfn "%s" (if consoleFormat = "msbuild" then ReadableReport.msbuild authorityReceipt else ReadableReport.text authorityReceipt testRuns)
+        printfn "Authority outcome: %s" authorityReceipt.outcome
+        printfn "Authoritative: %b" authorityReceipt.authoritative
+    else printfn "FsAssay ToolFailure: requested evidence could not be published."
 
     match results.TryGetResult(Serve) with // EXPECT: FSA-F04
     | Some port ->

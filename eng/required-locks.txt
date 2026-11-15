@@ -13,3 +13,6 @@ playground/m5/Shape.Application/packages.lock.json
 playground/m5/Shape.Domain/packages.lock.json
 playground/m5/Shape.Shell/packages.lock.json
 playground/m5/Shape.Tests/packages.lock.json
+playground/refresh/Refresh.Domain/packages.lock.json
+playground/refresh/Refresh.Shell/packages.lock.json
+playground/refresh/Refresh.Tests/packages.lock.json

@@ -7,6 +7,42 @@ open FSharp.Analyzers.SDK
 open FsAssay.Analyzers.Domain
 
 module Output =
+    /// Stage every requested report before replacing any target. Refuse aliases and source writes.
+    let publish (protectedFiles: string list) (reports: (string * byte[]) list) =
+        let comparison = if OperatingSystem.IsWindows() then StringComparison.OrdinalIgnoreCase else StringComparison.Ordinal
+        let staged = ResizeArray<string * string>()
+        let mutable committed: string list = []
+        let rec rejectLinks path =
+            if File.Exists path || Directory.Exists path then
+                if File.GetAttributes(path).HasFlag FileAttributes.ReparsePoint then invalidOp ("symlinked report path: " + path)
+            match Directory.GetParent path with
+            | null -> ()
+            | parent -> rejectLinks parent.FullName
+        try
+            try
+                let normalized = reports |> List.map (fun (path, bytes) -> Path.GetFullPath path, bytes)
+                for index, (path, _) in normalized |> List.indexed do
+                    if normalized |> List.take index |> List.exists (fun (other, _) -> String.Equals(path, other, comparison)) then invalidOp "report targets must be distinct"
+                    if protectedFiles |> List.exists (fun source -> String.Equals(Path.GetFullPath source, path, comparison)) then invalidOp "report target would overwrite a declared input"
+                    rejectLinks path
+                for path, bytes in normalized do
+                    let directory = Path.GetDirectoryName path
+                    Directory.CreateDirectory directory |> ignore
+                    let temporary = Path.Combine(directory, "." + Path.GetFileName(path) + ".tmp-" + Guid.NewGuid().ToString("N"))
+                    staged.Add(temporary, path)
+                    File.WriteAllBytes(temporary, bytes)
+                for temporary, path in staged do
+                    File.Move(temporary, path, true)
+                    committed <- path :: committed
+                Ok ()
+            with error ->
+                for path in committed do
+                    try File.Delete path with _ -> ()
+                Error error.Message
+        finally
+            for temporary, _ in staged do
+                try if File.Exists temporary then File.Delete temporary with _ -> ()
+
     let private canonicalOptions () =
         JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
 
@@ -45,13 +81,14 @@ module Output =
             |> Array.map (fun finding ->
                 {|
                     ruleId = finding.ruleId
+                    level = if finding.authorityClass = "blocking" then "error" else "note"
                     message = {| text = finding.message |}
                     partialFingerprints = {| fsAssayFingerprint = finding.fingerprint |}
                     properties = {| authorityClass = finding.authorityClass |}
                     locations = [|
                         {|
                             physicalLocation = {|
-                                artifactLocation = {| uri = finding.path |}
+                                artifactLocation = {| uri = finding.path.Split('/') |> Array.map Uri.EscapeDataString |> String.concat "/" |}
                                 region = {|
                                     startLine = max 1 finding.line
                                     startColumn = max 1 (finding.column + 1)

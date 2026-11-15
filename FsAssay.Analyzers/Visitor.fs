@@ -37,7 +37,7 @@ let isExplicitObjectCoercion (text: string) =
     text.Contains(":> obj", StringComparison.Ordinal)
     || text.Contains(":> System.Object", StringComparison.Ordinal)
 
-let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string list) (sourceText: ISourceText) (compExprRanges: range list) (isTestFile: bool) (hasProperty: bool) : Set<Located<Rule>> * bool =
+let analyzeDeclWithBoundary (boundaryForNamespace: string -> string option) (decl: FSharpImplementationFileDeclaration) (topSups: string list) (sourceText: ISourceText) (compExprRanges: range list) (isTestFile: bool) (hasProperty: bool) : Set<Located<Rule>> * bool =
     let rec visitExpr (expr: FSharpExpr) (sups: string list) (inAsync: bool) (inTryFinally: bool) (inLiteral: bool) (inLoop: bool) (assertionsCount: int) : Located<Rule> list * int = // EXPECT: FSA-C07
         let currentSups = sups
         let inCompExpr = isInsideRange expr.Range compExprRanges
@@ -386,7 +386,10 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
     let rec visit (d: FSharpImplementationFileDeclaration) (sups: string list) (hasProp: bool) : Located<Rule> list * bool =
         match d with
         | FSharpImplementationFileDeclaration.Entity(e, decls) ->
-            let localSups = extractSuppressions e.Attributes @ sups
+            let localSups =
+                match boundaryForNamespace e.FullName with
+                | Some profile -> ("PROFILE:" + profile) :: ((extractSuppressions e.Attributes @ sups) |> List.filter (fun value -> not (value.StartsWith("PROFILE:", StringComparison.Ordinal))))
+                | None -> extractSuppressions e.Attributes @ sups
             let f = 
                 let f1 = 
                     if (e.IsFSharpUnion || e.IsEnum) && not e.IsFSharpExceptionDeclaration then
@@ -406,7 +409,10 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
         | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue(v, args, body) ->
             if v.IsCompilerGenerated then ([], hasProp)
             else
-                let localSups = extractSuppressions v.Attributes @ sups
+                let localSups =
+                    match boundaryForNamespace v.FullName with
+                    | Some profile -> ("PROFILE:" + profile) :: ((extractSuppressions v.Attributes @ sups) |> List.filter (fun value -> not (value.StartsWith("PROFILE:", StringComparison.Ordinal))))
+                    | None -> extractSuppressions v.Attributes @ sups
                 let f1 = if v.GenericParameters.Count > 5 && not (isSuppressed localSups "FSA-AI07") then mkLocated FSAAI07 body.Range |> Option.toList else [] // EXPECT: FSA-AI10
                 
                 let hasEndpointAttr = v.Attributes |> Seq.exists (fun a -> let n = a.AttributeType.LogicalName in n = "HttpGetAttribute" || n = "HttpPostAttribute" || n = "EndpointAttribute" || n = "RouteAttribute")
@@ -442,3 +448,6 @@ let analyzeDecl (decl: FSharpImplementationFileDeclaration) (topSups: string lis
             
     let (findings, finalHasProp) = visit decl topSups hasProperty
     (findings |> Set.ofList, finalHasProp)
+
+let analyzeDecl decl topSups sourceText compExprRanges isTestFile hasProperty =
+    analyzeDeclWithBoundary (fun _ -> None) decl topSups sourceText compExprRanges isTestFile hasProperty

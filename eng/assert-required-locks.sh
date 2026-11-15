@@ -23,7 +23,7 @@ LC_ALL=C sort -c "$manifest"
 test -z "$(uniq -d "$manifest")"
 
 mapfile -t required < "$manifest"
-test "${#required[@]}" -eq 15
+test "${#required[@]}" -eq 18
 
 mapfile -t tracked < <(git -C "$repository" ls-files '*/packages.lock.json' | LC_ALL=C sort)
 if ! diff -u <(printf '%s\n' "${required[@]}") <(printf '%s\n' "${tracked[@]}"); then
@@ -50,7 +50,7 @@ for path in "${required[@]}"; do
   # The standalone packaged application specimen uses NuGet lock format 1.
   # Keep the existing stable projects and toolkit libraries on format 2.
   expected_version=2
-  if [[ "$path" = "playground/application-assessment/sample/packages.lock.json" ]]; then
+  if [[ "$path" = "playground/application-assessment/sample/packages.lock.json" || "$path" == playground/refresh/*/packages.lock.json ]]; then
     expected_version=1
   fi
   jq -e --argjson expected "$expected_version" \
