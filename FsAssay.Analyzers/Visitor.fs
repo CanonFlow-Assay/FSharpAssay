@@ -387,7 +387,9 @@ let analyzeDeclWithBoundary (boundaryForNamespace: string -> string option) (dec
         match d with
         | FSharpImplementationFileDeclaration.Entity(e, decls) ->
             let localSups =
-                match boundaryForNamespace e.FullName with
+                // Type abbreviations may have no FCS-qualified name. They inherit
+                // the enclosing boundary instead of inventing a symbol identity.
+                match Graph.tryGetFullName e |> Option.bind boundaryForNamespace with
                 | Some profile -> ("PROFILE:" + profile) :: ((extractSuppressions e.Attributes @ sups) |> List.filter (fun value -> not (value.StartsWith("PROFILE:", StringComparison.Ordinal))))
                 | None -> extractSuppressions e.Attributes @ sups
             let f = 

@@ -87,6 +87,16 @@ let expectNoViolation code (messages: Violation list) =
 
 let tests =
     testList "Elite F# Anti-Pattern Tests" [
+        testCase "F# abbreviations retain parent boundaries without requiring qualified names" <| fun _ ->
+            let messages = runFsAssay """
+module AliasSpecimen
+open System.IO
+type Address = string
+type AddressBook = Map<string, Address>
+let write (address: Address) = File.WriteAllText("alias-specimen.txt", address)
+"""
+            expectViolation "FSA2022" messages
+
         testCase "Production admission contains exactly the independently exercised rules" <| fun _ ->
             let expected =
                 set [
