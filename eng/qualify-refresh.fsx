@@ -62,6 +62,10 @@ let rec copy directory target =
     for child in Directory.GetDirectories directory do
         if not (Set.contains (Path.GetFileName child) (set ["bin";"obj";"artifacts";".git"])) then copy child (Path.Combine(target,Path.GetFileName child))
 copy (Path.Combine(root,"playground/refresh")) app
+// The parent config intentionally admits only the candidate tool archive. The
+// application has ordinary locked NuGet dependencies and must not inherit that
+// tool-only feed or depend on packages already present in a developer cache.
+File.WriteAllText(Path.Combine(app,"NuGet.Config"),"<configuration><packageSources><clear/><add key=\"nuget.org\" value=\"https://api.nuget.org/v3/index.json\"/></packageSources></configuration>")
 let git name args = execute app name "git" args 0 |> ignore
 git "consumer-init" ["init";"--quiet"]
 git "consumer-user" ["config";"user.name";"FsAssay qualification"]
