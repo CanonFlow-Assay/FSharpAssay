@@ -81,7 +81,15 @@ let run name mode expected =
     let args =
         if mode <> "check" then args
         else ["check";"--out-json";Path.Combine(directory,"receipt.json");Path.Combine(app,"Refresh.slnx")]
-    execute app name cli args expected |> ignore
+    // This is an independently committed local consumer repository. The outer
+    // workflow SHA/PR identity belongs to the producer checkout, not this repo.
+    let identityNames = ["GITHUB_SHA";"GITHUB_EVENT_NAME";"FSASSAY_APPROVED_HEAD_SHA";"FSASSAY_SYNTHETIC_MERGE_SHA";"FSASSAY_PACKAGE_SHA256"]
+    let outerIdentity = identityNames |> List.map (fun key -> key,Environment.GetEnvironmentVariable key)
+    try
+        for key in identityNames do Environment.SetEnvironmentVariable(key,null)
+        execute app name cli args expected |> ignore
+    finally
+        for key,value in outerIdentity do Environment.SetEnvironmentVariable(key,value)
     let bytes = File.ReadAllBytes(Path.Combine(directory,"receipt.json"))
     let receipt = Authority.deserializeAndValidateReceipt bytes |> Result.defaultWith (String.concat "; " >> failwith)
     receipt
