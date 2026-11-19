@@ -1,6 +1,6 @@
 # FSharpAssay verification and repair
 
-The refresh retains the exact .NET SDK 10.0.301, native F# types, four external verdicts and zero admitted rules. Ordinary target invocation and `check` analyze without executing required tests. `verify` and `assess` explicitly build and run policy-registered test executables, validate their structured TRX results and retain execution logs. Tested producers use Expecto with Microsoft Testing Platform and its TRX extension. Unsupported report producers cannot Pass.
+The refresh retains the exact .NET SDK 11.0.100, native F# types, four external verdicts and zero admitted rules. Ordinary target invocation and `check` analyze without executing required tests. `verify` and `assess` explicitly build and run policy-registered test executables, validate their structured TRX results and retain execution logs. Tested producers use Expecto with Microsoft Testing Platform and its TRX extension. Unsupported report producers cannot Pass.
 
 ```sh
 fsassay doctor

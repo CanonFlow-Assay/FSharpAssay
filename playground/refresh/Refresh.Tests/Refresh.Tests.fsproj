@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType><TargetFramework>net11.0</TargetFramework><IsPackable>false</IsPackable>
     <GenerateProgramFile>false</GenerateProgramFile><EnableExpectoTestingPlatformIntegration>true</EnableExpectoTestingPlatformIntegration>
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport><TestingPlatformCaptureOutput>false</TestingPlatformCaptureOutput>
   </PropertyGroup>
   <ItemGroup><Compile Include="Program.fs" /></ItemGroup>
-  <ItemGroup><PackageReference Include="FSharp.Core" Version="10.1.201" /><PackageReference Include="Expecto" Version="11.1.0" /><PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.16.0" /><PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" /><PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.3.0" /></ItemGroup>
+  <ItemGroup><PackageReference Include="FSharp.Core" Version="11.0.101" /><PackageReference Include="Expecto" Version="11.1.0" /><PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.16.0" /><PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" /><PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.3.0" /></ItemGroup>
   <ItemGroup><ProjectReference Include="../Refresh.Domain/Refresh.Domain.fsproj" /><ProjectReference Include="../Refresh.Shell/Refresh.Shell.fsproj" /></ItemGroup>
 </Project>

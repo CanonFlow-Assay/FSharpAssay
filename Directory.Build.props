@@ -1,5 +1,6 @@
 <Project>
   <PropertyGroup>
+    <LangVersion>11.0</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors>NU1608</WarningsAsErrors>
     <NuGetAudit>false</NuGetAudit>

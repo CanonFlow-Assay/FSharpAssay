@@ -9,7 +9,7 @@ trap 'rm -rf -- "$tmp"' EXIT
 mkdir -p "$tmp/FsAssay.Analyzers"
 cp Directory.Build.props Directory.Packages.props global.json "$tmp/"
 cp FsAssay.Analyzers/FsAssay.Analyzers.fsproj FsAssay.Analyzers/packages.lock.json "$tmp/FsAssay.Analyzers/"
-sed -i 's/PackageVersion Include="FSharp.Core" Version="10.1.201"/PackageVersion Include="FSharp.Core" Version="10.1.202"/' "$tmp/Directory.Packages.props"
+sed -i 's/PackageVersion Include="FSharp.Core" Version="10.1.404"/PackageVersion Include="FSharp.Core" Version="10.1.405"/' "$tmp/Directory.Packages.props"
 
 set +e
 (cd "$tmp" && dotnet restore FsAssay.Analyzers/FsAssay.Analyzers.fsproj --locked-mode) >"$log" 2>&1

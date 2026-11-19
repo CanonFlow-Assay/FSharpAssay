@@ -1,6 +1,6 @@
 # Native F# application assessment preview
 
-This separate API and coordinator join **real FsAssay receipts, compiled application tests and baseline requirements** without changing FsAssay authority. It uses the repository's exact .NET SDK 10.0.301. The existing M3/Gate C rule admission and frozen Web/Desktop/plugin surfaces are untouched.
+This separate API and coordinator join **real FsAssay receipts, compiled application tests and baseline requirements** without changing FsAssay authority. It uses the repository's exact .NET SDK 11.0.100. The existing M3/Gate C rule admission and frozen Web/Desktop/plugin surfaces are untouched.
 
 An application can become `ReadyForReview` in this preview while its unchanged FsAssay receipt remains **Inconclusive, authoritative=false** because FsAssay 1.0.4 does not ingest separately executed tests. That explicit limitation stays visible in every envelope. ReadyForReview is not release approval, FsAssay Pass, certification or proof of correctness.
 
@@ -44,8 +44,8 @@ The coordinator supports the bounded sample's standalone .NET 10 executable proj
 After qualification prepares the package consumer:
 
 ```sh
-dotnet playground/application-assessment/Assay.Application.Cli/bin/Release/net10.0/Assay.Application.Cli.dll assess /absolute/app/assay.app.json /absolute/FsAssay.Runner.dll /absolute/new-output --baseline /absolute/baseline/assessment.json --failure /absolute/red/assessment.json
-dotnet playground/application-assessment/Assay.Application.Cli/bin/Release/net10.0/Assay.Application.Cli.dll inspect /absolute/run/assessment.json --source-root /absolute/app
+dotnet playground/application-assessment/Assay.Application.Cli/bin/Release/net11.0/Assay.Application.Cli.dll assess /absolute/app/assay.app.json /absolute/FsAssay.Runner.dll /absolute/new-output --baseline /absolute/baseline/assessment.json --failure /absolute/red/assessment.json
+dotnet playground/application-assessment/Assay.Application.Cli/bin/Release/net11.0/Assay.Application.Cli.dll inspect /absolute/run/assessment.json --source-root /absolute/app
 ```
 
 Assessment exits: 0 review-ready, 1 application repair needed, 2 missing/unsupported/tool/context evidence, 64 invalid CLI shape. Inspection exits 0 when the retained envelope/artifacts are available and consistent, or 2 when unavailable. Inspection availability does not turn a retained NeedsRepair assessment into readiness.

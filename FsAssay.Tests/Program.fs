@@ -489,7 +489,7 @@ let e2eTests =
             let doctorExit, doctorOutput, doctorError = runCli [ "doctor" ]
             Expect.equal doctorExit 0 "doctor must succeed for the qualification toolchain"
             Expect.equal doctorError "" "healthy doctor must not write an error"
-            for expected in [ "ToolVersion: 1.0.4"; "RuntimeVersion:"; "SdkVersion: 10.0.301"; "FSharpCompilerServiceVersion:"; "AnalysisNetworkDefault: offline"; "SourceUpload: none"; "FsAssayTelemetry: none"; "Status: healthy" ] do
+            for expected in [ "ToolVersion: 1.0.4"; "RuntimeVersion:"; "SdkVersion: 11.0.100"; "FSharpCompilerServiceVersion:"; "AnalysisNetworkDefault: offline"; "SourceUpload: none"; "FsAssayTelemetry: none"; "Status: healthy" ] do
                 Expect.stringContains doctorOutput expected $"doctor must report {expected}"
 
             let explainExit, explainOutput, explainError = runCli [ "explain"; "FSA-C02" ]

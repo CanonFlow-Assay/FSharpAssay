@@ -1,6 +1,6 @@
 # F# Decision Assist playground
 
-Run a requirements-driven investigation over the **actual M5 F# domain source**, using native discriminated unions, private validated values, Result and decimal pricing. This is a separate extension of the existing M5 playground, inspired by CSAssay's distinction between deterministic evidence and optional advice. FSharpAssay keeps its own exact **.NET SDK 10.0.301** and pending Human Gate C; this work does not migrate it to the C# toolchain or admit any rule.
+Run a requirements-driven investigation over the **actual M5 F# domain source**, using native discriminated unions, private validated values, Result and decimal pricing. This is a separate extension of the existing M5 playground, inspired by CSAssay's distinction between deterministic evidence and optional advice. FSharpAssay keeps its own exact **.NET SDK 11.0.100** and pending Human Gate C; the toolchain migration leaves rule admission unchanged.
 
 From the repository root:
 

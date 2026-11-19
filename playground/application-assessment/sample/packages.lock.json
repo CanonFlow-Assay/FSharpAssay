@@ -1,21 +1,21 @@
 {
   "version": 1,
   "dependencies": {
-    "net10.0": {
+    "net11.0": {
       "FsAssay.Application": {
         "type": "Direct",
-        "requested": "[0.1.0-preview.1, )",
-        "resolved": "0.1.0-preview.1",
-        "contentHash": "Rsfo0HOzoEPtW/HftaCN72x7V66sEWHf33LqqN57AVTeReSibdqy+FATBMPvZCDFdrDHoGH16SZnAmmYuR9cGw==",
+        "requested": "[0.2.0-preview.1, )",
+        "resolved": "0.2.0-preview.1",
+        "contentHash": "mDo5aHet80GouAARBNDkpp0L3R3J7Cs2fto7vYJRuH7GIAV3kHnsaQyOZ74dfFtPDt5vYoI7FNO5QOdyhYAVlA==",
         "dependencies": {
-          "FSharp.Core": "10.1.201"
+          "FSharp.Core": "11.0.101"
         }
       },
       "FSharp.Core": {
         "type": "Direct",
-        "requested": "[10.1.201, )",
-        "resolved": "10.1.201",
-        "contentHash": "s5w9LWYurZ9yZdIppoIaYLkRadyT5s3u0wbQCb0J4bQd3ubIlIWQ3Nd5+ll1y3pv5OnTS373dP8T1S/BP46QXg=="
+        "requested": "[11.0.101, )",
+        "resolved": "11.0.101",
+        "contentHash": "/Us61HrXUuswvfVj2vj6RPa123Lnvj3nF9RHT5dFQdPmPhBxGAjlwIKyUYg2TACsr0iHCZFqvZcMNmBf9A8h4g=="
       }
     }
   }

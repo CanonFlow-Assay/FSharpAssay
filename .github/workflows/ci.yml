@@ -29,10 +29,13 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.301'
+          # The .NET 10 runtime executes the independently retargeted consumer tests.
+          dotnet-version: |
+            10.0.404
+            11.0.100
 
       - name: Verify exact SDK
-        run: test "$(dotnet --version)" = "10.0.301"
+        run: test "$(dotnet --version)" = "11.0.100"
 
       - name: Restore locked stable graph
         run: dotnet restore FsAssay.Stable.slnx --locked-mode

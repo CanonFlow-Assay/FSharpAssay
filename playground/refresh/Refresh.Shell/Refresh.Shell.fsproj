@@ -1,4 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
-  <ItemGroup><Compile Include="Adapters.fs" /><PackageReference Include="FSharp.Core" Version="10.1.201" /><PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.15" /><PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.14" /><ProjectReference Include="../Refresh.Domain/Refresh.Domain.fsproj" /></ItemGroup>
+  <PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup>
+  <ItemGroup><Compile Include="Adapters.fs" /><PackageReference Include="FSharp.Core" Version="11.0.101" /><PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.15" /><PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.14" /><ProjectReference Include="../Refresh.Domain/Refresh.Domain.fsproj" /></ItemGroup>
 </Project>

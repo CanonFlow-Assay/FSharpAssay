@@ -1,4 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
-  <ItemGroup><Compile Include="Approval.fs" /><PackageReference Include="FSharp.Core" Version="10.1.201" /></ItemGroup>
+  <PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup>
+  <ItemGroup><Compile Include="Approval.fs" /><PackageReference Include="FSharp.Core" Version="11.0.101" /></ItemGroup>
 </Project>

@@ -24,9 +24,9 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.301'
+          dotnet-version: '11.0.100'
       - name: Verify exact SDK
-        run: test "$(dotnet --version)" = "10.0.301"
+        run: test "$(dotnet --version)" = "11.0.100"
       - name: Qualify packaged consumer and deterministic evidence
         env:
           FSASSAY_CANDIDATE_SHA: ${{ github.sha }}

@@ -1,8 +1,10 @@
 # FSharpAssay packaged application verification
 
-This independent .NET 10 F# consumer demonstrates pure approval decisions, SQLite transactions, idempotent response replay and a bounded loopback HTTP exchange. Thirteen executable tests cover exact thresholds, validation, architecture, persistence, cancellation and wire contracts. Package versions and NuGet format-1 locks are explicit so the same declared locks can be assessed by SecurityAssay M0 without transforming their bytes.
+This independent .NET 11 F# consumer demonstrates pure approval decisions, SQLite transactions, idempotent response replay and a bounded loopback HTTP exchange. Thirteen executable tests cover exact thresholds, validation, architecture, persistence, cancellation and wire contracts. Package versions and NuGet format-1 locks are explicit so the same declared locks can be assessed by SecurityAssay M0 without transforming their bytes.
 
-Run `bash eng/qualify-refresh.sh <fresh-output>` from the repository with the exact SDK. The qualifier packs and installs the CLI from a local-only feed, copies this application into its own Git repository, restores its committed locks and executes check/verify/repair workflows through the installed tool. There is no source project reference to the analyzer or runner.
+Run `bash eng/qualify-refresh.sh <fresh-output>` from the repository with the exact SDK. The qualifier packs and installs the CLI from a local-only feed, copies this application into its own Git repository, restores its committed locks and executes check/verify/repair workflows through the installed tool. There is no source project reference to the analyzer or runner. A separately
+retargeted fixture verifies the same 13 tests on a .NET 10 application using
+the .NET 11 runner and SDK. The compatibility step needs a .NET 10 runtime.
 
 Qualification retains threshold Fail and repair, skipped required execution and repair, a wire-name regression and repair, an invalid mutation, and an unresolved high-amount mutation that survives the selected tests. A test Pass is bounded evidence, so the survivor remains a review item rather than an equivalence claim. The existing six-case Decision Assist corpus supplies the failed-baseline and expanded-selection controls.
 

@@ -1,7 +1,7 @@
 {
   "version": 2,
   "dependencies": {
-    "net10.0": {
+    "net11.0": {
       "Avalonia": {
         "type": "Direct",
         "requested": "[12.1.0, )",
@@ -51,21 +51,20 @@
         "resolved": "2.2.3",
         "contentHash": "kQCInYusi2c9tjd9hV05Lln6Csbo07kiC672M3G7dsalDBe2j+pOk3We2nzdyy5ptQYy/9gQiC8ZaHhb6u/5Kw==",
         "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "8.0.0",
           "Microsoft.IO.RecyclableMemoryStream": "3.0.1"
         }
       },
       "Microsoft.DotNet.ILCompiler": {
         "type": "Direct",
-        "requested": "[10.0.9, )",
-        "resolved": "10.0.9",
-        "contentHash": "4y+VsQOcs4EiTSINdCpCWi/aLRbIbGTxSezQXd8uGVhzbDRm1FNVTZDyCUQixE0+g9UFusvfxVcF68YYz7RzxA=="
+        "requested": "[11.0.0, )",
+        "resolved": "11.0.0",
+        "contentHash": "lw6gUL92db6XPwYsQwaGwrJxgRM0X0qQKl0QkwuZIACMtgH0eFu6jmq6W+/L8qTxQZwggfV/dGjICyMqVHdehg=="
       },
       "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
-        "requested": "[10.0.9, )",
-        "resolved": "10.0.9",
-        "contentHash": "4Iw41e2h7I4t70SJcX2GCmbyKJIlA273Cfm9RJMM050/3VBejGAG1KcthP5Z2L6SQcbfbf6BhNWO26+ZG+GzMg=="
+        "requested": "[11.0.0, )",
+        "resolved": "11.0.0",
+        "contentHash": "gK2aq4XvChj5kvozpPHrkfKkr7zc5Z4xoTrJb4GPZzDEPMlCk0TX632bwY3LsWcX2UVcVRQBBGzsBGC2lq6YhA=="
       },
       "Avalonia.Angle.Windows.Natives": {
         "type": "Transitive",
@@ -289,19 +288,6 @@
           "System.Security.Cryptography.ProtectedData": "9.0.0"
         }
       },
-      "Microsoft.Extensions.DependencyInjection.Abstractions": {
-        "type": "Transitive",
-        "resolved": "8.0.0",
-        "contentHash": "cjWrLkJXK0rs4zofsK4bSdg+jhDLTaxrkXu4gS6Y7MAlCvRyNNgwY/lJi5RDlQOnSZweHqoyvgvbdvQsRIW+hg=="
-      },
-      "Microsoft.Extensions.Logging.Abstractions": {
-        "type": "Transitive",
-        "resolved": "8.0.0",
-        "contentHash": "arDBqTgFCyS0EvRV7O3MZturChstm50OJ0y9bDJvAcmEPJm0FFpFyjU/JLYyStNGGey081DvnQYlncNX5SJJGA==",
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.0"
-        }
-      },
       "Microsoft.IO.RecyclableMemoryStream": {
         "type": "Transitive",
         "resolved": "3.0.1",
@@ -424,38 +410,37 @@
       "fsassay.analyzers": {
         "type": "Project",
         "dependencies": {
-          "FSharp.Analyzers.SDK": "[0.37.2, )",
-          "FSharp.Compiler.Service": "[43.12.201, )",
-          "FSharp.Core": "[10.1.201, )",
+          "FSharp.Analyzers.SDK": "[0.43.0, )",
+          "FSharp.Compiler.Service": "[43.13.404, )",
+          "FSharp.Core": "[10.1.404, )",
           "FSharpLint.Core": "[0.27.0, )"
         }
       },
       "FSharp.Analyzers.SDK": {
         "type": "CentralTransitive",
-        "requested": "[0.37.2, )",
-        "resolved": "0.37.2",
-        "contentHash": "vO21YDtNZaSPPWrDC8/DbWl0FAYY5l/qzGAJaruajZSpLtVP8TilzSj5v7YkydD2kwaEjLkkmCCzJFr30/61pw==",
+        "requested": "[0.43.0, )",
+        "resolved": "0.43.0",
+        "contentHash": "JchnwmoH/xRYLyCnASZI1XQBEL8Rw7qn4M0dLx2b6VlbtS2OLQwRZd+Gy6Rcq61hwaE+Pni7ks0Z5bVqe/ouDQ==",
         "dependencies": {
-          "FSharp.Compiler.Service": "43.12.201",
-          "FSharp.Core": "[10.1.201]",
-          "McMaster.NETCore.Plugins": "2.0.0",
-          "Microsoft.Extensions.Logging.Abstractions": "6.0.0"
+          "FSharp.Compiler.Service": "[43.13.404]",
+          "FSharp.Core": "[10.1.404]",
+          "McMaster.NETCore.Plugins": "2.0.0"
         }
       },
       "FSharp.Compiler.Service": {
         "type": "CentralTransitive",
-        "requested": "[43.12.201, )",
-        "resolved": "43.12.201",
-        "contentHash": "FkAR8qjDeOCPke7+JNKnrWrglmuM1CeSVyzfsgmRGZv4C1/VMWzDF5IweLRyN64s0HyHSq61d8JIfVNGyciwCA==",
+        "requested": "[43.13.404, )",
+        "resolved": "43.13.404",
+        "contentHash": "7IzyvbV1GpCY2co8gebO1U7DGtjGQh0sXPSMeSHEujlFIKPKmZ1FpBzaB37K/1DXfkoWOxreylpf7F0RPQcgZA==",
         "dependencies": {
-          "FSharp.Core": "[10.1.201]"
+          "FSharp.Core": "[10.1.404]"
         }
       },
       "FSharp.Core": {
         "type": "CentralTransitive",
-        "requested": "[10.1.201, )",
-        "resolved": "10.1.201",
-        "contentHash": "s5w9LWYurZ9yZdIppoIaYLkRadyT5s3u0wbQCb0J4bQd3ubIlIWQ3Nd5+ll1y3pv5OnTS373dP8T1S/BP46QXg=="
+        "requested": "[10.1.404, )",
+        "resolved": "10.1.404",
+        "contentHash": "NzyMm8uoa4ULzpQwMcq/4F2zCWGKduuGwxdRSi48kEahNlykKJBUSmb9H/6SFbS0fDd+LqQum0BOkDp8pD8xRg=="
       },
       "FSharpLint.Core": {
         "type": "CentralTransitive",
@@ -478,7 +463,7 @@
       },
       "Ionide.ProjInfo.FCS": {
         "type": "CentralTransitive",
-        "requested": "[0.74.2, )",
+        "requested": "[0.76.0, )",
         "resolved": "0.70.2",
         "contentHash": "f4dBs/XzArjD9rD9rAHGLCCvmPtafbBJEqJWwPgBWjTwBiF0yNrXqrp3v4LtDRXqFCu742oPVMfOu8tOaU8/jA==",
         "dependencies": {
@@ -488,14 +473,14 @@
         }
       }
     },
-    "net10.0/linux-x64": {
+    "net11.0/linux-x64": {
       "Microsoft.DotNet.ILCompiler": {
         "type": "Direct",
-        "requested": "[10.0.9, )",
-        "resolved": "10.0.9",
-        "contentHash": "4y+VsQOcs4EiTSINdCpCWi/aLRbIbGTxSezQXd8uGVhzbDRm1FNVTZDyCUQixE0+g9UFusvfxVcF68YYz7RzxA==",
+        "requested": "[11.0.0, )",
+        "resolved": "11.0.0",
+        "contentHash": "lw6gUL92db6XPwYsQwaGwrJxgRM0X0qQKl0QkwuZIACMtgH0eFu6jmq6W+/L8qTxQZwggfV/dGjICyMqVHdehg==",
         "dependencies": {
-          "runtime.linux-x64.Microsoft.DotNet.ILCompiler": "10.0.9"
+          "runtime.linux-x64.Microsoft.DotNet.ILCompiler": "11.0.0"
         }
       },
       "Avalonia.Angle.Windows.Natives": {
@@ -528,8 +513,8 @@
       },
       "runtime.linux-x64.Microsoft.DotNet.ILCompiler": {
         "type": "Transitive",
-        "resolved": "10.0.9",
-        "contentHash": "45CVefG8S0eUKUJ4LBWOi8FOAgMJOP6exW9l5M9OjvQaGR7jvkokBK50XaZCsO66uLxABcuzvncV8A3YiJLUgw=="
+        "resolved": "11.0.0",
+        "contentHash": "HMCCGxJ1Q41NF31M+yWB7h0OAWr0XpiS8ZYMOi/V5IU/864Yi00rLq3M1K3AhE2+q86YJA4V9KZ28NXE+Q/uxA=="
       },
       "SkiaSharp.NativeAssets.Linux": {
         "type": "Transitive",

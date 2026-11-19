@@ -1,5 +1,5 @@
-#r "../FsAssay.Analyzers/bin/Release/net10.0/FsAssay.Analyzers.dll"
-#r "../FsAssay.Runner/bin/Release/net10.0/FsAssay.Runner.dll"
+#r "../FsAssay.Analyzers/bin/Release/net11.0/FsAssay.Analyzers.dll"
+#r "../FsAssay.Runner/bin/Release/net11.0/FsAssay.Runner.dll"
 open System
 open System.IO
 open System.Text.Json

@@ -1,4 +1,4 @@
-#r "nuget: FSharp.Compiler.Service, 43.12.201"
+#r "nuget: FSharp.Compiler.Service, 43.13.404"
 
 open System
 open FSharp.Compiler.Symbols

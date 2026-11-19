@@ -8,7 +8,7 @@ The Shape New slice validates `OrderId` and `Quantity`, makes order rejection a 
 
 ## Run
 
-Use SDK 10.0.301, commit the candidate, keep the worktree clean, then run:
+Use SDK 11.0.100, commit the candidate, keep the worktree clean, then run:
 
 ```bash
 export PATH=/root/.cache/fsassay-m5-dotnet:$PATH

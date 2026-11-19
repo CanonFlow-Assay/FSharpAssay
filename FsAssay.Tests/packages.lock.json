@@ -1,7 +1,7 @@
 {
   "version": 2,
   "dependencies": {
-    "net10.0": {
+    "net11.0": {
       "Expecto": {
         "type": "Direct",
         "requested": "[11.1.0, )",
@@ -14,30 +14,29 @@
       },
       "FSharp.Analyzers.SDK": {
         "type": "Direct",
-        "requested": "[0.37.2, )",
-        "resolved": "0.37.2",
-        "contentHash": "vO21YDtNZaSPPWrDC8/DbWl0FAYY5l/qzGAJaruajZSpLtVP8TilzSj5v7YkydD2kwaEjLkkmCCzJFr30/61pw==",
+        "requested": "[0.43.0, )",
+        "resolved": "0.43.0",
+        "contentHash": "JchnwmoH/xRYLyCnASZI1XQBEL8Rw7qn4M0dLx2b6VlbtS2OLQwRZd+Gy6Rcq61hwaE+Pni7ks0Z5bVqe/ouDQ==",
         "dependencies": {
-          "FSharp.Compiler.Service": "43.12.201",
-          "FSharp.Core": "[10.1.201]",
-          "McMaster.NETCore.Plugins": "2.0.0",
-          "Microsoft.Extensions.Logging.Abstractions": "6.0.0"
+          "FSharp.Compiler.Service": "[43.13.404]",
+          "FSharp.Core": "[10.1.404]",
+          "McMaster.NETCore.Plugins": "2.0.0"
         }
       },
       "FSharp.Compiler.Service": {
         "type": "Direct",
-        "requested": "[43.12.201, )",
-        "resolved": "43.12.201",
-        "contentHash": "FkAR8qjDeOCPke7+JNKnrWrglmuM1CeSVyzfsgmRGZv4C1/VMWzDF5IweLRyN64s0HyHSq61d8JIfVNGyciwCA==",
+        "requested": "[43.13.404, )",
+        "resolved": "43.13.404",
+        "contentHash": "7IzyvbV1GpCY2co8gebO1U7DGtjGQh0sXPSMeSHEujlFIKPKmZ1FpBzaB37K/1DXfkoWOxreylpf7F0RPQcgZA==",
         "dependencies": {
-          "FSharp.Core": "[10.1.201]"
+          "FSharp.Core": "[10.1.404]"
         }
       },
       "FSharp.Core": {
         "type": "Direct",
-        "requested": "[10.1.201, )",
-        "resolved": "10.1.201",
-        "contentHash": "s5w9LWYurZ9yZdIppoIaYLkRadyT5s3u0wbQCb0J4bQd3ubIlIWQ3Nd5+ll1y3pv5OnTS373dP8T1S/BP46QXg=="
+        "requested": "[10.1.404, )",
+        "resolved": "10.1.404",
+        "contentHash": "NzyMm8uoa4ULzpQwMcq/4F2zCWGKduuGwxdRSi48kEahNlykKJBUSmb9H/6SFbS0fDd+LqQum0BOkDp8pD8xRg=="
       },
       "Microsoft.NET.Test.Sdk": {
         "type": "Direct",
@@ -98,8 +97,8 @@
       },
       "Ionide.ProjInfo": {
         "type": "Transitive",
-        "resolved": "0.74.2",
-        "contentHash": "kjvt0fM3YQoyIVromp8y/TlKgiOaSNDhGuUdPxv6I6bKQBvJEAFgc4bWX8mfwBclHP5yRRCkC+i3q2cirDCM2w==",
+        "resolved": "0.76.0",
+        "contentHash": "tzNoA4HNAJ3jrcTy/EEHz60GcaAFCW7hlWb2Gy+1BSCaCXxRQcXeSruFSgofkEpYf61GuSU5L+qkb+KcOe/loQ==",
         "dependencies": {
           "FSharp.Core": "6.0.0",
           "Microsoft.VisualStudio.SolutionPersistence": "1.0.28",
@@ -183,11 +182,6 @@
         "type": "Transitive",
         "resolved": "17.10.0",
         "contentHash": "yC7oSlnR54XO5kOuHlVOKtxomNNN1BWXX8lK1G2jaPXT9sUok7kCOoA4Pgs0qyFaCtMrNsprztYMeoEGqCm4uA=="
-      },
-      "Microsoft.Extensions.Logging.Abstractions": {
-        "type": "Transitive",
-        "resolved": "6.0.0",
-        "contentHash": "/HggWBbTwy8TgebGSX5DBZ24ndhzi93sHUBDvP1IxbZD7FDokYzdAr6+vbWGjw2XAfR2EJ1sfKUotpjHnFWPxA=="
       },
       "Microsoft.NET.StringTools": {
         "type": "Transitive",
@@ -332,29 +326,29 @@
       "fsassay.analyzers": {
         "type": "Project",
         "dependencies": {
-          "FSharp.Analyzers.SDK": "[0.37.2, )",
-          "FSharp.Compiler.Service": "[43.12.201, )",
-          "FSharp.Core": "[10.1.201, )",
+          "FSharp.Analyzers.SDK": "[0.43.0, )",
+          "FSharp.Compiler.Service": "[43.13.404, )",
+          "FSharp.Core": "[10.1.404, )",
           "FSharpLint.Core": "[0.27.0, )"
         }
       },
       "fsassay.canonflow.plugin": {
         "type": "Project",
         "dependencies": {
-          "FSharp.Analyzers.SDK": "[0.37.2, )",
-          "FSharp.Compiler.Service": "[43.12.201, )",
-          "FSharp.Core": "[10.1.201, )"
+          "FSharp.Analyzers.SDK": "[0.43.0, )",
+          "FSharp.Compiler.Service": "[43.13.404, )",
+          "FSharp.Core": "[10.1.404, )"
         }
       },
       "FsAssay.Cli": {
         "type": "Project",
         "dependencies": {
           "Argu": "[6.2.5, )",
-          "FSharp.Analyzers.SDK": "[0.37.2, )",
-          "FSharp.Compiler.Service": "[43.12.201, )",
-          "FSharp.Core": "[10.1.201, )",
+          "FSharp.Analyzers.SDK": "[0.43.0, )",
+          "FSharp.Compiler.Service": "[43.13.404, )",
+          "FSharp.Core": "[10.1.404, )",
           "FsAssay.Analyzers": "[1.0.0, )",
-          "Ionide.ProjInfo.FCS": "[0.74.2, )"
+          "Ionide.ProjInfo.FCS": "[0.76.0, )"
         }
       },
       "Argu": {
@@ -388,13 +382,13 @@
       },
       "Ionide.ProjInfo.FCS": {
         "type": "CentralTransitive",
-        "requested": "[0.74.2, )",
-        "resolved": "0.74.2",
-        "contentHash": "zAzItdSiIhq4V031YlKworGOv/918LZn2Iu+fJbJbgCunlIImLqH9C0T9T7aZCvMmHi3pDuRKNBgVwQjGzYtGg==",
+        "requested": "[0.76.0, )",
+        "resolved": "0.76.0",
+        "contentHash": "aLAPp5HBny47I8a5nd6H1+1FMCBqV9wiSZsxQaxO1eG/hUzV6J/+8x6of8yHRdKvUbgyGJHPOhK2mMLYQ14JyQ==",
         "dependencies": {
-          "FSharp.Compiler.Service": "43.10.100",
-          "FSharp.Core": "10.0.100",
-          "Ionide.ProjInfo": "0.74.2"
+          "FSharp.Compiler.Service": "43.13.404",
+          "FSharp.Core": "10.1.404",
+          "Ionide.ProjInfo": "0.76.0"
         }
       }
     }

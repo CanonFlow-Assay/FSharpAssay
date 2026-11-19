@@ -14,8 +14,8 @@ let output = match args with [| path |] -> Path.GetFullPath path | _ -> failwith
 if Directory.Exists output || File.Exists output then failwith "existing output is never overwritten"
 Directory.CreateDirectory output |> ignore
 let toolkit = __SOURCE_DIRECTORY__
-let cli = Path.Combine(toolkit, "Assay.Application.Cli/bin/Release/net10.0/Assay.Application.Cli.dll")
-let engine = Path.Combine(root, "FsAssay.Runner/bin/Release/net10.0/FsAssay.Runner.dll")
+let cli = Path.Combine(toolkit, "Assay.Application.Cli/bin/Release/net11.0/Assay.Application.Cli.dll")
+let engine = Path.Combine(root, "FsAssay.Runner/bin/Release/net11.0/FsAssay.Runner.dll")
 if not (File.Exists engine) then failwith "build unchanged FsAssay.Runner Release first"
 let feed, packages = Path.Combine(output, "feed"), Path.Combine(output, "consumer-packages")
 Directory.CreateDirectory feed |> ignore
@@ -81,7 +81,7 @@ try
     require (run root "toolkit-build" ["build"; Path.Combine(toolkit, "Assay.Application.Cli/Assay.Application.Cli.fsproj"); "--no-restore"; "-c"; "Release"] = 0) "toolkit build"
     require (run root "contract-tests" ["fsi"; "--warnaserror+"; "--exec"; Path.Combine(toolkit, "Contract.Tests.fsx")] = 0) "pure contract controls"
     require (run root "toolkit-pack" ["pack"; Path.Combine(toolkit, "Assay.Application/Assay.Application.fsproj"); "--no-build"; "--no-restore"; "-c"; "Release"; "-o"; feed] = 0) "local package"
-    let core = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget/packages/fsharp.core/10.1.201/fsharp.core.10.1.201.nupkg")
+    let core = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget/packages/fsharp.core/11.0.101/fsharp.core.11.0.101.nupkg")
     File.Copy(core, Path.Combine(feed, Path.GetFileName core))
     let baselineApp = cloneSources (Path.Combine(toolkit, "sample")) "baseline-app"
     // Rebuilt local preview packages have new bytes: bootstrap only the disposable consumer lock.
@@ -89,8 +89,8 @@ try
     restore baselineApp "baseline"
     let baseline = assess baselineApp "baseline" None "ReadyForReview"
     inspect baseline (Some baselineApp) "baseline-current" 0
-    let sdkConsumer = Path.Combine(baselineApp, "bin/Release/net10.0/Assay.Application.dll")
-    require (hash sdkConsumer = hash (Path.Combine(toolkit, "Assay.Application/bin/Release/net10.0/Assay.Application.dll"))) "consumer did not load the packed SDK bytes"
+    let sdkConsumer = Path.Combine(baselineApp, "bin/Release/net11.0/Assay.Application.dll")
+    require (hash sdkConsumer = hash (Path.Combine(toolkit, "Assay.Application/bin/Release/net11.0/Assay.Application.dll"))) "consumer did not load the packed SDK bytes"
     let redApp = cloneSources baselineApp "red-app"
     let manifest = read<Manifest>(Path.Combine(redApp, "assay.app.json"))
     write (Path.Combine(redApp, "assay.app.json")) {manifest with minimumPassed = 6}
@@ -164,7 +164,7 @@ try
     File.AppendAllText(domain, "\n// stale source control\n")
     inspect green (Some greenApp) "stale-source" 2
     File.WriteAllBytes(domain, original)
-    let runtime = Path.Combine(greenApp, "bin/Release/net10.0/Approval.App.dll")
+    let runtime = Path.Combine(greenApp, "bin/Release/net11.0/Approval.App.dll")
     let originalRuntime = File.ReadAllBytes runtime
     File.AppendAllText(runtime, "tampered runtime")
     inspect green (Some greenApp) "stale-runtime" 2

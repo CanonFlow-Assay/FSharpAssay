@@ -1,6 +1,6 @@
 # FsAssay
 
-FsAssay is an experimental .NET 10 static analyzer for F# source. It combines
+FsAssay is an experimental .NET 11 static analyzer for F# source. It combines
 FSharp.Compiler.Service typed-tree inspection, syntax/heuristic rules, and
 project-level graph analysis.
 
@@ -49,7 +49,8 @@ CLI exit codes:
 
 ## Build and verify
 
-The repository expects the SDK selected by `global.json`. Stable qualification
+The pinned SDK is `11.0.100` with F# 11. The packaged runner requires
+a .NET 11 runtime. Stable qualification
 uses the bounded solution and locked package graph:
 
 ```bash

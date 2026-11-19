@@ -68,7 +68,7 @@ module Workflow =
     let private snapshot values = values |> Array.map (fun value -> value.path + ":" + value.sha256) |> String.concat "\n" |> Encoding.UTF8.GetBytes |> hash
     let private validId value = not (String.IsNullOrWhiteSpace value) && Regex.IsMatch(value, "^[A-Za-z][A-Za-z0-9._-]*$")
     let private validateManifest root (manifestPath: string) (manifest: Manifest) (requirements: Requirements) =
-        if manifestPath <> "assay.app.json" || manifest.schema <> "fsharp-application/0.2" || not (validId manifest.applicationId) || manifest.sdk <> "10.0.301" || manifest.minimumPassed < 1 || isNull manifest.files || manifest.files.Length = 0 then failwith "invalid manifest"
+        if manifestPath <> "assay.app.json" || manifest.schema <> "fsharp-application/0.2" || not (validId manifest.applicationId) || manifest.sdk <> "11.0.100" || manifest.minimumPassed < 1 || isNull manifest.files || manifest.files.Length = 0 then failwith "invalid manifest"
         if manifest.assemblyName <> Path.GetFileNameWithoutExtension manifest.project || not (manifest.project.EndsWith ".fsproj") then failwith "project/assembly identity mismatch"
         if isNull manifest.frozenTestFiles || manifest.frozenTestFiles.Length = 0 || isNull manifest.acceptanceTestFiles || manifest.acceptanceTestFiles.Length = 0 then failwith "explicit frozen/additional test file registries are required"
         let files = Set.ofArray manifest.files
@@ -180,7 +180,7 @@ module Workflow =
             ["policyErrors";"evidenceErrors";"missingEvidence";"toolFailures"] |> List.forall empty &&
             reasons.Length > 0 && (reasons |> Array.forall ((=) "required-test-not-run")) &&
             projects.Length = 1 && projects[0].GetProperty("path").GetString() = envelope.manifest.project && projects[0].GetProperty("loaded").GetBoolean() && projects[0].GetProperty("supported").GetBoolean() && projects[0].GetProperty("status").GetString() = "loaded" &&
-            (projects[0].GetProperty("targetFrameworks").EnumerateArray() |> Seq.map _.GetString() |> Set.ofSeq) = set ["net10.0"] &&
+            (projects[0].GetProperty("targetFrameworks").EnumerateArray() |> Seq.map _.GetString() |> Set.ofSeq) = set ["net11.0"] &&
             (analyzed |> Array.map (fun source -> source.GetProperty("path").GetString()) |> Set.ofArray) = expectedSources && analyzed.Length = expectedSources.Count &&
             (sources |> Array.forall (fun source -> source.GetProperty("disposition").GetString() = "analyzed" || (source.GetProperty("disposition").GetString() = "policy-excluded" && source.GetProperty("path").GetString().StartsWith("obj/", StringComparison.Ordinal)))) &&
             ["projectsDiscovered";"projectsLoaded";"projectsWorkspaceLoaded";"projectsSupported"] |> List.forall (fun field -> counts.GetProperty(field).GetInt32() = 1) &&
@@ -226,7 +226,7 @@ module Workflow =
         let mutable failedRequirement = ""
         if compiler.Exit = 0 && not compiler.TimedOut then
             let execution = observedExecution output "tests"
-            if execution.Command <> [|"dotnet";Path.Combine(envelope.applicationRoot,"bin/Release/net10.0",envelope.manifest.assemblyName+".dll");"--assay-tests";Path.Combine(envelope.evidenceRoot,"tests.json")|] || execution.Directory <> envelope.applicationRoot then missing.Add "test-command-context-mismatch"
+            if execution.Command <> [|"dotnet";Path.Combine(envelope.applicationRoot,"bin/Release/net11.0",envelope.manifest.assemblyName+".dll");"--assay-tests";Path.Combine(envelope.evidenceRoot,"tests.json")|] || execution.Directory <> envelope.applicationRoot then missing.Add "test-command-context-mismatch"
             if execution.TimedOut then missing.Add "tests-timeout"
             elif not (File.Exists(Path.Combine(output,"tests.json"))) then missing.Add "test-report-missing"
             else
@@ -291,7 +291,7 @@ module Workflow =
         if compiler.Exit = 0 && not compiler.TimedOut && (envelope.runtime |> Array.map (fun input -> Path.GetFileName input.path) |> Set.ofArray) <> expectedRuntime then failwith "runtime binding inventory is incomplete"
         if envelope.runtime.Length <> (envelope.runtime |> Array.map _.path |> Set.ofArray).Count then failwith "duplicate runtime binding"
         for input in envelope.runtime do
-            if input.path <> "bin/Release/net10.0/" + Path.GetFileName input.path || fileHash(safe output ("runtime-snapshot/" + Path.GetFileName input.path)) <> input.sha256 then failwith "runtime snapshot differs from bound binary"
+            if input.path <> "bin/Release/net11.0/" + Path.GetFileName input.path || fileHash(safe output ("runtime-snapshot/" + Path.GetFileName input.path)) <> input.sha256 then failwith "runtime snapshot differs from bound binary"
         let actual = Directory.GetFiles(output,"*",SearchOption.AllDirectories) |> Array.map (fun file -> Path.GetRelativePath(output,file)) |> Array.filter (fun file -> file <> "assessment.json" && file <> "assessment.sha256") |> Set.ofArray
         let registered = envelope.artifacts |> Array.map _.path |> Set.ofArray
         if registered.Count <> envelope.artifacts.Length || actual <> registered || not (Set.isSubset (requiredArtifacts output envelope) registered) then failwith "required or complete artifact/log inventory is missing"
@@ -372,7 +372,7 @@ module Workflow =
         record output "sdk" version
         let build = invoke root ["build";manifest.project;"--no-restore";"-c";"Release"]
         record output "compiler" build
-        let runtimeDirectory = Path.Combine(root,"bin/Release/net10.0")
+        let runtimeDirectory = Path.Combine(root,"bin/Release/net11.0")
         let runtime = if build.exitCode = 0 && not build.timedOut then runtimeBindings root runtimeDirectory else [||]
         Directory.CreateDirectory(Path.Combine(output,"runtime-snapshot")) |> ignore
         for input in runtime do File.Copy(safe root input.path,Path.Combine(output,"runtime-snapshot",Path.GetFileName input.path))

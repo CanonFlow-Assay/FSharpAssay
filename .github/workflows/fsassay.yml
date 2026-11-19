@@ -26,10 +26,10 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.301'
+          dotnet-version: '11.0.100'
 
       - name: Verify exact SDK
-        run: test "$(dotnet --version)" = "10.0.301"
+        run: test "$(dotnet --version)" = "11.0.100"
 
       - name: Restore locked audit graph
         run: dotnet restore FsAssay.slnx --locked-mode
@@ -87,7 +87,7 @@ jobs:
               .policy.snapshot.baseline.identity == "none" and
               (.policy.snapshot.baseline.records | length) == 0 and
               (.appliedBaselineRecords | length) == 0 and (.appliedSuppressions | length) == 0 and
-              (.toolchain.sdkVersion == "10.0.301") and
+              (.toolchain.sdkVersion == "11.0.100") and
               ([.findings[].path] | all(startswith("/") | not))
             ' "artifacts/audit/results-${suffix}.json"
             jq -e '

@@ -3,7 +3,7 @@
   "applicationId": "approval",
   "project": "Approval.App.fsproj",
   "assemblyName": "Approval.App",
-  "sdk": "10.0.301",
+  "sdk": "11.0.100",
   "files": [
     "Approval.App.fsproj",
     "Domain.fs",

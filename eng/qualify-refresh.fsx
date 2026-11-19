@@ -1,5 +1,5 @@
-#r "../FsAssay.Analyzers/bin/Release/net10.0/FsAssay.Analyzers.dll"
-#r "../FsAssay.Runner/bin/Release/net10.0/FsAssay.Runner.dll"
+#r "../FsAssay.Analyzers/bin/Release/net11.0/FsAssay.Analyzers.dll"
+#r "../FsAssay.Runner/bin/Release/net11.0/FsAssay.Runner.dll"
 
 open System
 open System.IO
@@ -74,25 +74,27 @@ File.WriteAllText(Path.Combine(app,".gitignore"),"**/bin/\n**/obj/\nartifacts/\n
 let commit name = git (name+"-add") ["add";"."]; git (name+"-commit") ["commit";"--quiet";"-m";name]
 commit "baseline"
 execute app "consumer-restore" "dotnet" ["restore";"Refresh.slnx";"--locked-mode"] 0 |> ignore
-let run name mode expected =
+let runIn consumer name mode expected =
     let directory = Path.Combine(output,name)
     Directory.CreateDirectory directory |> ignore
-    let args = [mode;"--out-json";Path.Combine(directory,"receipt.json");"--out-sarif";Path.Combine(directory,"results.sarif");"--assessment-json";Path.Combine(directory,"assessment.json");"--ratecard-md";Path.Combine(directory,"report.md");"--material-html";Path.Combine(directory,"report.html");"--test-artifacts";Path.Combine(directory,"test-evidence");Path.Combine(app,"Refresh.slnx")]
+    let solution = Path.Combine(consumer,"Refresh.slnx")
+    let args = [mode;"--out-json";Path.Combine(directory,"receipt.json");"--out-sarif";Path.Combine(directory,"results.sarif");"--assessment-json";Path.Combine(directory,"assessment.json");"--ratecard-md";Path.Combine(directory,"report.md");"--material-html";Path.Combine(directory,"report.html");"--test-artifacts";Path.Combine(directory,"test-evidence");solution]
     let args =
         if mode <> "check" then args
-        else ["check";"--out-json";Path.Combine(directory,"receipt.json");Path.Combine(app,"Refresh.slnx")]
+        else ["check";"--out-json";Path.Combine(directory,"receipt.json");solution]
     // This is an independently committed local consumer repository. The outer
     // workflow SHA/PR identity belongs to the producer checkout, not this repo.
     let identityNames = ["GITHUB_SHA";"GITHUB_EVENT_NAME";"FSASSAY_APPROVED_HEAD_SHA";"FSASSAY_SYNTHETIC_MERGE_SHA";"FSASSAY_PACKAGE_SHA256"]
     let outerIdentity = identityNames |> List.map (fun key -> key,Environment.GetEnvironmentVariable key)
     try
         for key in identityNames do Environment.SetEnvironmentVariable(key,null)
-        execute app name cli args expected |> ignore
+        execute consumer name cli args expected |> ignore
     finally
         for key,value in outerIdentity do Environment.SetEnvironmentVariable(key,value)
     let bytes = File.ReadAllBytes(Path.Combine(directory,"receipt.json"))
     let receipt = Authority.deserializeAndValidateReceipt bytes |> Result.defaultWith (String.concat "; " >> failwith)
     receipt
+let run = runIn app
 let checkedReceipt = run "analysis-not-run" "check" 2
 if checkedReceipt.authoritative || checkedReceipt.outcome <> "Inconclusive" then failwith "analysis manufactured authority"
 let baseline = run "baseline" "verify" 0
@@ -101,6 +103,27 @@ let repeat = run "repeat" "verify" 0
 for file in ["receipt.json";"results.sarif"] do
     if Assessment.fileHash(Path.Combine(output,"baseline",file)) <> Assessment.fileHash(Path.Combine(output,"repeat",file)) then failwith ("canonical evidence depends on destination: "+file)
 passed "installed-consumer-and-deterministic-authority"
+
+// Production projects stay on .NET 11. Exercise .NET 10 application support in
+// an independent consumer with its own project files, locks, policy and Git HEAD.
+let net10Consumer = Path.Combine(output,"consumer-net10")
+copy app net10Consumer
+let targets = Directory.GetFiles(net10Consumer,"*.fsproj",SearchOption.AllDirectories)
+for path in Array.append targets [|Path.Combine(net10Consumer,"fsassay-policy.lock.json")|] do
+    File.WriteAllText(path,File.ReadAllText(path).Replace("net11.0","net10.0"))
+execute net10Consumer "net10-lock-bootstrap" "dotnet" ["restore";"Refresh.slnx";"--force-evaluate"] 0 |> ignore
+execute net10Consumer "net10-locked-restore" "dotnet" ["restore";"Refresh.slnx";"--locked-mode"] 0 |> ignore
+let compatGit name args = execute net10Consumer name "git" args 0 |> ignore
+compatGit "net10-init" ["init";"--quiet"]
+compatGit "net10-add" ["add";"."]
+compatGit "net10-commit" ["-c";"user.name=FsAssay qualification";"-c";"user.email=qualification@localhost.invalid";"commit";"--quiet";"-m";"net10 compatibility consumer"]
+let compat = runIn net10Consumer "net10-verify" "verify" 0
+if not compat.authoritative || compat.projects.Length <> targets.Length || compat.tests.[0].passed <> 13
+   || not (compat.toolchain.runtimeVersion.StartsWith("11.",StringComparison.Ordinal))
+   || not (compat.projects |> Array.forall (fun project -> project.loaded && project.targetFrameworks = [|"net10.0"|])) then
+    failwith "the .NET 11 tool did not verify the .NET 10 application and its 13 tests"
+passed "installed-net10-consumer-on-net11-tool"
+
 let domain = Path.Combine(app,"Refresh.Domain/Approval.fs")
 let original = File.ReadAllText domain
 File.WriteAllText(domain,original.Replace("amount > limit","amount >= limit"))

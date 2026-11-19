@@ -1,7 +1,7 @@
 #load "Assay.Application/Domain.fs"
 open FsAssay.Application
 let good = { Missing = []; ToolErrors = []; Failures = []; SourceCurrent = true; EngineUsable = true }
-let manifest = { schema = "fsharp-application/0.1"; applicationId = "app"; project = "App.fsproj"; assemblyName = "App"; sdk = "10.0.301"; files = [|"App.fsproj"|]; requirements = "requirements.json"; contract = "contract.json"; minimumPassed = 2; frozenTestFiles = [|"OriginalTests.fs";"Program.fs"|]; acceptanceTestFiles = [|"AdditionalTests.fs"|] }
+let manifest = { schema = "fsharp-application/0.1"; applicationId = "app"; project = "App.fsproj"; assemblyName = "App"; sdk = "11.0.100"; files = [|"App.fsproj"|]; requirements = "requirements.json"; contract = "contract.json"; minimumPassed = 2; frozenTestFiles = [|"OriginalTests.fs";"Program.fs"|]; acceptanceTestFiles = [|"AdditionalTests.fs"|] }
 let old = { schema = "fsharp-application-requirements/0.1"; requirements = [| { id = "AMOUNT"; description = "positive"; testIds = [|"positive";"zero"|]; minimumPassed = 2 } |] }
 let compatible m r c = Assessment.compatible manifest old "contract-1" m r c
 let probe = { id = "boundary-AMOUNT"; requirementId = "AMOUNT" }
