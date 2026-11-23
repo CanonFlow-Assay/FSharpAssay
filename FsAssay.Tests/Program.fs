@@ -465,6 +465,11 @@ let runCli (arguments: string list) =
     pi.RedirectStandardOutput <- true
     pi.RedirectStandardError <- true
     pi.UseShellExecute <- false
+    // A fixture repository has its own candidate identity.
+    for name in
+        [ "GITHUB_SHA"; "GITHUB_EVENT_NAME"; "FSASSAY_APPROVED_HEAD_SHA"
+          "FSASSAY_SYNTHETIC_MERGE_SHA"; "FSASSAY_PACKAGE_SHA256" ] do
+        pi.Environment.Remove(name) |> ignore
     use p = System.Diagnostics.Process.Start(pi)
     let standardOutput = p.StandardOutput.ReadToEndAsync()
     let standardError = p.StandardError.ReadToEndAsync()
