@@ -87,7 +87,7 @@ let coreAnalyzerWithBoundary (selectors: FsAssay.Analyzers.BoundaryPolicy.Select
 let coreAnalyzer parseTree typedTree fileName sourceText diagnostics profile =
     coreAnalyzerWithBoundary FsAssay.Analyzers.BoundaryPolicy.empty "" parseTree typedTree fileName sourceText diagnostics profile
 
-let projectAnalyzer (files: (string * FSharpImplementationFileContents * ISourceText) list) =
+let projectAnalyzerWithHistory readAdditions (files: (string * FSharpImplementationFileContents * ISourceText) list) =
     async {
         let trees = files |> List.map (fun (f, tree, _) -> (f, tree))
         let graph = FsAssay.Analyzers.Graph.buildGraph trees
@@ -96,7 +96,9 @@ let projectAnalyzer (files: (string * FSharpImplementationFileContents * ISource
         let depthFindings = FsAssay.Analyzers.Graph.calculateDepth graph
         let layerFindings = FsAssay.Analyzers.Graph.checkLayerViolations graph
         let ssrfFindings = FsAssay.Analyzers.Graph.checkSSRF graph
-        let tddFindings = FsAssay.Analyzers.Graph.checkTDD graph
+        let tddCandidates = FsAssay.Analyzers.Graph.tddCandidates graph
+        let additions = readAdditions (FsAssay.Analyzers.Graph.tddHistoryFiles tddCandidates)
+        let tddFindings = FsAssay.Analyzers.Graph.checkTDDWithHistory additions tddCandidates
         
         let fsprojFile = files |> List.tryPick (fun (f, _, _) -> // fsharp-assay-ignore FSA2022
             let dir = System.IO.Path.GetDirectoryName(f) // EXPECT: FSA2022
@@ -111,6 +113,8 @@ let projectAnalyzer (files: (string * FSharpImplementationFileContents * ISource
         let dummyText = match files with | (_, _, t) :: _ -> t | [] -> FSharp.Compiler.Text.SourceText.ofString ""
         return (allFindings |> List.choose (toViolation dummyText)) @ nugetFindings
     }
+
+let projectAnalyzer files = projectAnalyzerWithHistory (fun _ -> Map.empty) files
 
 let toSDKMessage (v: Violation) : Message =
     {

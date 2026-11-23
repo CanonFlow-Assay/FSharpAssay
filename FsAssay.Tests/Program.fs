@@ -360,6 +360,40 @@ let doDomainThing () = 1
             let results = runFsAssayMulti sources
             expectViolation "FSA-TDD01" results
 
+        testCase "FSA-TDD04 requires two ordered Git addition timestamps" <| fun _ ->
+            let node name file layer : Graph.ModuleNode =
+                { Name = name
+                  File = file
+                  Layer = layer
+                  Opens = []
+                  References = []
+                  MakesHttpCall = false
+                  Location = Range.mkRange file (Position.mkPos 1 0) (Position.mkPos 1 5) }
+
+            let implementation = node "InvoiceDomain" "Invoice.fs" Graph.Domain
+            let test = node "InvoiceDomainSpec" "InvoiceSpecs.fs" Graph.Unknown
+            let orphan = node "RefundDomain" "Refund.fs" Graph.Domain
+            let colocated = node "QuoteDomain" "Quote.fs" Graph.Domain
+            let colocatedTest = node "QuoteDomainSpec" "Quote.fs" Graph.Unknown
+            let graph : Graph.ModuleGraph =
+                { Nodes = [ implementation; test; orphan; colocated; colocatedTest ]
+                          |> List.map (fun node -> node.Name, node)
+                          |> Map.ofList }
+            let candidates = Graph.tddCandidates graph
+            Expect.sequenceEqual (Graph.tddHistoryFiles candidates)
+                [ implementation.File; test.File ] "only distinct files in a matched pair need history"
+
+            let codes = List.map (fun (finding: Located<Rule>) -> finding.Finding.Code)
+            let check additions = Graph.checkTDDWithHistory (Map.ofList additions) candidates |> codes
+            Expect.equal (Graph.checkTDD graph |> codes) [ "FSA-TDD01" ] "graph-only analysis still finds missing tests"
+            Expect.equal (check [ implementation.File, 10L ]) [ "FSA-TDD01" ] "missing test timestamps cannot imply later tests"
+            Expect.equal (check [ implementation.File, 10L; test.File, 10L ]) [ "FSA-TDD01" ] "equal timestamps cannot imply ordering"
+            Expect.equal (check [ implementation.File, 10L; test.File, 9L ]) [ "FSA-TDD01" ] "older tests do not trigger the rule"
+            let later = Map.ofList [ implementation.File, 10L; test.File, 11L ]
+            let findings = Graph.checkTDDWithHistory later candidates
+            Expect.equal (codes findings) [ "FSA-TDD04"; "FSA-TDD01" ] "later tests produce the history observation"
+            Expect.equal findings.Head.Range.FileName implementation.File "the graph finding locates the implementation"
+
         testCase "FSA-TDD02: Test file without Property triggers FSA-TDD02" <| fun _ ->
             let sourceCode = """
 module MyTests
@@ -385,6 +419,16 @@ let myTest () =
             expectViolation "FSA-TDD03" results
     ]
 
+let private stableRunnerAssembly =
+    Path.Combine(
+        __SOURCE_DIRECTORY__,
+        "..",
+        "FsAssay.Runner",
+        "bin",
+        "Release",
+        "net11.0",
+        "FsAssay.Runner.dll")
+
 let runE2EWithArgumentsCapture (projectCode: string) (sourceCode: string) (arguments: string list) =
     let tmpDir = Path.Combine(Path.GetTempPath(), "FsAssayE2E_" + Guid.NewGuid().ToString())
     Directory.CreateDirectory(tmpDir) |> ignore
@@ -392,17 +436,8 @@ let runE2EWithArgumentsCapture (projectCode: string) (sourceCode: string) (argum
     if not (String.IsNullOrWhiteSpace(sourceCode)) then
         File.WriteAllText(Path.Combine(tmpDir, "Library.fs"), sourceCode)
     
-    let runnerAssembly =
-        Path.Combine(
-            __SOURCE_DIRECTORY__,
-            "..",
-            "FsAssay.Runner",
-            "bin",
-            "Release",
-            "net10.0",
-            "FsAssay.Runner.dll")
     let pi = new System.Diagnostics.ProcessStartInfo("dotnet")
-    pi.ArgumentList.Add(runnerAssembly)
+    pi.ArgumentList.Add(stableRunnerAssembly)
     for argument in arguments do pi.ArgumentList.Add(argument)
     pi.ArgumentList.Add(tmpDir)
     pi.RedirectStandardOutput <- true
@@ -424,17 +459,8 @@ let runE2E (projectCode: string) (sourceCode: string) =
     runE2EWithArguments projectCode sourceCode []
 
 let runCli (arguments: string list) =
-    let runnerAssembly =
-        Path.Combine(
-            __SOURCE_DIRECTORY__,
-            "..",
-            "FsAssay.Runner",
-            "bin",
-            "Release",
-            "net10.0",
-            "FsAssay.Runner.dll")
     let pi = new System.Diagnostics.ProcessStartInfo("dotnet")
-    pi.ArgumentList.Add(runnerAssembly)
+    pi.ArgumentList.Add(stableRunnerAssembly)
     arguments |> List.iter pi.ArgumentList.Add
     pi.RedirectStandardOutput <- true
     pi.RedirectStandardError <- true
@@ -450,17 +476,8 @@ let runE2EWithPluginPath (pluginPath: string) =
     Directory.CreateDirectory(tmpDir) |> ignore
     let sourcePath = Path.Combine(tmpDir, "Library.fs")
     File.WriteAllText(sourcePath, "module PluginLoad\nlet value = 1")
-    let runnerAssembly =
-        Path.Combine(
-            __SOURCE_DIRECTORY__,
-            "..",
-            "FsAssay.Runner",
-            "bin",
-            "Release",
-            "net10.0",
-            "FsAssay.Runner.dll")
     let pi = new System.Diagnostics.ProcessStartInfo("dotnet")
-    pi.ArgumentList.Add(runnerAssembly)
+    pi.ArgumentList.Add(stableRunnerAssembly)
     pi.ArgumentList.Add("--plugin")
     pi.ArgumentList.Add(pluginPath)
     pi.ArgumentList.Add(sourcePath)
@@ -474,6 +491,39 @@ let runE2EWithPluginPath (pluginPath: string) =
 
 let e2eTests =
     testList "Phase 5 Hardening E2E Fault Injection" [
+        testCase "FSA-TDD04 CLI reads file additions using literal Git paths" <| fun _ ->
+            RefreshTests.temporary (fun root ->
+                let git arguments =
+                    let result = FsAssay.Runner.Processes.run root "git" arguments 5000
+                    Expect.isFalse result.TimedOut "Git fixture command completed"
+                    Expect.equal result.ExitCode 0 result.Stderr
+
+                let commit filename (source: string) authorDate =
+                    File.WriteAllText(Path.Combine(root, filename), source)
+                    git [ "--literal-pathspecs"; "add"; "--"; filename ]
+                    git [ "-c"; "user.name=FsAssay test"; "-c"; "user.email=test@localhost.invalid"
+                          "-c"; "commit.gpgsign=false"; "-c"; "core.hooksPath=" + Path.Combine(root, "unused-hooks")
+                          "commit"; "--quiet"; "--date=" + authorDate; "-m"; "Add " + filename ]
+
+                git [ "init"; "--quiet" ]
+                let implementation = "Invoice [current].fs"
+                let test = "Invoice tests.fs"
+                commit implementation "module InvoiceDomain\nlet value = 1\n" "2001-02-03T04:05:06Z"
+                commit test "module InvoiceDomainSpec\nlet value = 1\n" "2001-02-04T04:05:06Z"
+                commit "Invoice c.fs" "module Distractor\nlet value = 1\n" "2001-02-05T04:05:06Z"
+
+                let files = [ implementation; test ] |> List.map (fun file -> Path.Combine(root, file)) |> String.concat ","
+                let receipt = Path.Combine(root, "receipt.json")
+                let exitCode, standardOutput, standardError = runCli [ "check"; "--files"; files; "--out-json"; receipt; root ]
+                Expect.equal exitCode 2 $"standalone fixture has no authority policy. stdout={standardOutput}; stderr={standardError}"
+                use document = JsonDocument.Parse(File.ReadAllBytes(receipt))
+                let observations =
+                    document.RootElement.GetProperty("findings").EnumerateArray()
+                    |> Seq.filter (fun finding -> finding.GetProperty("ruleId").GetString() = "FSA-TDD04")
+                    |> Seq.map (fun finding -> finding.GetProperty("path").GetString())
+                    |> Seq.toList
+                Expect.equal observations [ "Architecture" ] "history for the literal file produces one project-level finding")
+
         testCase "CLI consumer contract is stable across the complete M3 catalogue" <| fun _ ->
             let results = [ "help"; "--help"; "-h" ] |> List.map (fun argument -> runCli [ argument ])
             let expectedExit, expectedOutput, expectedError = results.Head

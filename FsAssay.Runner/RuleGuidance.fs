@@ -21,7 +21,10 @@ module RuleGuidance =
         | "FSA-SEC08" | "FSA-SEC11" | "FSA-SEC12" | "FSA-SEC13" | "FSA-S02" ->
             "This observation is a bounded heuristic, not an authorization, signing, privacy, SSRF or path-safety proof. Validate trust boundaries and execute application-specific hostile-input tests. An attribute or name alone is insufficient.",
             "Test rejected input and allowed input at the actual adapter boundary."
-        | "FSA-TDD01" | "FSA-TDD02" | "FSA-TDD03" | "FSA-TDD04" ->
+        | "FSA-TDD04" ->
+            "The CLI compares Git author timestamps from additions of the implementation and its matching test file. The observation requires both timestamps in the available history. Review that order alongside the actual test behavior.",
+            "Review the file-addition commits and execute the tests for the behavior in question."
+        | "FSA-TDD01" | "FSA-TDD02" | "FSA-TDD03" ->
             "File names, property attributes, assertion counts and commit order are observations about test style. They do not establish test quality or correctness. Keep useful grouped assertions and qualify named behavioral requirements.",
             "Register stable test identities for boundary cases, failure cases and architecture constraints."
         | "FSA-F07" | "FSA-E01" | "FSA-E03" | "FSA-ML02" ->

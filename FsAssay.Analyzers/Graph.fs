@@ -5,8 +5,6 @@ open FSharp.Compiler.Text
 open FsAssay.Analyzers.Domain
 open FsAssay.Analyzers.Catalogue
 open FsAssay.Analyzers.AstUtils
-open System.IO
-open System.Collections.Generic
 
 type Layer = // EXPECT: FSA-AI17 // EXPECT: FSA-AI11
     | Domain
@@ -281,39 +279,44 @@ let checkSSRF (graph: ModuleGraph) : Located<Rule> list =
         if node.Layer = API && node.MakesHttpCall then mkLocated FSASEC13 node.Location else None
     )
 
-let checkTDD (graph: ModuleGraph) : Located<Rule> list =
+type TddCandidate =
+    { Implementation: ModuleNode
+      Test: ModuleNode option }
+
+let tddCandidates (graph: ModuleGraph) =
     graph.Nodes 
     |> Map.toList 
     |> List.choose (fun (_, node) ->
-        if node.Layer = Domain then
-            let hasTest = graph.Nodes |> Map.exists (fun k _ -> k.Contains(node.Name) && (k.Contains("Test") || k.Contains("Spec")))
-            if not hasTest then
-                mkLocated FSATDD01 node.Location
-            else
-                let testNodeOpt = graph.Nodes |> Map.tryPick (fun k v -> if k.Contains(node.Name) && (k.Contains("Test") || k.Contains("Spec")) then Some v else None)
-                match testNodeOpt with
-                | Some tn ->
-                    try
-                        let getGitTime file =
-                            let psi = System.Diagnostics.ProcessStartInfo("git", sprintf "log --diff-filter=A --format=%%at -1 -- \"%s\"" file)
-                            psi.RedirectStandardOutput <- true // EXPECT: FSA-F04
-                            psi.UseShellExecute <- false // EXPECT: FSA-F04
-                            psi.WorkingDirectory <- System.IO.Path.GetDirectoryName(file) // EXPECT: FSA2022 // EXPECT: FSA-F04
-                            let p = System.Diagnostics.Process.Start(psi)
-                            p.WaitForExit() // EXPECT: FSA-F04
-                            let timeStr = p.StandardOutput.ReadToEnd().Trim() // EXPECT: FSA2022
-                            if System.String.IsNullOrWhiteSpace(timeStr) then 0L else int64 timeStr
-                            
-                        let domainTime = getGitTime node.File
-                        let testTime = getGitTime tn.File
-                        
-                        if domainTime > 0L && testTime > 0L && domainTime < testTime then
-                            mkLocated FSATDD04 node.Location
-                        else None
-                    with _ -> None
-                | None -> None
-        else None
-    )
+        if node.Layer <> Domain then None
+        else
+            let test =
+                graph.Nodes
+                |> Map.tryPick (fun name candidate ->
+                    if name.Contains(node.Name) && (name.Contains("Test") || name.Contains("Spec")) then Some candidate
+                    else None)
+            Some { Implementation = node; Test = test })
+
+let tddHistoryFiles candidates =
+    candidates
+    |> List.collect (fun candidate ->
+        match candidate.Test with
+        | Some test when test.File <> candidate.Implementation.File -> [ candidate.Implementation.File; test.File ]
+        | _ -> [])
+    |> List.distinct
+
+let checkTDDWithHistory (additions: Map<string, int64>) candidates : Located<Rule> list =
+    candidates
+    |> List.choose (fun candidate ->
+        let implementation = candidate.Implementation
+        match candidate.Test with
+        | None -> mkLocated FSATDD01 implementation.Location
+        | Some test ->
+            match Map.tryFind implementation.File additions, Map.tryFind test.File additions with
+            | Some implementedAt, Some testedAt when implementedAt > 0L && implementedAt < testedAt ->
+                mkLocated FSATDD04 implementation.Location
+            | _ -> None)
+
+let checkTDD graph = checkTDDWithHistory Map.empty (tddCandidates graph)
 
 let detectCycles (graph: ModuleGraph) =
     let dfs (startNode: string) =

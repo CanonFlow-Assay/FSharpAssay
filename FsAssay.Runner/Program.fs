@@ -339,7 +339,11 @@ let main originalArguments =
 
             // Project level analysis
             if allTrees.Count > 0 then // EXPECT: FSA-F04
-                let projViolations = FsAssay.Analyzers.Library.projectAnalyzer (allTrees |> Seq.toList) |> Async.RunSynchronously // EXPECT: FSA-P03 // EXPECT: FSA-C03
+                let projViolations =
+                    allTrees
+                    |> Seq.toList
+                    |> FsAssay.Analyzers.Library.projectAnalyzerWithHistory GitHistory.additionTimes
+                    |> Async.RunSynchronously // EXPECT: FSA-P03 // EXPECT: FSA-C03
                 if not (List.isEmpty projViolations) then
                     totalViolations <- totalViolations + projViolations.Length // EXPECT: FSA-F04 // EXPECT: FSA-C10
                     allResults.Add("Architecture", projViolations) // EXPECT: FSA-F04

@@ -27,6 +27,7 @@
     <Compile Include="Config.fs" />
     <Compile Include="Authority.fs" />
     <Compile Include="Processes.fs" />
+    <Compile Include="GitHistory.fs" />
     <Compile Include="Verification.fs" />
     <Compile Include="Doctor.fs" />
     <Compile Include="ProjectSystem.fs" />
