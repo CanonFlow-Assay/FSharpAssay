@@ -8,3 +8,6 @@
 - [Refresh application](refresh/README.md): locally installed CLI consumer, required-test execution, real SQLite/HTTP boundaries and retained repair/mutation evidence.
 
 All use the repository's pinned SDK 11.0.100. The experimental Web UI and Desktop are separate frozen surfaces; these command-line samples do not promote them.
+
+See [phase-1 portable convergence](CONVERGENCE.md) for the next bounded F# shell
+candidate and its evidence limits.

@@ -160,3 +160,11 @@ specific executable examples; it does not establish universal precision or
 recall.
 
 Licensed under Apache-2.0. See `LICENSE`.
+
+## Estate evidence
+
+The estate plan targets `FsAssay.Stable.slnx` with SDK `11.0.100`. It
+restores locked dependencies, builds the solution, and retains the raw
+`verify` receipt and TRX evidence. Keep an ordinary `check` result with its
+`notRun` test evidence when you need the analysis-only comparison. The
+current policy has zero blocking and zero advisory admissions.
